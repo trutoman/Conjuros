@@ -1,0 +1,2 @@
+import type { ItemKind } from '@conjuros/contracts';
+export function ItemTypeSelector({ value, onChange }: { value: ItemKind; onChange: (kind: ItemKind) => void }) { return <fieldset><legend>Item type</legend><label><input type="radio" checked={value === 'spell'} onChange={() => onChange('spell')} /> Spell</label><label><input type="radio" checked={value === 'web-link'} onChange={() => onChange('web-link')} /> Web link</label></fieldset>; }
