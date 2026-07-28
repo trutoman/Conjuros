@@ -36,7 +36,7 @@ title, description, tags, order, and relationships.
 - Consistent async/await: Use `async/await` instead of `.then().catch()` chains.
 - Parallel operations: Use `Promise.all()` or `Promise.allSettled()` when database queries or external calls do not depend on each other.
 - Connection reuse: Reuse the existing MongoDB connection pool; never open a new connection for each request.
-- Dependency Injection: Use FastAPI `Depends()` for database sessions, current user authentication, and service instances.
+- Dependency Injection: Use Express middleware and service factories for database sessions, current user authentication, and service instances.
 - Clean controller layer: Controllers and routes handle only input validation, service calls, and HTTP response formatting. Put all business logic and database queries in services or repositories.
 - Centralized error handling: Do not use empty or ignored `try/catch` blocks. Pass unhandled errors to global middleware with `next(error)` in Express, or raise custom exceptions such as `AppError` or `NotFoundError`.
 - Error handling: Raise `HTTPException` with clear error detail structures.
