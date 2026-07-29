@@ -1,17 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import type { Collection, Db } from 'mongodb';
+import type { ThemePreference } from '@conjuros/contracts';
 
 export interface StoredUser {
   id: string;
   email: string;
   passwordHash: string;
   createdAt: string;
+  theme: ThemePreference;
 }
 
 export interface UsersRepository {
   findByEmail(email: string): Promise<StoredUser | null>;
   findById(id: string): Promise<StoredUser | null>;
   create(email: string, passwordHash: string): Promise<StoredUser>;
+  updateTheme(id: string, theme: ThemePreference): Promise<StoredUser | null>;
 }
 
 export class MongoUsersRepository implements UsersRepository {
@@ -21,35 +24,62 @@ export class MongoUsersRepository implements UsersRepository {
     this.users = database.collection<StoredUser>('users');
   }
 
+  private hydrate(user: StoredUser | null): StoredUser | null {
+    if (!user) return null;
+    return { ...user, theme: user.theme ?? 'light' };
+  }
+
   async findByEmail(email: string): Promise<StoredUser | null> {
-    return this.users.findOne({ email });
+    return this.hydrate(await this.users.findOne({ email }));
   }
 
   async findById(id: string): Promise<StoredUser | null> {
-    return this.users.findOne({ id });
+    return this.hydrate(await this.users.findOne({ id }));
   }
 
   async create(email: string, passwordHash: string): Promise<StoredUser> {
-    const user = { id: randomUUID(), email, passwordHash, createdAt: new Date().toISOString() };
+    const user = { id: randomUUID(), email, passwordHash, createdAt: new Date().toISOString(), theme: 'light' as const };
     await this.users.insertOne(user);
     return user;
+  }
+
+  async updateTheme(id: string, theme: ThemePreference): Promise<StoredUser | null> {
+    const result = await this.users.findOneAndUpdate(
+      { id },
+      { $set: { theme } },
+      { returnDocument: 'after' },
+    );
+    return this.hydrate(result);
   }
 }
 
 export class InMemoryUsersRepository implements UsersRepository {
   private readonly users = new Map<string, StoredUser>();
 
+  private hydrate(user: StoredUser | null): StoredUser | null {
+    if (!user) return null;
+    return { ...user, theme: user.theme ?? 'light' };
+  }
+
   async findByEmail(email: string): Promise<StoredUser | null> {
-    return [...this.users.values()].find((user) => user.email === email) ?? null;
+    return this.hydrate([...this.users.values()].find((user) => user.email === email) ?? null);
   }
 
   async findById(id: string): Promise<StoredUser | null> {
-    return this.users.get(id) ?? null;
+    return this.hydrate(this.users.get(id) ?? null);
   }
 
   async create(email: string, passwordHash: string): Promise<StoredUser> {
-    const user = { id: randomUUID(), email, passwordHash, createdAt: new Date().toISOString() };
+    const user = { id: randomUUID(), email, passwordHash, createdAt: new Date().toISOString(), theme: 'light' as const };
     this.users.set(user.id, user);
     return user;
+  }
+
+  async updateTheme(id: string, theme: ThemePreference): Promise<StoredUser | null> {
+    const current = this.users.get(id);
+    if (!current) return null;
+    const updated = { ...current, theme };
+    this.users.set(id, updated);
+    return updated;
   }
 }

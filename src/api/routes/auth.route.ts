@@ -6,5 +6,6 @@ export function createAuthRouter(controller: Record<string, RequestHandler>, req
     .post('/register', controller.register)
     .post('/login', controller.login)
     .post('/logout', controller.logout)
-    .get('/me', requireAuth, controller.me);
+    .get('/me', requireAuth, controller.me)
+    .patch('/me/theme', requireAuth, controller.updateTheme);
 }

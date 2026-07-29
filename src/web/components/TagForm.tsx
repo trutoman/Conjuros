@@ -39,7 +39,11 @@ export function TagForm({
         <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
       </FormField>
       <FormField label="Color" error={error}>
-        <input value={color} onChange={(event) => setColor(event.target.value)} placeholder="#RRGGBB" />
+        <div className="color-field">
+          <input type="color" value={color} onChange={(event) => setColor(event.target.value)} aria-label="Tag color picker" />
+          <input value={color} onChange={(event) => setColor(event.target.value)} aria-label="Tag color" placeholder="#RRGGBB" />
+          <span className="color-preview" aria-hidden="true" style={{ backgroundColor: color }} />
+        </div>
       </FormField>
       <div className="form-actions">
         <button type="submit">Save tag</button>

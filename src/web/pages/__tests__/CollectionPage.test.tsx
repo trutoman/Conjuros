@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
 
 vi.mock('../../hooks/useCollection', () => ({
@@ -22,11 +22,27 @@ vi.mock('../../hooks/useTags', () => ({
   }),
 }));
 
+afterEach(() => {
+  sessionStorage.clear();
+});
+
 describe('CollectionPage', () => {
   it('renders searchable collection items and a no-results state', () => {
     render(<CollectionPage />);
     expect(screen.getByText('Git status')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Search collection'), { target: { value: 'missing' } });
     expect(screen.getByText('No matching items')).toBeInTheDocument();
+  });
+
+  it('renders the theme controls and keeps secondary item actions de-emphasized', () => {
+    render(<CollectionPage />);
+
+    expect(screen.getByRole('group', { name: 'Theme preference' })).toBeInTheDocument();
+
+    const itemCard = screen.getByText('Git status').closest('.item-card');
+    expect(itemCard).toBeTruthy();
+    const actionButtons = itemCard?.querySelectorAll('button');
+    expect(actionButtons?.[1]).toHaveClass('action-secondary');
+    expect(actionButtons?.[2]).toHaveClass('action-secondary');
   });
 });

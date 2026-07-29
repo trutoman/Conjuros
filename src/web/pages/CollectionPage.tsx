@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CollectionItem, CollectionItemInput, Tag, TagInput } from '@conjuros/contracts';
+import type { CollectionItem, CollectionItemInput, Tag, TagInput, ThemePreference } from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { EmptyState } from '../components/EmptyState';
@@ -9,11 +9,12 @@ import { ItemForm } from '../components/ItemForm';
 import { LoadingState } from '../components/LoadingState';
 import { TagForm } from '../components/TagForm';
 import { TagList } from '../components/TagList';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
 import { useTags } from '../hooks/useTags';
 
-export function CollectionPage({ onSignOut }: { onSignOut?: () => void }) {
+export function CollectionPage({ onSignOut, theme = 'light', onThemeChange }: { onSignOut?: () => void; theme?: ThemePreference; onThemeChange?: (theme: ThemePreference) => void | Promise<void> }) {
   const { filters, setFilters, query } = useCollectionFilters();
   const { items, isLoading, error, create, update, remove, reorder } = useCollection(query);
   const tagsState = useTags();
@@ -56,7 +57,7 @@ export function CollectionPage({ onSignOut }: { onSignOut?: () => void }) {
         ? filters.tags.some((tag) => item.tags.includes(tag))
         : filters.tags.every((tag) => item.tags.includes(tag))));
   });
-  return <main className="app-shell"><header className="topbar"><div><p className="eyebrow">PRIVATE COLLECTION</p><h1>Conjuros</h1></div><div><button onClick={() => setFormItem(null)}>Add item</button><button onClick={() => setFormTag(null)}>Add tag</button>{onSignOut && <button className="quiet" onClick={onSignOut}>Sign out</button>}</div></header><FilterBar filters={filters} availableTags={tagsState.tags} onChange={setFilters} />{actionError && <ErrorState message={actionError} />}{isLoading || tagsState.isLoading ? <LoadingState /> : error ? <ErrorState message={error.message} /> : tagsState.error ? <ErrorState message={tagsState.error.message} /> : visibleItems.length === 0 ? <EmptyState filtered={filtered} /> : <CollectionList items={visibleItems} onReorder={(id, order) => void reorder({ id, order }).catch((cause: unknown) => setActionError(cause instanceof Error ? cause.message : 'Could not reorder item'))} onEdit={setFormItem} onDelete={setDeleteItem} />}
+  return <main className="app-shell"><header className="topbar"><div><p className="eyebrow">PRIVATE COLLECTION</p><h1>Conjuros</h1></div><div className="topbar-actions"><ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} /><button onClick={() => setFormItem(null)}>Add item</button><button onClick={() => setFormTag(null)}>Add tag</button>{onSignOut && <button className="quiet" onClick={onSignOut}>Sign out</button>}</div></header><FilterBar filters={filters} availableTags={tagsState.tags} onChange={setFilters} />{actionError && <ErrorState message={actionError} />}{isLoading || tagsState.isLoading ? <LoadingState /> : error ? <ErrorState message={error.message} /> : tagsState.error ? <ErrorState message={tagsState.error.message} /> : visibleItems.length === 0 ? <EmptyState filtered={filtered} /> : <CollectionList items={visibleItems} tags={tagsState.tags} onReorder={(id, order) => void reorder({ id, order }).catch((cause: unknown) => setActionError(cause instanceof Error ? cause.message : 'Could not reorder item'))} onEdit={setFormItem} onDelete={setDeleteItem} />}
   <TagList tags={tagsState.tags} onEdit={setFormTag} onDelete={setDeleteTag} onMove={(id, order) => void tagsState.reorder({ id, order }).catch((cause: unknown) => setActionError(cause instanceof Error ? cause.message : 'Could not reorder tag'))} />
   {formItem !== undefined && <ItemForm item={formItem ?? undefined} availableTags={tagsState.tags} onSubmit={save} onCancel={() => setFormItem(undefined)} />}
   {formTag !== undefined && <TagForm tag={formTag ?? undefined} onSubmit={saveTag} onCancel={() => setFormTag(undefined)} />}

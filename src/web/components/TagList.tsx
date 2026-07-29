@@ -12,19 +12,22 @@ export function TagList({
   onMove: (id: string, order: number) => void;
 }) {
   return (
-    <section>
+    <section className="tag-panel">
       <h2>Tags</h2>
-      <ul>
+      <ul className="tag-list">
         {tags.map((tag, index) => (
           <li key={tag.id}>
-            <span>{tag.tagName}</span>
-            <span> {tag.color}</span>
-            <button onClick={() => onEdit(tag)}>Edit</button>
-            <button onClick={() => onDelete(tag)}>Delete</button>
-            <button disabled={index === 0} onClick={() => onMove(tag.id, Math.max(1, tag.order - 1))}>
+            <span className="tag-name" style={{ color: tag.color }}>
+              <span className="tag-swatch" aria-hidden="true" style={{ backgroundColor: tag.color }} />
+              {tag.tagName}
+            </span>
+            <span className="tag-color"> {tag.color}</span>
+            <button type="button" onClick={() => onEdit(tag)}>Edit</button>
+            <button type="button" onClick={() => onDelete(tag)}>Delete</button>
+            <button type="button" disabled={index === 0} onClick={() => onMove(tag.id, Math.max(1, tag.order - 1))}>
               Move up
             </button>
-            <button onClick={() => onMove(tag.id, tag.order + 1)}>Move down</button>
+            <button type="button" onClick={() => onMove(tag.id, tag.order + 1)}>Move down</button>
           </li>
         ))}
       </ul>
