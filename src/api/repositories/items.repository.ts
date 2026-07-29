@@ -10,16 +10,24 @@ export interface ItemsRepository {
   list(ownerId: string, query: CollectionQuery): Promise<{ items: StoredCollectionItem[]; total: number }>;
   findOwned(id: string, ownerId: string): Promise<StoredCollectionItem | null>;
   findOwnedByIds(ids: string[], ownerId: string): Promise<StoredCollectionItem[]>;
+  findOwnedByTags(ownerId: string, tags: string[]): Promise<StoredCollectionItem[]>;
   nextOrder(ownerId: string): Promise<number>;
   create(ownerId: string, input: CollectionItemInput, order: number): Promise<StoredCollectionItem>;
   replace(item: StoredCollectionItem): Promise<StoredCollectionItem>;
   delete(id: string, ownerId: string): Promise<boolean>;
   reorder(id: string, ownerId: string, order: number): Promise<StoredCollectionItem | null>;
+  removeTagFromOwnerItems(ownerId: string, tag: string): Promise<number>;
+  renameTagForOwnerItems(ownerId: string, oldTag: string, newTag: string): Promise<number>;
 }
 
 function matchesQuery(item: StoredCollectionItem, query: CollectionQuery): boolean {
   if (query.kind && item.kind !== query.kind) return false;
-  if (query.tag && !item.tags.includes(query.tag)) return false;
+  if (query.tags && query.tags.length > 0) {
+    const hasTag = query.tagFilterMode === 'any'
+      ? query.tags.some((tag) => item.tags.includes(tag))
+      : query.tags.every((tag) => item.tags.includes(tag));
+    if (!hasTag) return false;
+  }
   if (!query.search) return true;
   const value = query.search.toLowerCase();
   return [item.title, item.description, item.command ?? '', item.url ?? '', ...item.tags]
@@ -54,6 +62,11 @@ export class InMemoryItemsRepository implements ItemsRepository {
       const item = this.items.get(id);
       return item?.ownerId === ownerId ? [item] : [];
     });
+  }
+
+  async findOwnedByTags(ownerId: string, tags: string[]) {
+    if (tags.length === 0) return [];
+    return [...this.items.values()].filter((item) => item.ownerId === ownerId && tags.every((tag) => item.tags.includes(tag)));
   }
 
   async nextOrder(ownerId: string) {
@@ -103,6 +116,38 @@ export class InMemoryItemsRepository implements ItemsRepository {
     ordered.forEach((candidate, index) => this.items.set(candidate.id, { ...candidate, order: index + 1, updatedAt: timestamp }));
     return this.items.get(id) ?? null;
   }
+
+  async removeTagFromOwnerItems(ownerId: string, tag: string) {
+    const timestamp = new Date().toISOString();
+    let updated = 0;
+    for (const item of this.items.values()) {
+      if (item.ownerId !== ownerId || !item.tags.includes(tag)) continue;
+      this.items.set(item.id, {
+        ...item,
+        tags: item.tags.filter((candidate) => candidate !== tag),
+        updatedAt: timestamp,
+      });
+      updated += 1;
+    }
+    return updated;
+  }
+
+  async renameTagForOwnerItems(ownerId: string, oldTag: string, newTag: string) {
+    if (oldTag === newTag) return 0;
+    const timestamp = new Date().toISOString();
+    let updated = 0;
+    for (const item of this.items.values()) {
+      if (item.ownerId !== ownerId || !item.tags.includes(oldTag)) continue;
+      const replaced = item.tags.map((candidate) => (candidate === oldTag ? newTag : candidate));
+      this.items.set(item.id, {
+        ...item,
+        tags: [...new Set(replaced)],
+        updatedAt: timestamp,
+      });
+      updated += 1;
+    }
+    return updated;
+  }
 }
 
 export class MongoItemsRepository implements ItemsRepository {
@@ -115,7 +160,9 @@ export class MongoItemsRepository implements ItemsRepository {
   async list(ownerId: string, query: CollectionQuery) {
     const filter: Filter<StoredCollectionItem> = { ownerId };
     if (query.kind) filter.kind = query.kind;
-    if (query.tag) filter.tags = query.tag;
+    if (query.tags && query.tags.length > 0) {
+      filter.tags = query.tagFilterMode === 'any' ? { $in: query.tags } : { $all: query.tags };
+    }
     if (query.search) {
       const expression = { $regex: query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
       filter.$or = [{ title: expression }, { description: expression }, { command: expression }, { url: expression }, { tags: expression }];
@@ -134,6 +181,11 @@ export class MongoItemsRepository implements ItemsRepository {
 
   async findOwnedByIds(ids: string[], ownerId: string) {
     return this.items.find({ id: { $in: ids }, ownerId }).toArray();
+  }
+
+  async findOwnedByTags(ownerId: string, tags: string[]) {
+    if (tags.length === 0) return [];
+    return this.items.find({ ownerId, tags: { $all: tags } }).toArray();
   }
 
   async nextOrder(ownerId: string) {
@@ -173,5 +225,37 @@ export class MongoItemsRepository implements ItemsRepository {
       updateOne: { filter: { id: candidate.id, ownerId }, update: { $set: { order: index + 1, updatedAt: timestamp } } },
     })));
     return { ...item, order: reordered.findIndex((candidate) => candidate.id === id) + 1, updatedAt: timestamp };
+  }
+
+  async removeTagFromOwnerItems(ownerId: string, tag: string) {
+    const result = await this.items.updateMany(
+      { ownerId, tags: tag },
+      { $pull: { tags: tag }, $set: { updatedAt: new Date().toISOString() } },
+    );
+    return result.modifiedCount;
+  }
+
+  async renameTagForOwnerItems(ownerId: string, oldTag: string, newTag: string) {
+    if (oldTag === newTag) return 0;
+
+    const taggedItems = await this.items.find({ ownerId, tags: oldTag }).toArray();
+    if (taggedItems.length === 0) return 0;
+
+    const timestamp = new Date().toISOString();
+    await this.items.bulkWrite(
+      taggedItems.map((item) => ({
+        updateOne: {
+          filter: { id: item.id, ownerId },
+          update: {
+            $set: {
+              tags: [...new Set(item.tags.map((candidate) => (candidate === oldTag ? newTag : candidate)))],
+              updatedAt: timestamp,
+            },
+          },
+        },
+      })),
+    );
+
+    return taggedItems.length;
   }
 }

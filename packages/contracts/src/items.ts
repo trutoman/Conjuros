@@ -1,30 +1,21 @@
 import { z } from 'zod';
+import { normalizeTagName, tagNameSchema } from './tags';
 
 export const itemKinds = ['spell', 'web-link'] as const;
-export const tagCatalog = [
-  'backend',
-  'database',
-  'docs',
-  'frontend',
-  'git',
-  'productivity',
-  'shell',
-  'terminal',
-  'testing',
-] as const;
 
 export const itemKindSchema = z.enum(itemKinds);
 export const itemIdSchema = z.string().min(1).max(128);
-export const tagSchema = z.enum(tagCatalog);
+export const tagValueSchema = tagNameSchema.transform(normalizeTagName);
+export const tagFilterModeSchema = z.enum(['all', 'any']);
 
 export function normalizeTags(tags: readonly string[]): string[] {
-  return [...new Set(tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
+  return [...new Set(tags.map((tag) => normalizeTagName(tag)).filter(Boolean))];
 }
 
 const commonItemFields = {
   title: z.string().trim().min(1).max(120),
   description: z.string().trim().max(2_000),
-  tags: z.array(z.string()).max(10).transform(normalizeTags).pipe(z.array(tagSchema).max(10)),
+  tags: z.array(z.string()).max(10).transform(normalizeTags).pipe(z.array(tagValueSchema).max(10)),
   relatedItemIds: z.array(itemIdSchema).max(20).transform((ids) => [...new Set(ids)]),
 };
 
@@ -72,7 +63,7 @@ export const collectionItemSchema = z.object({
   kind: itemKindSchema,
   title: z.string(),
   description: z.string(),
-  tags: z.array(tagSchema),
+  tags: z.array(tagValueSchema),
   order: z.number().int().positive(),
   relatedItemIds: z.array(itemIdSchema),
   command: z.string().nullable(),
@@ -86,7 +77,16 @@ export const collectionQuerySchema = z.object({
   skip: z.coerce.number().int().min(0).default(0),
   search: z.string().trim().max(200).optional(),
   kind: itemKindSchema.optional(),
-  tag: tagSchema.optional(),
+  tags: z
+    .preprocess(
+      (value) => {
+        if (value === undefined || value === null || value === '') return undefined;
+        return Array.isArray(value) ? value : [value];
+      },
+      z.array(z.string()).max(10).transform(normalizeTags),
+    )
+    .optional(),
+  tagFilterMode: tagFilterModeSchema.default('all'),
   sort: z.enum(['order', 'updatedAt', 'title']).default('order'),
 });
 
@@ -100,7 +100,7 @@ export const collectionListSchema = z.object({
 });
 
 export type ItemKind = z.infer<typeof itemKindSchema>;
-export type Tag = z.infer<typeof tagSchema>;
+export type ItemTag = z.infer<typeof tagValueSchema>;
 export type CollectionItemInput = z.infer<typeof collectionItemInputSchema>;
 export type CollectionItemUpdate = z.infer<typeof collectionItemUpdateSchema>;
 export type CollectionItem = z.infer<typeof collectionItemSchema>;

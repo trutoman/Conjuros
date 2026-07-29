@@ -1,6 +1,7 @@
 import {
   collectionItemInputSchema,
   collectionItemUpdateSchema,
+  normalizeTagName,
   type CollectionItem,
   type CollectionItemInput,
   type CollectionItemUpdate,
@@ -8,6 +9,7 @@ import {
 } from '@conjuros/contracts';
 import { AppError } from '../errors';
 import type { ItemsRepository, StoredCollectionItem } from '../repositories/items.repository';
+import type { TagsService } from './tags.service';
 
 function toPublicItem(item: StoredCollectionItem): CollectionItem {
   const { ownerId, ...publicItem } = item;
@@ -16,7 +18,10 @@ function toPublicItem(item: StoredCollectionItem): CollectionItem {
 }
 
 export class ItemsService {
-  constructor(private readonly repository: ItemsRepository) {}
+  constructor(
+    private readonly repository: ItemsRepository,
+    private readonly tags: Pick<TagsService, 'assertOwnedTagNames'>,
+  ) {}
 
   async list(ownerId: string, query: CollectionQuery) {
     const result = await this.repository.list(ownerId, query);
@@ -30,6 +35,7 @@ export class ItemsService {
 
   async create(ownerId: string, input: CollectionItemInput) {
     await this.assertRelatedItemsOwned(ownerId, input.relatedItemIds);
+    await this.assertOwnedTags(ownerId, input.tags);
     const order = await this.repository.nextOrder(ownerId);
     return toPublicItem(await this.repository.create(ownerId, input, order));
   }
@@ -46,6 +52,7 @@ export class ItemsService {
       ...(kind === 'spell' ? { command: update.command ?? current.command } : { url: update.url ?? current.url }),
     });
     await this.assertRelatedItemsOwned(ownerId, candidate.relatedItemIds);
+    await this.assertOwnedTags(ownerId, candidate.tags);
     return toPublicItem(await this.repository.replace({
       ...current,
       kind: candidate.kind,
@@ -91,5 +98,10 @@ export class ItemsService {
     if (related.length !== ids.length) {
       throw new AppError(400, 'VALIDATION_ERROR', 'Related items must belong to the current user');
     }
+  }
+
+  private async assertOwnedTags(ownerId: string, tags: string[]) {
+    const normalizedTags = [...new Set(tags.map((tag) => normalizeTagName(tag)))];
+    await this.tags.assertOwnedTagNames(ownerId, normalizedTags);
   }
 }

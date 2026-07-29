@@ -9,6 +9,19 @@ vi.mock('../../hooks/useCollection', () => ({
   }),
 }));
 
+vi.mock('../../hooks/useTags', () => ({
+  useTags: () => ({
+    tags: [{ id: 'tag-1', tagName: 'git', description: '', color: '#123ABC', order: 1, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }],
+    total: 1,
+    isLoading: false,
+    error: null,
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    reorder: vi.fn(),
+  }),
+}));
+
 describe('CollectionPage', () => {
   it('renders searchable collection items and a no-results state', () => {
     render(<CollectionPage />);

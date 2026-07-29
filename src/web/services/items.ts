@@ -23,7 +23,14 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 
 export async function listItems(query: CollectionQuery) {
   const params = new URLSearchParams();
-  Object.entries(query).forEach(([key, value]) => { if (value !== undefined) params.set(key, String(value)); });
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === undefined) return;
+    if (key === 'tags' && Array.isArray(value)) {
+      value.forEach((tag) => params.append('tags', tag));
+      return;
+    }
+    params.set(key, String(value));
+  });
   return collectionListSchema.parse(await api(`/items?${params.toString()}`));
 }
 
