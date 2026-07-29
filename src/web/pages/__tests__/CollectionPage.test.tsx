@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
 
 vi.mock('../../hooks/useCollection', () => ({
@@ -9,11 +9,40 @@ vi.mock('../../hooks/useCollection', () => ({
   }),
 }));
 
+vi.mock('../../hooks/useTags', () => ({
+  useTags: () => ({
+    tags: [{ id: 'tag-1', tagName: 'git', description: '', color: '#123ABC', order: 1, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }],
+    total: 1,
+    isLoading: false,
+    error: null,
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    reorder: vi.fn(),
+  }),
+}));
+
+afterEach(() => {
+  sessionStorage.clear();
+});
+
 describe('CollectionPage', () => {
   it('renders searchable collection items and a no-results state', () => {
     render(<CollectionPage />);
     expect(screen.getByText('Git status')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Search collection'), { target: { value: 'missing' } });
     expect(screen.getByText('No matching items')).toBeInTheDocument();
+  });
+
+  it('renders the theme controls and keeps secondary item actions de-emphasized', () => {
+    render(<CollectionPage />);
+
+    expect(screen.getByRole('group', { name: 'Theme preference' })).toBeInTheDocument();
+
+    const itemCard = screen.getByText('Git status').closest('.item-card');
+    expect(itemCard).toBeTruthy();
+    const actionButtons = itemCard?.querySelectorAll('button');
+    expect(actionButtons?.[1]).toHaveClass('action-secondary');
+    expect(actionButtons?.[2]).toHaveClass('action-secondary');
   });
 });

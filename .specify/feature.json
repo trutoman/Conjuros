@@ -1,1 +1,3 @@
-{"feature_directory":"specs/002-environment-setup"}
+{
+	"feature_directory": "specs/003-configurable-tags"
+}

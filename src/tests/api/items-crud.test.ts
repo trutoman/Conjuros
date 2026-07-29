@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { createTestApp, registerUser } from './testApp';
+import { createTag, createTestApp, registerUser } from './testApp';
 
 describe('collection item CRUD endpoints', () => {
   it('rejects invalid input and prevents cross-user updates and deletion', async () => {
@@ -13,6 +13,8 @@ describe('collection item CRUD endpoints', () => {
       .set('Cookie', ownerCookie)
       .send({ kind: 'spell', title: 'Broken', description: '', tags: [], relatedItemIds: [] })
       .expect(400);
+
+    await createTag(request, app, ownerCookie, 'backend');
 
     const otherItem = await request(app)
       .post('/api/items')

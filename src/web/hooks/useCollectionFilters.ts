@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import type { CollectionQuery, ItemKind, Tag } from '@conjuros/contracts';
+import type { CollectionQuery, ItemKind } from '@conjuros/contracts';
 
 export interface CollectionFilters {
   search: string;
   kind?: ItemKind;
-  tag?: Tag;
+  tags: string[];
+  tagFilterMode: 'all' | 'any';
 }
 
-const defaultFilters: CollectionFilters = { search: '' };
+const defaultFilters: CollectionFilters = { search: '', tags: [], tagFilterMode: 'all' };
 
 export function useCollectionFilters() {
   const [filters, setFilters] = useState<CollectionFilters>(() => {
@@ -18,6 +19,14 @@ export function useCollectionFilters() {
     }
   });
   useEffect(() => { sessionStorage.setItem('conjuros:filters', JSON.stringify(filters)); }, [filters]);
-  const query: CollectionQuery = { limit: 50, skip: 0, sort: 'order', ...(filters.search ? { search: filters.search } : {}), ...(filters.kind ? { kind: filters.kind } : {}), ...(filters.tag ? { tag: filters.tag } : {}) };
+  const query: CollectionQuery = {
+    limit: 50,
+    skip: 0,
+    sort: 'order',
+    tagFilterMode: filters.tagFilterMode,
+    ...(filters.search ? { search: filters.search } : {}),
+    ...(filters.kind ? { kind: filters.kind } : {}),
+    ...(filters.tags.length > 0 ? { tags: filters.tags } : {}),
+  };
   return { filters, setFilters, query };
 }
