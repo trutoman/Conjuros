@@ -141,11 +141,12 @@ button:disabled {
 
 .eyebrow {
   color: var(--warning);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 0.72rem;
+  font-family: 'Zeyada', system-ui;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 1.2rem;
   letter-spacing: 0.08em;
   margin: 0 0 0.35rem;
-  text-transform: uppercase;
 }
 
 h1 {
@@ -212,8 +213,20 @@ select {
 }
 
 .reorder-controls button {
-  font-size: 0.72rem;
-  padding: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0.25rem;
+  line-height: 0;
+}
+
+.reorder-controls button img {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+  object-fit: contain;
 }
 
 .drag-mark {
@@ -253,37 +266,92 @@ select {
   border-left-color: var(--link);
 }
 
-.item-heading {
+.item-header {
   display: flex;
-  gap: 0.65rem;
-  align-items: baseline;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
-.item-heading h2 {
-  font-size: 1.25rem;
-  margin: 0;
+.item-title-group {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 1;
 }
 
-.kind {
-  padding: 0.22rem 0.48rem;
-  font:
-    0.67rem ui-monospace,
-    SFMono-Regular,
-    monospace;
+.item-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
   background: var(--accent-soft);
   color: var(--primary);
-  border-radius: 0.5rem;
-  border: 1px solid var(--border);
-  text-transform: uppercase;
+  flex: 0 0 auto;
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
-.kind-web-link {
+.item-type-badge.kind-web-link {
   background: rgba(37, 99, 235, 0.12);
   color: var(--link);
 }
 
+.icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.item-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.item-title-block h2 {
+  font-size: 1.2rem;
+  margin: 0;
+  font-family: 'Germania One', 'Times New Roman', serif;
+}
+
+.item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.item-meta > span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.item-description {
+  margin: 0.75rem 0 0.5rem;
+  color: var(--text-muted);
+}
+
+.item-body {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .item-card code {
   display: block;
+  flex: 1;
+  min-width: 0;
   max-height: 5rem;
   overflow: auto;
   background: var(--surface-muted);
@@ -301,11 +369,13 @@ select {
 .tags {
   display: flex;
   gap: 0.4rem;
-  flex-wrap: wrap;
-  padding: 0.7rem 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow: hidden;
+  min-width: 0;
 }
 
-.tags span {
+.tag-pill {
   background: var(--surface-alt);
   color: var(--text);
   font:
@@ -315,15 +385,46 @@ select {
   padding: 0.2rem 0.45rem;
   border-radius: 0.45rem;
   border: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.tags span[style] {
+.tags .tag-pill[style] {
   background: color-mix(in srgb, currentColor 12%, var(--surface));
 }
 
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 0.7rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.icon-action:hover {
+  transform: none;
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
 .action-secondary {
-  opacity: 0;
-  pointer-events: none;
+  opacity: 1;
+  pointer-events: auto;
   transition:
     opacity 0.15s ease,
     transform 0.15s ease;
@@ -333,6 +434,17 @@ select {
 .item-card:focus-within .action-secondary {
   opacity: 1;
   pointer-events: auto;
+}
+
+.icon-action.danger {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.action-message {
+  margin-top: 0.7rem;
+  color: var(--success);
 }
 
 .action-message,
@@ -355,6 +467,10 @@ select {
   background: transparent;
   color: var(--text);
   padding: 0.55rem 0.8rem;
+  min-width: 2.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .theme-toggle button[aria-pressed='true'] {

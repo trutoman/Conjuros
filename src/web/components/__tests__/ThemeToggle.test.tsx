@@ -24,10 +24,10 @@ describe('ThemeToggle', () => {
 
     render(<ThemeHarness initialTheme="light" enabled />);
 
-    expect(screen.getByRole('button', { name: 'Light' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Light mode' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveAttribute('aria-pressed', 'false');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Dark' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dark mode' }));
 
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/me/theme', expect.objectContaining({ method: 'PATCH' }));
     expect(document.documentElement.dataset.theme).toBe('dark');
@@ -36,6 +36,6 @@ describe('ThemeToggle', () => {
   it('keeps a saved dark preference after reload', () => {
     render(<ThemeHarness initialTheme="dark" enabled />);
 
-    expect(screen.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveAttribute('aria-pressed', 'true');
   });
 });
