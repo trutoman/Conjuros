@@ -141,9 +141,7 @@ button:disabled {
 
 .eyebrow {
   color: var(--warning);
-  font-family: 'Zeyada', system-ui;
-  font-weight: 400;
-  font-style: normal;
+  font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 1.2rem;
   letter-spacing: 0.08em;
   margin: 0 0 0.35rem;

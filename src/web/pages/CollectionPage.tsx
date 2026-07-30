@@ -102,7 +102,7 @@ export function CollectionPage({
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Evil begins when you begin to treat people as things.</p>
+          <p className="eyebrow">Enchantments to charm machines.</p>
           <h1>Conjuros</h1>
         </div>
         <div className="topbar-actions">
