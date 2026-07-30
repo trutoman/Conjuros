@@ -3,9 +3,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ItemCard } from '../ItemCard';
 
 const spell = {
-  id: 'spell-1', kind: 'spell' as const, title: 'Status', description: 'Check repository state',
-  tags: ['git' as const], order: 1, relatedItemIds: [], command: 'git status --short', url: null,
-  createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+  id: 'spell-1',
+  kind: 'spell' as const,
+  title: 'Status',
+  description: 'Check repository state',
+  tags: ['git' as const],
+  order: 1,
+  relatedItemIds: [],
+  command: 'git status --short',
+  url: null,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
 afterEach(() => vi.restoreAllMocks());
@@ -15,6 +23,8 @@ describe('ItemCard', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+
+    expect(screen.getByRole('img', { name: 'Spell' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy command' }));
 
@@ -26,7 +36,17 @@ describe('ItemCard', () => {
     render(
       <ItemCard
         item={spell}
-        tags={[{ id: 'tag-1', tagName: 'git', description: '', color: '#123ABC', order: 1, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' }]}
+        tags={[
+          {
+            id: 'tag-1',
+            tagName: 'git',
+            description: '',
+            color: '#123ABC',
+            order: 1,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ]}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
@@ -39,8 +59,15 @@ describe('ItemCard', () => {
 
   it('opens a link only when the open action is clicked', () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
-    render(<ItemCard item={{ ...spell, kind: 'web-link', command: null, url: 'https://example.com' }} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(
+      <ItemCard
+        item={{ ...spell, kind: 'web-link', command: null, url: 'https://example.com' }}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
 
+    expect(screen.queryByRole('button', { name: 'Copy command' })).not.toBeInTheDocument();
     expect(open).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Open link' }));
     expect(open).toHaveBeenCalledWith('https://example.com', '_blank', 'noopener,noreferrer');
