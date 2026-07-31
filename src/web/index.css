@@ -365,7 +365,7 @@ select {
   border: 1px solid var(--border);
   border-left: 1px solid var(--primary);
   border-radius: 1rem;
-  padding: 1.15rem;
+  padding: 0.45rem;
   background: var(--surface-elevated);
   box-shadow: var(--shadow);
   transition:
@@ -392,7 +392,7 @@ select {
 .item-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
 }
 
@@ -447,8 +447,8 @@ select {
 
 .item-title-row {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 0.5rem;
   min-width: 0;
 }
@@ -457,6 +457,50 @@ select {
   font-size: 1.2rem;
   margin: 0;
   font-family: 'Germania One', 'Times New Roman', serif;
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-inline-content-box {
+  flex: 1 1 auto;
+  min-width: 2rem;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  padding: 0.1rem 0.2rem 0.1rem 0.45rem;
+}
+
+.item-inline-content {
+  flex: 1 1 auto;
+  min-width: 2rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font:
+    0.78rem ui-monospace,
+    SFMono-Regular,
+    monospace;
+}
+
+.item-inline-toggle {
+  flex: 0 0 auto;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 0.45rem;
+  background: transparent;
+  box-shadow: none;
+}
+
+.item-inline-toggle:hover {
+  background: color-mix(in srgb, var(--border) 40%, transparent) !important;
 }
 
 .item-meta {
@@ -542,6 +586,7 @@ select {
   align-items: center;
   overflow: hidden;
   min-width: 0;
+  flex: 0 1 auto;
 }
 
 .tag-pill {
@@ -561,6 +606,49 @@ select {
 
 .tags .tag-pill[style] {
   background: color-mix(in srgb, currentColor 12%, var(--surface));
+}
+
+.tag-overflow {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.tag-overflow-indicator {
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  min-height: 1.5rem;
+  min-width: 2rem;
+  font:
+    0.72rem ui-monospace,
+    SFMono-Regular,
+    monospace;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.tag-overflow-indicator:hover {
+  transform: none;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.tag-overflow-popover {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 2;
+  min-width: 10rem;
+  max-width: 16rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 0.75rem;
 }
 
 .item-actions {

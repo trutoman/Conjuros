@@ -1,7 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
+import { computeTagOverflow, estimateInlineWidth } from './itemCardOverflow';
 
-function Icon({ label, path, title, viewBox = '0 0 24 24', filled = false }: { label: string; path: string; title: string; viewBox?: string; filled?: boolean }) {
+function Icon({
+  label,
+  path,
+  title,
+  viewBox = '0 0 24 24',
+  filled = false,
+}: {
+  label: string;
+  path: string;
+  title: string;
+  viewBox?: string;
+  filled?: boolean;
+}) {
   return (
     <svg
       className={filled ? 'icon icon-filled' : 'icon'}
@@ -30,8 +43,76 @@ export function ItemCard({
 }) {
   const [message, setMessage] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [topRowWidth, setTopRowWidth] = useState<number>(Number.POSITIVE_INFINITY);
+  const [isTagOverflowOpen, setIsTagOverflowOpen] = useState(false);
+  const topRowRef = useRef<HTMLDivElement | null>(null);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
   const tagColors = new Map(tags.map((tag) => [tag.tagName, tag.color]));
   const isSpell = item.kind === 'spell';
+  const contentValue = item.command ?? item.url ?? '';
+
+  const supportsHover = useMemo(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return true;
+    }
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }, []);
+
+  useEffect(() => {
+    const node = topRowRef.current;
+    if (!node) {
+      return;
+    }
+
+    const measure = () => {
+      const width = node.getBoundingClientRect().width;
+      setTopRowWidth(width > 0 ? width : Number.POSITIVE_INFINITY);
+    };
+
+    measure();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) {
+          return;
+        }
+        const next = entry.contentRect.width;
+        setTopRowWidth(next > 0 ? next : Number.POSITIVE_INFINITY);
+      });
+      observer.observe(node);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  const { visibleTags, hiddenTags } = useMemo(() => {
+    if (item.tags.length === 0) {
+      return { visibleTags: [] as string[], hiddenTags: [] as string[] };
+    }
+
+    const titleWidth =
+      titleRef.current?.getBoundingClientRect().width ?? estimateInlineWidth(item.title, 8, 20);
+    const tagWidths = item.tags.map((tag) => estimateInlineWidth(tag, 7, 18));
+    const overflow = computeTagOverflow({
+      availableWidth: topRowWidth,
+      titleWidth,
+      minContentWidth: 32,
+      tagWidths,
+      gap: 6,
+    });
+
+    if (overflow.collapsedCount <= 0) {
+      return { visibleTags: item.tags, hiddenTags: [] as string[] };
+    }
+
+    return {
+      visibleTags: item.tags.slice(0, overflow.visibleCount),
+      hiddenTags: item.tags.slice(overflow.visibleCount),
+    };
+  }, [item.tags, item.title, topRowWidth]);
 
   async function copy(value: string, label: string) {
     try {
@@ -71,11 +152,31 @@ export function ItemCard({
             )}
           </div>
           <div className="item-title-block">
-            <div className="item-title-row">
-              <h2>{item.title}</h2>
+            <div className="item-title-row" ref={topRowRef}>
+              <h2 ref={titleRef}>{item.title}</h2>
+              <div className="item-inline-content-box">
+                <code className="item-inline-content" aria-label="Item content">
+                  {contentValue}
+                </code>
+                {item.description && (
+                  <button
+                    type="button"
+                    className="icon-action accordion-toggle item-inline-toggle"
+                    aria-label={expanded ? 'Hide description' : 'Show description'}
+                    aria-expanded={expanded}
+                    onClick={() => setExpanded((v) => !v)}
+                  >
+                    <Icon
+                      label={expanded ? 'Collapse' : 'Expand'}
+                      title={expanded ? 'Collapse' : 'Expand'}
+                      path={expanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+                    />
+                  </button>
+                )}
+              </div>
               {item.tags.length > 0 && (
                 <div className="tags" aria-label="Item tags">
-                  {item.tags.map((tag) => (
+                  {visibleTags.map((tag) => (
                     <span
                       key={tag}
                       className="tag-pill"
@@ -88,6 +189,34 @@ export function ItemCard({
                       {tag}
                     </span>
                   ))}
+                  {hiddenTags.length > 0 && (
+                    <div className="tag-overflow">
+                      <button
+                        type="button"
+                        className="tag-overflow-indicator"
+                        aria-label={`Show ${hiddenTags.length} hidden tags`}
+                        onMouseEnter={() => {
+                          if (supportsHover) {
+                            setIsTagOverflowOpen(true);
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          if (supportsHover) {
+                            setIsTagOverflowOpen(false);
+                          }
+                        }}
+                        onFocus={() => setIsTagOverflowOpen(true)}
+                        onBlur={() => setIsTagOverflowOpen(false)}
+                      >
+                        +{hiddenTags.length}
+                      </button>
+                      {isTagOverflowOpen && (
+                        <div className="tag-overflow-popover" role="tooltip">
+                          {hiddenTags.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -117,7 +246,13 @@ export function ItemCard({
               aria-label="Open link"
               onClick={() => window.open(openUrl, '_blank', 'noopener,noreferrer')}
             >
-              <Icon label="Open" title="Open" path="M318-120q-82 0-140-58t-58-140q0-40 15-76t43-64l134-133 56 56-134 134q-17 17-25.5 38.5T200-318q0 49 34.5 83.5T318-200q23 0 45-8.5t39-25.5l133-134 57 57-134 133q-28 28-64 43t-76 15Zm79-220-57-57 223-223 57 57-223 223Zm251-28-56-57 134-133q17-17 25-38t8-44q0-50-34-85t-84-35q-23 0-44.5 8.5T558-726L425-592l-57-56 134-134q28-28 64-43t76-15q82 0 139.5 58T839-641q0 39-14.5 75T782-502L648-368Z" viewBox="0 -960 960 960" filled />
+              <Icon
+                label="Open"
+                title="Open"
+                path="M318-120q-82 0-140-58t-58-140q0-40 15-76t43-64l134-133 56 56-134 134q-17 17-25.5 38.5T200-318q0 49 34.5 83.5T318-200q23 0 45-8.5t39-25.5l133-134 57 57-134 133q-28 28-64 43t-76 15Zm79-220-57-57 223-223 57 57-223 223Zm251-28-56-57 134-133q17-17 25-38t8-44q0-50-34-85t-84-35q-23 0-44.5 8.5T558-726L425-592l-57-56 134-134q28-28 64-43t76-15q82 0 139.5 58T839-641q0 39-14.5 75T782-502L648-368Z"
+                viewBox="0 -960 960 960"
+                filled
+              />
             </button>
           )}
           <button
@@ -148,29 +283,7 @@ export function ItemCard({
           </button>
         </div>
       </div>
-      <div className="item-body">
-        <div className="item-code-box">
-          <code>{item.command ?? item.url}</code>
-          {item.description && (
-            <button
-              type="button"
-              className="icon-action accordion-toggle"
-              aria-label={expanded ? 'Hide description' : 'Show description'}
-              aria-expanded={expanded}
-              onClick={() => setExpanded((v) => !v)}
-            >
-              <Icon
-                label={expanded ? 'Collapse' : 'Expand'}
-                title={expanded ? 'Collapse' : 'Expand'}
-                path={expanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
-              />
-            </button>
-          )}
-        </div>
-      </div>
-      {item.description && expanded && (
-        <p className="item-description">{item.description}</p>
-      )}
+      {item.description && expanded && <p className="item-description">{item.description}</p>}
       {message && (
         <p className="action-message" role="status">
           {message}

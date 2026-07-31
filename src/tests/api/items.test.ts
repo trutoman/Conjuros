@@ -14,12 +14,26 @@ describe('GET /api/items', () => {
     await request(app)
       .post('/api/items')
       .set('Cookie', ownerCookie)
-      .send({ kind: 'spell', title: 'Git status', description: 'Check state', tags: ['git'], relatedItemIds: [], command: 'git status' })
+      .send({
+        kind: 'spell',
+        title: 'Git status',
+        description: 'Check state',
+        tags: ['git'],
+        relatedItemIds: [],
+        command: 'git status',
+      })
       .expect(201);
     await request(app)
       .post('/api/items')
       .set('Cookie', otherCookie)
-      .send({ kind: 'web-link', title: 'Private docs', description: '', tags: ['docs'], relatedItemIds: [], url: 'https://example.com' })
+      .send({
+        kind: 'web-link',
+        title: 'Private docs',
+        description: '',
+        tags: ['docs'],
+        relatedItemIds: [],
+        url: 'https://example.com',
+      })
       .expect(201);
 
     const response = await request(app)
@@ -42,24 +56,77 @@ describe('GET /api/items', () => {
     await request(app)
       .post('/api/items')
       .set('Cookie', cookie)
-      .send({ kind: 'spell', title: 'Both tags', description: '', tags: ['git', 'docs'], relatedItemIds: [], command: 'echo both' })
+      .send({
+        kind: 'spell',
+        title: 'Both tags',
+        description: '',
+        tags: ['git', 'docs'],
+        relatedItemIds: [],
+        command: 'echo both',
+      })
       .expect(201);
     await request(app)
       .post('/api/items')
       .set('Cookie', cookie)
-      .send({ kind: 'spell', title: 'Git only', description: '', tags: ['git'], relatedItemIds: [], command: 'echo git' })
+      .send({
+        kind: 'spell',
+        title: 'Git only',
+        description: '',
+        tags: ['git'],
+        relatedItemIds: [],
+        command: 'echo git',
+      })
       .expect(201);
 
     const allResponse = await request(app)
       .get('/api/items?tags=git&tags=docs&tagFilterMode=all')
       .set('Cookie', cookie)
       .expect(200);
-    expect(allResponse.body.items.map((item: { title: string }) => item.title)).toEqual(['Both tags']);
+    expect(allResponse.body.items.map((item: { title: string }) => item.title)).toEqual([
+      'Both tags',
+    ]);
 
     const anyResponse = await request(app)
       .get('/api/items?tags=git&tags=docs&tagFilterMode=any')
       .set('Cookie', cookie)
       .expect(200);
     expect(anyResponse.body.items).toHaveLength(2);
+  });
+
+  it('denies cross-user read, update, and delete access to private items', async () => {
+    const { app } = createTestApp();
+    const ownerCookie = await registerUser(request, app, 'owner@example.com');
+    const otherCookie = await registerUser(request, app, 'other@example.com');
+
+    const created = await request(app)
+      .post('/api/items')
+      .set('Cookie', ownerCookie)
+      .send({
+        kind: 'spell',
+        title: 'Owner only',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        command: 'private',
+      })
+      .expect(201);
+
+    const getResponse = await request(app)
+      .get(`/api/items/${created.body.id}`)
+      .set('Cookie', otherCookie);
+    expect([403, 404]).toContain(getResponse.status);
+
+    const patchResponse = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', otherCookie)
+      .send({ title: 'Hijacked' });
+    expect([403, 404]).toContain(patchResponse.status);
+
+    const deleteResponse = await request(app)
+      .delete(`/api/items/${created.body.id}`)
+      .set('Cookie', otherCookie);
+    expect([403, 404]).toContain(deleteResponse.status);
+
+    await request(app).get(`/api/items/${created.body.id}`).set('Cookie', ownerCookie).expect(200);
   });
 });
