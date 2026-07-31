@@ -123,4 +123,14 @@ describe('CollectionPage', () => {
 
     expect(await screen.findByText('Could not reorder item')).toBeInTheDocument();
   });
+
+  it('renders the user widget and routes sign out through its action', () => {
+    const onSignOut = vi.fn();
+    render(<CollectionPage onSignOut={onSignOut} currentUserLabel="alicia" />);
+
+    expect(screen.getByText('alicia')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out alicia' }));
+
+    expect(onSignOut).toHaveBeenCalledTimes(1);
+  });
 });
