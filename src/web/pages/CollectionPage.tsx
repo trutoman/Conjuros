@@ -2,8 +2,6 @@ import { useState } from 'react';
 import type {
   CollectionItem,
   CollectionItemInput,
-  Tag,
-  TagInput,
   ThemePreference,
 } from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
@@ -13,8 +11,6 @@ import { ErrorState } from '../components/ErrorState';
 import { FilterBar } from '../components/FilterBar';
 import { ItemForm } from '../components/ItemForm';
 import { LoadingState } from '../components/LoadingState';
-import { TagForm } from '../components/TagForm';
-import { TagList } from '../components/TagList';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
@@ -22,10 +18,12 @@ import { useTags } from '../hooks/useTags';
 
 export function CollectionPage({
   onSignOut,
+  onNavigateToTags,
   theme = 'light',
   onThemeChange,
 }: {
   onSignOut?: () => void;
+  onNavigateToTags?: () => void;
   theme?: ThemePreference;
   onThemeChange?: (theme: ThemePreference) => void | Promise<void>;
 }) {
@@ -33,9 +31,7 @@ export function CollectionPage({
   const { items, isLoading, error, create, update, remove, reorder } = useCollection(query);
   const tagsState = useTags();
   const [formItem, setFormItem] = useState<CollectionItem | null | undefined>(undefined);
-  const [formTag, setFormTag] = useState<Tag | null | undefined>(undefined);
   const [deleteItem, setDeleteItem] = useState<CollectionItem | null>(null);
-  const [deleteTag, setDeleteTag] = useState<Tag | null>(null);
   const [actionError, setActionError] = useState('');
 
   async function save(input: CollectionItemInput) {
@@ -48,16 +44,6 @@ export function CollectionPage({
     }
   }
 
-  async function saveTag(input: TagInput) {
-    try {
-      if (formTag) await tagsState.update({ id: formTag.id, tag: input });
-      else await tagsState.create(input);
-      setFormTag(undefined);
-    } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Could not save tag');
-    }
-  }
-
   async function confirmDelete() {
     if (!deleteItem) return;
     try {
@@ -65,16 +51,6 @@ export function CollectionPage({
       setDeleteItem(null);
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : 'Could not delete item');
-    }
-  }
-
-  async function confirmTagDelete() {
-    if (!deleteTag) return;
-    try {
-      await tagsState.remove(deleteTag.id);
-      setDeleteTag(null);
-    } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Could not delete tag');
     }
   }
 
@@ -107,7 +83,7 @@ export function CollectionPage({
         </div>
         <div className="topbar-actions">
           <button onClick={() => setFormItem(null)}>Add item</button>
-          <button onClick={() => setFormTag(null)}>Add tag</button>
+          <button className="quiet" onClick={onNavigateToTags}>Tags</button>
           <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
           {onSignOut && (
             <button className="quiet" onClick={onSignOut}>
@@ -139,18 +115,6 @@ export function CollectionPage({
           onDelete={setDeleteItem}
         />
       )}
-      <TagList
-        tags={tagsState.tags}
-        onEdit={setFormTag}
-        onDelete={setDeleteTag}
-        onMove={(id, order) =>
-          void tagsState
-            .reorder({ id, order })
-            .catch((cause: unknown) =>
-              setActionError(cause instanceof Error ? cause.message : 'Could not reorder tag'),
-            )
-        }
-      />
       {formItem !== undefined && (
         <ItemForm
           item={formItem ?? undefined}
@@ -159,25 +123,11 @@ export function CollectionPage({
           onCancel={() => setFormItem(undefined)}
         />
       )}
-      {formTag !== undefined && (
-        <TagForm
-          tag={formTag ?? undefined}
-          onSubmit={saveTag}
-          onCancel={() => setFormTag(undefined)}
-        />
-      )}
       {deleteItem && (
         <DeleteConfirmDialog
           title={deleteItem.title}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setDeleteItem(null)}
-        />
-      )}
-      {deleteTag && (
-        <DeleteConfirmDialog
-          title={deleteTag.tagName}
-          onConfirm={() => void confirmTagDelete()}
-          onCancel={() => setDeleteTag(null)}
         />
       )}
     </main>
