@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AuthenticatedUserProfile } from '@conjuros/contracts';
 import { CollectionPage } from './pages/CollectionPage';
+import { TagsPage } from './pages/TagsPage';
 import { useThemePreference } from './hooks/useThemePreference';
 
 const queryClient = new QueryClient();
@@ -14,11 +15,14 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: Authenticated
 
 function Application() {
   const [authenticated, setAuthenticated] = useState<AuthenticatedUserProfile | null | undefined>(undefined);
+  const [page, setPage] = useState<'collection' | 'tags'>('collection');
   const themePreference = useThemePreference(authenticated?.theme ?? 'light', authenticated !== null && authenticated !== undefined);
   useEffect(() => { void fetch('/api/auth/me', { credentials: 'include' }).then(async (response) => { if (!response.ok) { setAuthenticated(null); return; } const body = await response.json().catch(() => null) as { user?: AuthenticatedUserProfile } | null; setAuthenticated(body?.user ?? null); }).catch(() => setAuthenticated(null)); }, []);
   async function signOut() { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); queryClient.clear(); setAuthenticated(null); }
   if (authenticated === undefined) return <main className="auth-shell">Loading...</main>;
-  return authenticated ? <CollectionPage theme={themePreference.theme} onThemeChange={themePreference.setTheme} onSignOut={() => void signOut()} /> : <AuthScreen onAuthenticated={setAuthenticated} />;
+  if (!authenticated) return <AuthScreen onAuthenticated={setAuthenticated} />;
+  if (page === 'tags') return <TagsPage theme={themePreference.theme} onThemeChange={themePreference.setTheme} onSignOut={() => void signOut()} onBack={() => setPage('collection')} />;
+  return <CollectionPage theme={themePreference.theme} onThemeChange={themePreference.setTheme} onSignOut={() => void signOut()} onNavigateToTags={() => setPage('tags')} />;
 }
 
 export function App() { return <QueryClientProvider client={queryClient}><Application /></QueryClientProvider>; }
