@@ -12,6 +12,7 @@ import { FilterBar } from '../components/FilterBar';
 import { ItemForm } from '../components/ItemForm';
 import { LoadingState } from '../components/LoadingState';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { UserWidget } from '../components/UserWidget';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
 import { useTags } from '../hooks/useTags';
@@ -19,11 +20,13 @@ import { useTags } from '../hooks/useTags';
 export function CollectionPage({
   onSignOut,
   onNavigateToTags,
+  user,
   theme = 'light',
   onThemeChange,
 }: {
   onSignOut?: () => void;
   onNavigateToTags?: () => void;
+  user?: { email: string };
   theme?: ThemePreference;
   onThemeChange?: (theme: ThemePreference) => void | Promise<void>;
 }) {
@@ -77,19 +80,17 @@ export function CollectionPage({
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
+        <div className="topbar-brand">
           <p className="eyebrow">Enchantments to charm machines.</p>
           <h1>Conjuros</h1>
         </div>
-        <div className="topbar-actions">
-          <button onClick={() => setFormItem(null)}>Add item</button>
-          <button className="quiet" onClick={onNavigateToTags}>Tags</button>
-          <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
-          {onSignOut && (
-            <button className="quiet" onClick={onSignOut}>
-              Sign out
-            </button>
-          )}
+        <div className="topbar-right">
+          {user && onSignOut && <UserWidget email={user.email} onSignOut={onSignOut} />}
+          <div className="topbar-actions">
+            <button onClick={() => setFormItem(null)}>Add item</button>
+            <button className="quiet" onClick={onNavigateToTags}>Tags</button>
+            <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
+          </div>
         </div>
       </header>
       <FilterBar filters={filters} availableTags={tagsState.tags} onChange={setFilters} />

@@ -21,8 +21,8 @@ function Application() {
   async function signOut() { await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }); queryClient.clear(); setAuthenticated(null); }
   if (authenticated === undefined) return <main className="auth-shell">Loading...</main>;
   if (!authenticated) return <AuthScreen onAuthenticated={setAuthenticated} />;
-  if (page === 'tags') return <TagsPage theme={themePreference.theme} onThemeChange={themePreference.setTheme} onSignOut={() => void signOut()} onBack={() => setPage('collection')} />;
-  return <CollectionPage theme={themePreference.theme} onThemeChange={themePreference.setTheme} onSignOut={() => void signOut()} onNavigateToTags={() => setPage('tags')} />;
+  if (page === 'tags') return <TagsPage theme={themePreference.theme} onThemeChange={themePreference.setTheme} onSignOut={() => void signOut()} user={authenticated} onBack={() => setPage('collection')} />;
+  return <CollectionPage theme={themePreference.theme} onThemeChange={themePreference.setTheme} onSignOut={() => void signOut()} user={authenticated} onNavigateToTags={() => setPage('tags')} />;
 }
 
 export function App() { return <QueryClientProvider client={queryClient}><Application /></QueryClientProvider>; }

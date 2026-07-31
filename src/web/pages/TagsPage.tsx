@@ -4,6 +4,7 @@ import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { TagForm } from '../components/TagForm';
 import { TagList } from '../components/TagList';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { UserWidget } from '../components/UserWidget';
 import { useTags } from '../hooks/useTags';
 
 export function TagsPage({
@@ -11,11 +12,13 @@ export function TagsPage({
     theme = 'light',
     onThemeChange,
     onSignOut,
+    user,
 }: {
     onBack: () => void;
     theme?: ThemePreference;
     onThemeChange?: (theme: ThemePreference) => void | Promise<void>;
     onSignOut?: () => void;
+    user?: { email: string };
 }) {
     const tagsState = useTags();
     const [formTag, setFormTag] = useState<Tag | null | undefined>(undefined);
@@ -45,19 +48,17 @@ export function TagsPage({
     return (
         <main className="app-shell">
             <header className="topbar">
-                <div>
+                <div className="topbar-brand">
                     <p className="eyebrow">Enchantments to charm machines.</p>
                     <h1>Conjuros</h1>
                 </div>
-                <div className="topbar-actions">
-                    <button onClick={onBack}>← Collection</button>
-                    <button onClick={() => setFormTag(null)}>Add tag</button>
-                    <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
-                    {onSignOut && (
-                        <button className="quiet" onClick={onSignOut}>
-                            Sign out
-                        </button>
-                    )}
+                <div className="topbar-right">
+                    {user && onSignOut && <UserWidget email={user.email} onSignOut={onSignOut} />}
+                    <div className="topbar-actions">
+                        <button onClick={onBack}>← Collection</button>
+                        <button onClick={() => setFormTag(null)}>Add tag</button>
+                        <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
+                    </div>
                 </div>
             </header>
             {actionError && <p className="field-error">{actionError}</p>}
