@@ -1,10 +1,12 @@
 ---
-description: Create or update the project constitution from interactive or provided principle inputs, ensuring all dependent templates stay in sync.
-handoffs:
-  - label: Build Specification
-    agent: speckit.specify
-    prompt: Implement the feature specification based on the updated constitution. I want to build...
+name: "speckit-constitution"
+description: "Create or update the project constitution from interactive or provided principle inputs, ensuring all dependent templates stay in sync."
+compatibility: "Requires spec-kit project structure with .specify/ directory"
+metadata:
+  author: "github-spec-kit"
+  source: "templates/commands/constitution.md"
 ---
+
 
 ## User Input
 
@@ -30,7 +32,7 @@ constitution-driven changes to the dependent artifacts identified in this comman
   making changes.
 - After completing the constitution update, include a `Next Actions` section for each deferred
   intent. List the original intent and suggest the appropriate follow-up Spec Kit command, such
-  as `/speckit.specify`, without invoking it.
+  as `/speckit-specify`, without invoking it.
 - If there are no non-governance intents, omit the `Next Actions` section.
 
 ## Pre-Execution Checks
@@ -43,6 +45,7 @@ constitution-driven changes to the dependent artifacts identified in this comman
 - For each remaining hook, do **not** attempt to interpret or evaluate hook `condition` expressions:
   - If the hook has no `condition` field, or it is null/empty, treat the hook as executable
   - If the hook defines a non-empty `condition`, skip the hook and leave condition evaluation to the HookExecutor implementation
+- When constructing slash commands from hook command names, replace dots (`.`) with hyphens (`-`). For example, `speckit.git.commit` → `/speckit-git-commit`.
 - For each executable hook, output the following based on its `optional` flag:
   - **Optional hook** (`optional: true`):
     ```
@@ -148,6 +151,7 @@ Check if `.specify/extensions.yml` exists in the project root.
 - For each remaining hook, do **not** attempt to interpret or evaluate hook `condition` expressions:
   - If the hook has no `condition` field, or it is null/empty, treat the hook as executable
   - If the hook defines a non-empty `condition`, skip the hook and leave condition evaluation to the HookExecutor implementation
+- When constructing slash commands from hook command names, replace dots (`.`) with hyphens (`-`). For example, `speckit.git.commit` → `/speckit-git-commit`.
 - For each executable hook, output the following based on its `optional` flag:
   - **Optional hook** (`optional: true`):
     ```
