@@ -1,6 +1,6 @@
 :root {
   color-scheme: light;
-  font-family: 'IBM Plex Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+  font-family: 'Cinzel', serif;
   --page-bg: #f7faf8;
   --page-bg-accent: rgba(15, 23, 42, 0.04);
   --surface: #ffffff;
@@ -182,7 +182,7 @@ button:disabled {
   white-space: nowrap;
   font-size: 0.82rem;
   line-height: 1;
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: 'Cutive Mono', monospace;
   color: var(--text-muted);
 }
 
@@ -207,7 +207,8 @@ button:disabled {
 
 .eyebrow {
   color: var(--warning);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
   font-size: 1.2rem;
   letter-spacing: 0.08em;
   margin: 0 0 0.35rem;
@@ -245,7 +246,7 @@ h2 {
 }
 
 .tag-filter-bar legend {
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: 'Cutive Mono', monospace;
   font-size: 0.75rem;
   color: var(--text-muted);
   float: left;
@@ -260,7 +261,7 @@ h2 {
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
   border: 1px solid var(--border);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: 'Cutive Mono', monospace;
   font-size: 0.75rem;
   color: var(--text-muted);
   background: var(--surface-alt);
@@ -286,7 +287,7 @@ h2 {
   display: grid;
   gap: 0.35rem;
   color: var(--text-muted);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: 'Cutive Mono', monospace;
   font-size: 0.75rem;
 }
 
@@ -456,7 +457,7 @@ select {
 .item-title-block h2 {
   font-size: 1.2rem;
   margin: 0;
-  font-family: 'Germania One', 'Times New Roman', serif;
+  font-family: 'Cormorant Garamond', serif;
   flex: 0 1 auto;
   min-width: 0;
   white-space: nowrap;
@@ -485,8 +486,7 @@ select {
   text-overflow: ellipsis;
   white-space: nowrap;
   font:
-    0.78rem ui-monospace,
-    SFMono-Regular,
+    0.78rem 'Cutive Mono',
     monospace;
 }
 
@@ -561,8 +561,7 @@ select {
 .item-card code {
   display: block;
   font:
-    0.83rem ui-monospace,
-    SFMono-Regular,
+    0.83rem 'Cutive Mono',
     monospace;
   color: var(--text);
   white-space: pre-wrap;
@@ -593,8 +592,7 @@ select {
   background: var(--surface-alt);
   color: var(--text);
   font:
-    0.7rem ui-monospace,
-    SFMono-Regular,
+    0.7rem 'Cutive Mono',
     monospace;
   padding: 0.2rem 0.45rem;
   border-radius: 0.45rem;
@@ -622,8 +620,7 @@ select {
   min-height: 1.5rem;
   min-width: 2rem;
   font:
-    0.72rem ui-monospace,
-    SFMono-Regular,
+    0.72rem 'Cutive Mono',
     monospace;
   line-height: 1;
   box-shadow: none;
@@ -791,7 +788,7 @@ select {
 
 .tag-color {
   color: var(--text-muted);
-  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-family: 'Cutive Mono', monospace;
   font-size: 0.75rem;
 }
 
