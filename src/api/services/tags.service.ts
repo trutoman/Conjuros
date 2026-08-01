@@ -1,4 +1,5 @@
 import {
+  normalizeTagCategory,
   normalizeTagName,
   reorderItemSchema,
   tagInputSchema,
@@ -14,9 +15,10 @@ import type { ItemsRepository } from '../repositories/items.repository';
 import type { StoredTag, TagsRepository } from '../repositories/tags.repository';
 
 function toPublicTag(tag: StoredTag): Tag {
-  const { ownerId, tagNameNormalized, ...publicTag } = tag;
+  const { ownerId, tagNameNormalized, tagCategoryNormalized, ...publicTag } = tag;
   void ownerId;
   void tagNameNormalized;
+  void tagCategoryNormalized;
   return publicTag;
 }
 
@@ -53,8 +55,9 @@ export class TagsService {
   }
 
   async create(ownerId: string, input: TagInput) {
-    const normalized = normalizeTagName(input.tagName);
-    await this.assertUnique(ownerId, normalized);
+    const normalizedName = normalizeTagName(input.tagName);
+    const normalizedCategory = normalizeTagCategory(input.tagCategory);
+    await this.assertUnique(ownerId, normalizedName, normalizedCategory);
     const order = await this.tags.nextOrder(ownerId);
     const created = await this.tags.create(ownerId, input, order);
     return toPublicTag(created);
@@ -63,16 +66,23 @@ export class TagsService {
   async update(ownerId: string, id: string, update: TagUpdate) {
     const current = await this.requireOwned(ownerId, id);
     const nextTagName = update.tagName ?? current.tagName;
+    const nextTagCategory = update.tagCategory ?? current.tagCategory;
     const nextNormalized = normalizeTagName(nextTagName);
+    const nextNormalizedCategory = normalizeTagCategory(nextTagCategory);
 
-    if (nextNormalized !== current.tagNameNormalized) {
-      await this.assertUnique(ownerId, nextNormalized, id);
+    if (
+      nextNormalized !== current.tagNameNormalized ||
+      nextNormalizedCategory !== current.tagCategoryNormalized
+    ) {
+      await this.assertUnique(ownerId, nextNormalized, nextNormalizedCategory, id);
     }
 
     const updated = await this.tags.replace({
       ...current,
       tagName: nextTagName,
       tagNameNormalized: nextNormalized,
+      tagCategory: nextTagCategory,
+      tagCategoryNormalized: nextNormalizedCategory,
       description: update.description ?? current.description,
       color: update.color ?? current.color,
       updatedAt: new Date().toISOString(),
@@ -108,10 +118,19 @@ export class TagsService {
     }
   }
 
-  private async assertUnique(ownerId: string, normalizedName: string, currentId?: string) {
-    const existing = await this.tags.findOwnedByNormalized(ownerId, normalizedName);
+  private async assertUnique(
+    ownerId: string,
+    normalizedName: string,
+    normalizedCategory: string,
+    currentId?: string,
+  ) {
+    const existing = await this.tags.findOwnedByNormalizedPair(
+      ownerId,
+      normalizedName,
+      normalizedCategory,
+    );
     if (existing && existing.id !== currentId) {
-      throw new AppError(409, 'CONFLICT', 'Tag name already exists');
+      throw new AppError(409, 'CONFLICT', 'Tag name and category already exist');
     }
   }
 

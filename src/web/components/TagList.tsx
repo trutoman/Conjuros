@@ -17,17 +17,34 @@ export function TagList({
       <ul className="tag-list">
         {tags.map((tag, index) => (
           <li key={tag.id}>
-            <span className="tag-name" style={{ color: tag.color }}>
-              <span className="tag-swatch" aria-hidden="true" style={{ backgroundColor: tag.color }} />
-              {tag.tagName}
-            </span>
-            <span className="tag-color"> {tag.color}</span>
-            <button type="button" onClick={() => onEdit(tag)}>Edit</button>
-            <button type="button" onClick={() => onDelete(tag)}>Delete</button>
-            <button type="button" disabled={index === 0} onClick={() => onMove(tag.id, Math.max(1, tag.order - 1))}>
+            <div>
+              <span className="tag-name" style={{ color: tag.color }}>
+                <span
+                  className="tag-swatch"
+                  aria-hidden="true"
+                  style={{ backgroundColor: tag.color }}
+                />
+                {tag.tagName}
+              </span>
+              <span className="tag-category"> {tag.tagCategory}</span>
+              <span className="tag-color"> {tag.color}</span>
+            </div>
+            <button type="button" onClick={() => onEdit(tag)}>
+              Edit
+            </button>
+            <button type="button" onClick={() => onDelete(tag)}>
+              Delete
+            </button>
+            <button
+              type="button"
+              disabled={index === 0}
+              onClick={() => onMove(tag.id, Math.max(1, tag.order - 1))}
+            >
               Move up
             </button>
-            <button type="button" onClick={() => onMove(tag.id, tag.order + 1)}>Move down</button>
+            <button type="button" onClick={() => onMove(tag.id, tag.order + 1)}>
+              Move down
+            </button>
           </li>
         ))}
       </ul>
