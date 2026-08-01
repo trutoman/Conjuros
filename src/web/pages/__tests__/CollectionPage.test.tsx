@@ -50,6 +50,7 @@ const tagsState = {
       tagName: 'git',
       description: '',
       color: '#123ABC',
+      tagCategory: 'Development',
       order: 1,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
@@ -88,6 +89,7 @@ afterEach(() => {
       tagName: 'git',
       description: '',
       color: '#123ABC',
+      tagCategory: 'Development',
       order: 1,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
@@ -100,7 +102,7 @@ describe('CollectionPage', () => {
     render(<CollectionPage />);
     expect(screen.getByText('Git status')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Search collection'), { target: { value: 'missing' } });
-    expect(screen.getByText('No matching items')).toBeInTheDocument();
+    expect(screen.getByText("No se encontraron ítems para 'missing' con las etiquetas seleccionadas.")).toBeInTheDocument();
   });
 
   it('renders the theme controls and shows the two-button item action layout', () => {
