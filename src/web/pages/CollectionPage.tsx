@@ -76,18 +76,6 @@ export function CollectionPage({
   });
   return (
     <div className={`collection-layout-wrapper ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-      {isSidebarOpen && (
-        <>
-          <Sidebar
-            tags={tagsState.tags}
-            filters={filters}
-            onChange={setFilters}
-            onNavigateToTags={onNavigateToTags ?? (() => {})}
-            onClose={() => setIsSidebarOpen(false)}
-          />
-          <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
-        </>
-      )}
       <main className="app-shell">
         <header className="topbar">
           <div className="topbar-brand">
@@ -107,28 +95,47 @@ export function CollectionPage({
             <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
           </div>
         </header>
-        {actionError && <ErrorState message={actionError} />}
-        {isLoading || tagsState.isLoading ? (
-          <LoadingState />
-        ) : error ? (
-          <ErrorState message={error.message} />
-        ) : tagsState.error ? (
-          <ErrorState message={tagsState.error.message} />
-        ) : visibleItems.length === 0 ? (
-          <EmptyState filtered={filtered} filters={filters} />
-        ) : (
-          <CollectionList
-            items={visibleItems}
-            tags={tagsState.tags}
-            onReorder={(id, order) =>
-              void reorder({ id, order }).catch((cause: unknown) =>
-                setActionError(cause instanceof Error ? cause.message : 'Could not reorder item'),
-              )
-            }
-            onEdit={setFormItem}
-            onDelete={setDeleteItem}
-          />
-        )}
+
+        <div className="app-shell-body">
+          <div className={`app-sidebar ${isSidebarOpen ? 'expanded' : 'collapsed'}`}>
+            <Sidebar
+              tags={tagsState.tags}
+              filters={filters}
+              onChange={setFilters}
+              onNavigateToTags={onNavigateToTags ?? (() => {})}
+              onClose={() => setIsSidebarOpen(false)}
+            />
+          </div>
+          {isSidebarOpen && (
+            <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
+          )}
+
+          <div className="main-content-frame">
+            {actionError && <ErrorState message={actionError} />}
+            {isLoading || tagsState.isLoading ? (
+              <LoadingState />
+            ) : error ? (
+              <ErrorState message={error.message} />
+            ) : tagsState.error ? (
+              <ErrorState message={tagsState.error.message} />
+            ) : visibleItems.length === 0 ? (
+              <EmptyState filtered={filtered} filters={filters} />
+            ) : (
+              <CollectionList
+                items={visibleItems}
+                tags={tagsState.tags}
+                onReorder={(id, order) =>
+                  void reorder({ id, order }).catch((cause: unknown) =>
+                    setActionError(cause instanceof Error ? cause.message : 'Could not reorder item'),
+                  )
+                }
+                onEdit={setFormItem}
+                onDelete={setDeleteItem}
+              />
+            )}
+          </div>
+        </div>
+
         {formItem !== undefined && (
           <ItemForm
             item={formItem ?? undefined}

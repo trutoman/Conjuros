@@ -116,7 +116,7 @@ button:disabled {
 }
 
 .app-shell {
-  width: min(1120px, calc(100% - 2rem));
+  width: min(1440px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 2rem 0 4rem;
 }
@@ -1012,28 +1012,62 @@ select {
 
 /* Sidebar and Grid layout styles */
 .collection-layout-wrapper {
-  display: grid;
-  grid-template-columns: 0px 1fr;
-  transition: grid-template-columns 0.25s ease-in-out;
   min-height: 100vh;
   position: relative;
 }
 
-.collection-layout-wrapper.sidebar-open {
-  grid-template-columns: 280px 1fr;
+.app-shell-body {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.main-content-frame {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.log-panel-frame {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.app-sidebar {
+  max-width: 280px;
+  width: 100%;
+  opacity: 1;
+  transition: max-width 200ms ease, opacity 150ms ease, margin 200ms ease;
+  overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.app-sidebar.collapsed {
+  max-width: 0;
+  opacity: 0;
+  margin-right: -1.5rem;
+  pointer-events: none;
 }
 
 .tags-sidebar {
-  grid-column: 1;
   background: var(--surface);
-  border-right: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: max-content;
+  max-height: calc(100vh - 4rem);
   position: sticky;
-  top: 0;
+  top: 1rem;
   overflow: hidden;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-header {
@@ -1182,15 +1216,7 @@ select {
 
 /* Mobile responsive styles */
 @media (max-width: 768px) {
-  .collection-layout-wrapper {
-    grid-template-columns: 1fr;
-  }
-  
-  .collection-layout-wrapper.sidebar-open {
-    grid-template-columns: 1fr;
-  }
-
-  .tags-sidebar {
+  .app-sidebar {
     position: fixed;
     left: -280px;
     top: 0;
@@ -1198,10 +1224,21 @@ select {
     height: 100vh;
     z-index: 1001;
     transition: left 0.25s ease-in-out;
+    max-width: 280px;
   }
 
-  .collection-layout-wrapper.sidebar-open .tags-sidebar {
+  .app-sidebar.expanded {
     left: 0;
+  }
+
+  .app-sidebar.collapsed {
+    margin-right: 0;
+  }
+
+  .app-sidebar .tags-sidebar {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
   }
 
   .sidebar-close {
@@ -1215,7 +1252,7 @@ select {
     border-radius: 50%;
   }
 
-  .collection-layout-wrapper.sidebar-open .sidebar-backdrop {
+  .sidebar-backdrop {
     display: block;
     position: fixed;
     top: 0;
