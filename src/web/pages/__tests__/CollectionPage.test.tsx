@@ -103,16 +103,17 @@ describe('CollectionPage', () => {
     expect(screen.getByText('No matching items')).toBeInTheDocument();
   });
 
-  it('renders the theme controls and keeps secondary item actions de-emphasized', () => {
+  it('renders the theme controls and shows the two-button item action layout', () => {
     render(<CollectionPage />);
 
     expect(screen.getByRole('group', { name: 'Theme preference' })).toBeInTheDocument();
 
     const itemCard = screen.getByText('Git status').closest('.item-card');
     expect(itemCard).toBeTruthy();
-    const actionButtons = itemCard?.querySelectorAll('button');
-    expect(actionButtons?.[1]).toHaveClass('action-secondary');
-    expect(actionButtons?.[2]).toHaveClass('action-secondary');
+    const actionButtons = itemCard?.querySelectorAll('.item-actions button');
+    expect(actionButtons).toHaveLength(2);
+    expect(actionButtons?.[0]).toHaveAttribute('aria-label', 'Copy command');
+    expect(actionButtons?.[1]).toHaveAttribute('aria-label', 'Item menu');
   });
 
   it('keeps item content visible in the top row between title and tags', () => {
