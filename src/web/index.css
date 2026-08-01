@@ -655,6 +655,25 @@ select {
   flex-shrink: 0;
 }
 
+.item-menu-wrapper {
+  position: relative;
+}
+
+.item-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow);
+}
+
 .icon-action {
   display: inline-flex;
   align-items: center;

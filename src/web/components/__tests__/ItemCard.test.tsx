@@ -100,12 +100,129 @@ describe('ItemCard', () => {
     expect(await screen.findByText('Command copied')).toBeInTheDocument();
   });
 
-  it('renders tag colors and keeps secondary actions de-emphasized', () => {
-    render(<ItemCard item={spell} tags={[createTag('git')]} onEdit={vi.fn()} onDelete={vi.fn()} />);
+  it('renders tag colors and shows only two buttons in item-actions for a spell', () => {
+    const { container } = render(
+      <ItemCard item={spell} tags={[createTag('git')]} onEdit={vi.fn()} onDelete={vi.fn()} />,
+    );
 
     expect(screen.getByText('git')).toHaveStyle({ color: '#123ABC' });
-    expect(screen.getByRole('button', { name: 'Edit' })).toHaveClass('action-secondary');
-    expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('action-secondary');
+    const actions = container.querySelector('.item-actions');
+    expect(actions?.querySelectorAll('button')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Copy command' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Item menu' })).toBeInTheDocument();
+  });
+
+  it('shows only two buttons in item-actions for a web-link', () => {
+    const { container } = render(
+      <ItemCard
+        item={createWebLinkItem({ url: 'https://example.com' })}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    const actions = container.querySelector('.item-actions');
+    expect(actions?.querySelectorAll('button')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Open link' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Item menu' })).toBeInTheDocument();
+  });
+
+  it('opens the contextual menu when the trigger is clicked', () => {
+    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    const trigger = screen.getByRole('button', { name: 'Item menu' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(trigger);
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+  });
+
+  it('closes the menu when clicking outside', () => {
+    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('closes the menu on Escape key', () => {
+    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    const menu = screen.getByRole('menu');
+
+    fireEvent.keyDown(menu, { key: 'Escape' });
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('calls onEdit and closes the menu when Edit is clicked', () => {
+    const onEdit = vi.fn();
+    render(<ItemCard item={spell} onEdit={onEdit} onDelete={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
+
+    expect(onEdit).toHaveBeenCalledWith(spell);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('shows inline confirmation when Delete is clicked', () => {
+    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Confirm delete' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Cancel delete' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
+  });
+
+  it('calls onDelete and closes the menu when Confirm is clicked', () => {
+    const onDelete = vi.fn();
+    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={onDelete} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Confirm delete' }));
+
+    expect(onDelete).toHaveBeenCalledWith(spell);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('does not call onDelete when Cancel is clicked', () => {
+    const onDelete = vi.fn();
+    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={onDelete} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Cancel delete' }));
+
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('moves focus with ArrowDown and ArrowUp between menu items', () => {
+    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    const menu = screen.getByRole('menu');
+    const [editItem, deleteItem] = screen.getAllByRole('menuitem');
+
+    fireEvent.keyDown(menu, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(deleteItem);
+    fireEvent.keyDown(menu, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(editItem);
+  });
+
+  it('returns focus to the trigger when Escape is pressed', () => {
+    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    const trigger = screen.getByRole('button', { name: 'Item menu' });
+    fireEvent.click(trigger);
+    const menu = screen.getByRole('menu');
+
+    fireEvent.keyDown(menu, { key: 'Escape' });
+
+    expect(document.activeElement).toBe(trigger);
   });
 
   it('opens a link only when the open action is clicked', () => {

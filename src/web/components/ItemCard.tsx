@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { computeTagOverflow, estimateInlineWidth } from './itemCardOverflow';
 
@@ -47,6 +47,10 @@ export function ItemCard({
   const [isTagOverflowOpen, setIsTagOverflowOpen] = useState(false);
   const topRowRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuView, setMenuView] = useState<'menu' | 'confirm'>('menu');
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const tagColors = new Map(tags.map((tag) => [tag.tagName, tag.color]));
   const isSpell = item.kind === 'spell';
   const contentValue = item.command ?? item.url ?? '';
@@ -124,6 +128,66 @@ export function ItemCard({
   }
 
   const openUrl = item.kind === 'web-link' ? (item.url ?? undefined) : undefined;
+
+  function closeMenu() {
+    setIsMenuOpen(false);
+    setMenuView('menu');
+  }
+
+  function handleEdit() {
+    onEdit(item);
+    closeMenu();
+  }
+
+  function handleDeleteStart() {
+    setMenuView('confirm');
+  }
+
+  function handleDeleteConfirm() {
+    onDelete(item);
+    closeMenu();
+  }
+
+  function handleMenuKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeMenu();
+      triggerRef.current?.focus();
+      return;
+    }
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    );
+    if (items.length === 0) return;
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      items[(currentIndex + 1) % items.length]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[(currentIndex - 1 + items.length) % items.length]?.focus();
+    } else if (e.key === 'Tab') {
+      closeMenu();
+    }
+  }
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+        setMenuView('menu');
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [isMenuOpen]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const firstItem = menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
+    firstItem?.focus();
+  }, [isMenuOpen, menuView]);
 
   return (
     <article className={`item-card kind-${item.kind}`}>
@@ -255,32 +319,114 @@ export function ItemCard({
               />
             </button>
           )}
-          <button
-            type="button"
-            className="icon-action action-secondary"
-            aria-label="Edit"
-            onClick={() => onEdit(item)}
-          >
-            <Icon
-              label="Edit"
-              title="Edit"
-              path="M12 20h9M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"
-            />
-          </button>
-          <button
-            type="button"
-            className="icon-action action-secondary danger"
-            aria-label="Delete"
-            onClick={() => onDelete(item)}
-          >
-            <Icon
-              label="Delete"
-              title="Delete"
-              path="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"
-              viewBox="0 -960 960 960"
-              filled
-            />
-          </button>
+          <div className="item-menu-wrapper">
+            <button
+              type="button"
+              className="icon-action"
+              aria-label="Item menu"
+              aria-haspopup="menu"
+              aria-expanded={isMenuOpen}
+              aria-controls={`item-menu-${item.id}`}
+              ref={triggerRef}
+              onClick={() => setIsMenuOpen((v) => !v)}
+            >
+              <Icon
+                label="Menu"
+                title="Menu"
+                path="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"
+                viewBox="0 -960 960 960"
+                filled
+              />
+            </button>
+            {isMenuOpen && menuView === 'menu' && (
+              <div
+                className="item-menu-dropdown"
+                id={`item-menu-${item.id}`}
+                role="menu"
+                aria-label="Item options"
+                ref={menuRef}
+                onKeyDown={handleMenuKeyDown}
+              >
+                <button
+                  type="button"
+                  className="icon-action"
+                  role="menuitem"
+                  aria-label="Edit"
+                  tabIndex={-1}
+                  onClick={handleEdit}
+                >
+                  <Icon
+                    label="Edit"
+                    title="Edit"
+                    path="M12 20h9M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"
+                  />
+                </button>
+                <button
+                  type="button"
+                  className="icon-action danger"
+                  role="menuitem"
+                  aria-label="Delete"
+                  tabIndex={-1}
+                  onClick={handleDeleteStart}
+                >
+                  <Icon
+                    label="Delete"
+                    title="Delete"
+                    path="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"
+                    viewBox="0 -960 960 960"
+                    filled
+                  />
+                </button>
+              </div>
+            )}
+            {isMenuOpen && menuView === 'confirm' && (
+              <div
+                className="item-menu-dropdown item-menu-dropdown--confirm"
+                id={`item-menu-${item.id}`}
+                role="menu"
+                aria-label="Confirm delete"
+                ref={menuRef}
+                onKeyDown={handleMenuKeyDown}
+              >
+                <button
+                  type="button"
+                  className="icon-action danger"
+                  role="menuitem"
+                  aria-label="Confirm delete"
+                  tabIndex={-1}
+                  onClick={handleDeleteConfirm}
+                >
+                  <Icon
+                    label="Confirm"
+                    title="Confirm"
+                    path="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"
+                    viewBox="0 -960 960 960"
+                    filled
+                  />
+                </button>
+                <button
+                  type="button"
+                  className="icon-action"
+                  role="menuitem"
+                  aria-label="Cancel delete"
+                  tabIndex={-1}
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setMenuView('menu');
+                    triggerRef.current?.focus();
+                  }}
+                >
+                  <Icon
+                    label="Cancel"
+                    title="Cancel"
+                    path="M256-213.847 213.847-256l224-224-224-224L256-746.153l224 224 224-224L746.153-704l-224 224 224 224L704-213.847l-224-224-224 224Z"
+                    viewBox="0 -960 960 960"
+                    filled
+                  />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {item.description && expanded && <p className="item-description">{item.description}</p>}
