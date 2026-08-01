@@ -155,4 +155,17 @@ describe('Sidebar component', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('renders "Tags" as the sidebar header title', () => {
+    render(
+      <Sidebar
+        tags={mockTags}
+        filters={defaultFilters}
+        onChange={vi.fn()}
+        onNavigateToTags={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Tags');
+  });
 });
