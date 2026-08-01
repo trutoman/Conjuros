@@ -12,6 +12,7 @@ export function TagForm({
   onCancel: () => void;
 }) {
   const [tagName, setTagName] = useState(tag?.tagName ?? '');
+  const [tagCategory, setTagCategory] = useState(tag?.tagCategory ?? '');
   const [description, setDescription] = useState(tag?.description ?? '');
   const [color, setColor] = useState(tag?.color ?? '#1A73E8');
   const [error, setError] = useState('');
@@ -20,7 +21,7 @@ export function TagForm({
     event.preventDefault();
     setError('');
 
-    const result = tagInputSchema.safeParse({ tagName, description, color });
+    const result = tagInputSchema.safeParse({ tagName, tagCategory, description, color });
     if (!result.success) {
       setError(result.error.issues[0]?.message ?? 'Check the tag details');
       return;
@@ -35,13 +36,26 @@ export function TagForm({
       <FormField label="Tag name">
         <input value={tagName} onChange={(event) => setTagName(event.target.value)} />
       </FormField>
+      <FormField label="Tag category">
+        <input value={tagCategory} onChange={(event) => setTagCategory(event.target.value)} />
+      </FormField>
       <FormField label="Description">
         <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
       </FormField>
       <FormField label="Color" error={error}>
         <div className="color-field">
-          <input type="color" value={color} onChange={(event) => setColor(event.target.value)} aria-label="Tag color picker" />
-          <input value={color} onChange={(event) => setColor(event.target.value)} aria-label="Tag color" placeholder="#RRGGBB" />
+          <input
+            type="color"
+            value={color}
+            onChange={(event) => setColor(event.target.value)}
+            aria-label="Tag color picker"
+          />
+          <input
+            value={color}
+            onChange={(event) => setColor(event.target.value)}
+            aria-label="Tag color"
+            placeholder="#RRGGBB"
+          />
           <span className="color-preview" aria-hidden="true" style={{ backgroundColor: color }} />
         </div>
       </FormField>

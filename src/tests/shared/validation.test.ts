@@ -2,6 +2,7 @@ import {
   collectionItemInputSchema,
   normalizeTags,
   reorderItemSchema,
+  tagInputSchema,
 } from '@conjuros/contracts';
 import { describe, expect, it } from 'vitest';
 
@@ -41,5 +42,25 @@ describe('collection item contracts', () => {
   it('only accepts positive integer reorder positions', () => {
     expect(reorderItemSchema.safeParse({ order: 0 }).success).toBe(false);
     expect(reorderItemSchema.parse({ order: 3 })).toEqual({ order: 3 });
+  });
+
+  it('requires a non-empty trimmed tag category', () => {
+    expect(
+      tagInputSchema.safeParse({
+        tagName: 'deploy.todo',
+        tagCategory: '   ',
+        description: '',
+        color: '#123ABC',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      tagInputSchema.parse({
+        tagName: 'deploy.todo',
+        tagCategory: ' Work ',
+        description: '',
+        color: '#123ABC',
+      }).tagCategory,
+    ).toBe('Work');
   });
 });

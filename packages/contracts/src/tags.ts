@@ -16,12 +16,19 @@ export const tagColorSchema = z
   .trim()
   .regex(hexColorPattern, 'Tag color must use the #RRGGBB format');
 
+export const tagCategorySchema = z.string().trim().min(1).max(120);
+
 export function normalizeTagName(tagName: string): string {
   return tagName.trim().toLowerCase();
 }
 
+export function normalizeTagCategory(tagCategory: string): string {
+  return tagCategory.trim().toLowerCase();
+}
+
 export const tagInputSchema = z.object({
   tagName: tagNameSchema,
+  tagCategory: tagCategorySchema,
   description: tagDescriptionSchema,
   color: tagColorSchema,
 });
@@ -29,17 +36,23 @@ export const tagInputSchema = z.object({
 export const tagUpdateSchema = z
   .object({
     tagName: tagNameSchema.optional(),
+    tagCategory: tagCategorySchema.optional(),
     description: tagDescriptionSchema.optional(),
     color: tagColorSchema.optional(),
   })
   .refine(
-    (value) => value.tagName !== undefined || value.description !== undefined || value.color !== undefined,
+    (value) =>
+      value.tagName !== undefined ||
+      value.tagCategory !== undefined ||
+      value.description !== undefined ||
+      value.color !== undefined,
     'At least one field must be provided',
   );
 
 export const tagSchema = z.object({
   id: tagIdSchema,
   tagName: tagNameSchema,
+  tagCategory: tagCategorySchema,
   description: z.string(),
   color: tagColorSchema,
   order: z.number().int().positive(),
@@ -51,7 +64,7 @@ export const tagQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(25),
   skip: z.coerce.number().int().min(0).default(0),
   search: z.string().trim().max(200).optional(),
-  sort: z.enum(['order', 'updatedAt', 'tagName']).default('order'),
+  sort: z.enum(['order', 'updatedAt', 'tagName', 'tagCategory']).default('order'),
 });
 
 export const tagListSchema = z.object({

@@ -34,10 +34,16 @@ export function createWebLinkItem(overrides: Partial<CollectionItem> = {}): Coll
   };
 }
 
-export function createTag(tagName: string, color = '#123ABC', order = 1): Tag {
+export function createTag(
+  tagName: string,
+  color = '#123ABC',
+  order = 1,
+  tagCategory = 'General',
+): Tag {
   return {
     id: `tag-${tagName}`,
     tagName,
+    tagCategory,
     description: '',
     color,
     order,

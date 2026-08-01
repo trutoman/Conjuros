@@ -10,10 +10,14 @@ describe('tag endpoints', () => {
     const created = await request(app)
       .post('/api/tags')
       .set('Cookie', cookie)
-      .send({ tagName: 'Work.Todo', description: 'Tasks', color: '#12AB34' })
+      .send({ tagName: 'Work.Todo', tagCategory: 'Work', description: 'Tasks', color: '#12AB34' })
       .expect(201);
 
-    expect(created.body).toMatchObject({ tagName: 'Work.Todo', color: '#12AB34' });
+    expect(created.body).toMatchObject({
+      tagName: 'Work.Todo',
+      tagCategory: 'Work',
+      color: '#12AB34',
+    });
 
     const listed = await request(app)
       .get('/api/tags?search=work')
@@ -39,22 +43,44 @@ describe('tag endpoints', () => {
     await request(app)
       .post('/api/tags')
       .set('Cookie', cookie)
-      .send({ tagName: 'bad name', description: '', color: '#123456' })
+      .send({ tagName: 'bad name', tagCategory: 'Work', description: '', color: '#123456' })
       .expect(400);
 
     await request(app)
       .post('/api/tags')
       .set('Cookie', cookie)
-      .send({ tagName: 'valid.name', description: '', color: 'blue' })
+      .send({ tagName: 'valid.name', tagCategory: 'Work', description: '', color: 'blue' })
       .expect(400);
 
-    await createTag(request, app, cookie, 'Work.Tag');
+    await createTag(request, app, cookie, 'Work.Tag', 'Work');
 
     await request(app)
       .post('/api/tags')
       .set('Cookie', cookie)
-      .send({ tagName: 'work.tag', description: '', color: '#123456' })
+      .send({ tagName: 'work.tag', tagCategory: 'Personal', description: '', color: '#123456' })
+      .expect(201);
+
+    await request(app)
+      .post('/api/tags')
+      .set('Cookie', cookie)
+      .send({ tagName: 'work.tag', tagCategory: 'work', description: '', color: '#123456' })
       .expect(409);
+  });
+
+  it('rejects updates that would duplicate the same normalized name-category pair', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+
+    const source = await createTag(request, app, cookie, 'Work.Tag', 'Ops');
+    const target = await createTag(request, app, cookie, 'Deploy.Tag', 'Infra');
+
+    await request(app)
+      .patch(`/api/tags/${target.body.id}`)
+      .set('Cookie', cookie)
+      .send({ tagName: 'work.tag', tagCategory: 'ops' })
+      .expect(409);
+
+    await request(app).get(`/api/tags/${source.body.id}`).set('Cookie', cookie).expect(200);
   });
 
   it('prevents cross-user tag access and item associations', async () => {
@@ -70,7 +96,10 @@ describe('tag endpoints', () => {
       .set('Cookie', otherCookie)
       .send({ description: 'stolen' })
       .expect(404);
-    await request(app).delete(`/api/tags/${created.body.id}`).set('Cookie', otherCookie).expect(404);
+    await request(app)
+      .delete(`/api/tags/${created.body.id}`)
+      .set('Cookie', otherCookie)
+      .expect(404);
 
     await request(app)
       .post('/api/items')
@@ -112,16 +141,135 @@ describe('tag endpoints', () => {
       .send({ tagName: 'new.tag' })
       .expect(200);
 
-    const afterRename = await request(app).get(`/api/items/${createdItem.body.id}`).set('Cookie', cookie).expect(200);
+    const afterRename = await request(app)
+      .get(`/api/items/${createdItem.body.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
     expect(afterRename.body.tags).toContain('new.tag');
     expect(afterRename.body.tags).not.toContain('old.tag');
 
-    await request(app)
-      .delete(`/api/tags/${oldTag.body.id}`)
-      .set('Cookie', cookie)
-      .expect(204);
+    await request(app).delete(`/api/tags/${oldTag.body.id}`).set('Cookie', cookie).expect(204);
 
-    const afterDelete = await request(app).get(`/api/items/${createdItem.body.id}`).set('Cookie', cookie).expect(200);
+    const afterDelete = await request(app)
+      .get(`/api/items/${createdItem.body.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
     expect(afterDelete.body.tags).toEqual(['keep.tag']);
+  });
+
+  it('keeps item tag values unchanged when only the tag category changes', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+
+    const tag = await createTag(request, app, cookie, 'old.tag', 'Work');
+
+    const createdItem = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'spell',
+        title: 'Tagged spell',
+        description: '',
+        tags: ['old.tag'],
+        relatedItemIds: [],
+        command: 'echo tagged',
+      })
+      .expect(201);
+
+    await request(app)
+      .patch(`/api/tags/${tag.body.id}`)
+      .set('Cookie', cookie)
+      .send({ tagCategory: 'Archive' })
+      .expect(200);
+
+    const afterCategoryUpdate = await request(app)
+      .get(`/api/items/${createdItem.body.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+
+    expect(afterCategoryUpdate.body.tags).toEqual(['old.tag']);
+  });
+
+  it('surfaces legacy tags without category as General', async () => {
+    const { app, tags } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+    await createTag(request, app, cookie, 'seed.tag', 'Seed');
+
+    const legacyStore = tags as unknown as {
+      tags: Map<
+        string,
+        {
+          id: string;
+          ownerId: string;
+          tagName: string;
+          tagNameNormalized: string;
+          description: string;
+          color: string;
+          order: number;
+          createdAt: string;
+          updatedAt: string;
+        }
+      >;
+    };
+
+    const ownerId = [...legacyStore.tags.values()][0]?.ownerId;
+    if (!ownerId) throw new Error('Expected seeded tag owner ID');
+
+    legacyStore.tags.set('legacy-tag', {
+      id: 'legacy-tag',
+      ownerId,
+      tagName: 'legacy.tag',
+      tagNameNormalized: 'legacy.tag',
+      description: '',
+      color: '#123ABC',
+      order: 1,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    const listed = await request(app).get('/api/tags').set('Cookie', cookie).expect(200);
+
+    expect(listed.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'legacy-tag',
+          tagCategory: 'General',
+        }),
+      ]),
+    );
+  });
+
+  it('does not rename unrelated item tags when only a tag category changes', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+
+    const categorizedTag = await createTag(request, app, cookie, 'status.tag', 'work');
+    await createTag(request, app, cookie, 'work', 'labels');
+
+    const createdItem = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'spell',
+        title: 'Tagged spell',
+        description: '',
+        tags: ['status.tag', 'work'],
+        relatedItemIds: [],
+        command: 'echo tagged',
+      })
+      .expect(201);
+
+    await request(app)
+      .patch(`/api/tags/${categorizedTag.body.id}`)
+      .set('Cookie', cookie)
+      .send({ tagCategory: 'archive' })
+      .expect(200);
+
+    const afterCategoryUpdate = await request(app)
+      .get(`/api/items/${createdItem.body.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+
+    expect(afterCategoryUpdate.body.tags).toEqual(['status.tag', 'work']);
   });
 });
