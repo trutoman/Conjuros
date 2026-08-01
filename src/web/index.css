@@ -907,6 +907,21 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .collection-subheader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .collection-subheader .type-selector-label {
+    justify-content: space-between;
+  }
+
+  .collection-subheader .type-selector-label select {
+    flex: 1;
+    max-width: 200px;
+  }
+
   .collection-row {
     width: 100%;
   }
@@ -1027,6 +1042,38 @@ select {
 .main-content-frame {
   flex: 1 1 0%;
   min-width: 0;
+}
+
+.collection-subheader {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.collection-subheader .search-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.collection-subheader .type-selector-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.collection-subheader .type-selector-label select {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  width: 140px;
 }
 
 .log-panel-frame {
