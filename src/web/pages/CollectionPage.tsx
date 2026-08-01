@@ -1,9 +1,5 @@
 import { useState } from 'react';
-import type {
-  CollectionItem,
-  CollectionItemInput,
-  ThemePreference,
-} from '@conjuros/contracts';
+import type { CollectionItem, CollectionItemInput, ThemePreference } from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { EmptyState } from '../components/EmptyState';
@@ -12,17 +8,20 @@ import { FilterBar } from '../components/FilterBar';
 import { ItemForm } from '../components/ItemForm';
 import { LoadingState } from '../components/LoadingState';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { UserWidget } from '../components/UserWidget';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
 import { useTags } from '../hooks/useTags';
 
 export function CollectionPage({
   onSignOut,
+  currentUserLabel,
   onNavigateToTags,
   theme = 'light',
   onThemeChange,
 }: {
   onSignOut?: () => void;
+  currentUserLabel?: string;
   onNavigateToTags?: () => void;
   theme?: ThemePreference;
   onThemeChange?: (theme: ThemePreference) => void | Promise<void>;
@@ -77,19 +76,21 @@ export function CollectionPage({
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
+        <div className="topbar-brand">
           <p className="eyebrow">Enchantments to charm machines.</p>
           <h1>Conjuros</h1>
         </div>
+        <div className="topbar-signout">
+          {onSignOut && currentUserLabel && (
+            <UserWidget userLabel={currentUserLabel} onSignOut={onSignOut} />
+          )}
+        </div>
         <div className="topbar-actions">
           <button onClick={() => setFormItem(null)}>Add item</button>
-          <button className="quiet" onClick={onNavigateToTags}>Tags</button>
+          <button className="quiet" onClick={onNavigateToTags}>
+            Tags
+          </button>
           <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
-          {onSignOut && (
-            <button className="quiet" onClick={onSignOut}>
-              Sign out
-            </button>
-          )}
         </div>
       </header>
       <FilterBar filters={filters} availableTags={tagsState.tags} onChange={setFilters} />
