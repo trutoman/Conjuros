@@ -14,10 +14,12 @@ export interface StoredTag extends Tag {
   tagCategoryNormalized: string;
 }
 
-type PersistedTagRecord = StoredTag | (Omit<StoredTag, 'tagCategory' | 'tagCategoryNormalized'> & {
-  tagCategory?: string;
-  tagCategoryNormalized?: string;
-});
+type PersistedTagRecord =
+  | StoredTag
+  | (Omit<StoredTag, 'tagCategory' | 'tagCategoryNormalized'> & {
+      tagCategory?: string;
+      tagCategoryNormalized?: string;
+    });
 
 type PersistedTagDocument = PersistedTagRecord & { _id?: unknown };
 
@@ -96,20 +98,22 @@ export class InMemoryTagsRepository implements TagsRepository {
     tagCategoryNormalized: string,
   ) {
     return (
-      [...this.tags.values()].map((tag) => this.persistHydratedTag(tag)).find(
-        (tag) =>
-          tag.ownerId === ownerId &&
-          tag.tagNameNormalized === tagNameNormalized &&
-          tag.tagCategoryNormalized === tagCategoryNormalized,
-      ) ?? null
+      [...this.tags.values()]
+        .map((tag) => this.persistHydratedTag(tag))
+        .find(
+          (tag) =>
+            tag.ownerId === ownerId &&
+            tag.tagNameNormalized === tagNameNormalized &&
+            tag.tagCategoryNormalized === tagCategoryNormalized,
+        ) ?? null
     );
   }
 
   async findOwnedByNormalizedNames(ownerId: string, tagNamesNormalized: string[]) {
     const wanted = new Set(tagNamesNormalized);
-    return [...this.tags.values()].map((tag) => this.persistHydratedTag(tag)).filter(
-      (tag) => tag.ownerId === ownerId && wanted.has(tag.tagNameNormalized),
-    );
+    return [...this.tags.values()]
+      .map((tag) => this.persistHydratedTag(tag))
+      .filter((tag) => tag.ownerId === ownerId && wanted.has(tag.tagNameNormalized));
   }
 
   async nextOrder(ownerId: string) {
@@ -205,9 +209,9 @@ export class MongoTagsRepository implements TagsRepository {
         ? { tagName: 1 }
         : query.sort === 'tagCategory'
           ? { tagCategory: 1 }
-        : query.sort === 'updatedAt'
-          ? { updatedAt: -1 }
-          : { order: 1 };
+          : query.sort === 'updatedAt'
+            ? { updatedAt: -1 }
+            : { order: 1 };
     const [items, total] = await Promise.all([
       this.tags.find(filter).sort(sort).skip(query.skip).limit(query.limit).toArray(),
       this.tags.countDocuments(filter),
@@ -230,10 +234,7 @@ export class MongoTagsRepository implements TagsRepository {
         ? {
             ownerId,
             tagNameNormalized,
-            $or: [
-              { tagCategoryNormalized },
-              { tagCategoryNormalized: { $exists: false } },
-            ],
+            $or: [{ tagCategoryNormalized }, { tagCategoryNormalized: { $exists: false } }],
           }
         : { ownerId, tagNameNormalized, tagCategoryNormalized },
     );
@@ -241,7 +242,9 @@ export class MongoTagsRepository implements TagsRepository {
   }
 
   async findOwnedByNormalizedNames(ownerId: string, tagNamesNormalized: string[]) {
-    const tags = await this.tags.find({ ownerId, tagNameNormalized: { $in: tagNamesNormalized } }).toArray();
+    const tags = await this.tags
+      .find({ ownerId, tagNameNormalized: { $in: tagNamesNormalized } })
+      .toArray();
     return Promise.all(tags.map((tag) => this.persistHydratedTag(tag)));
   }
 
@@ -281,9 +284,9 @@ export class MongoTagsRepository implements TagsRepository {
     const tag = await this.findOwned(id, ownerId);
     if (!tag) return null;
     const all = await this.tags.find({ ownerId }).sort({ order: 1 }).toArray();
-    const reordered = (await Promise.all(all.map((candidate) => this.persistHydratedTag(candidate)))).filter(
-      (candidate) => candidate.id !== id,
-    );
+    const reordered = (
+      await Promise.all(all.map((candidate) => this.persistHydratedTag(candidate)))
+    ).filter((candidate) => candidate.id !== id);
     reordered.splice(Math.min(order - 1, reordered.length), 0, tag);
     const timestamp = new Date().toISOString();
     await this.tags.bulkWrite(

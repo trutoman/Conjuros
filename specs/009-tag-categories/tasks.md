@@ -12,8 +12,8 @@
 
 **Purpose**: Prepare shared fixtures and exported tag surfaces that every story depends on.
 
-- [X] T001 Update category-aware tag test helpers in `src/tests/api/testApp.ts` and `src/web/components/__tests__/itemCard.fixtures.ts`
-- [X] T002 [P] Expose category-aware tag contract surfaces through `packages/contracts/src/index.ts` and `src/web/services/tags.ts`
+- [x] T001 Update category-aware tag test helpers in `src/tests/api/testApp.ts` and `src/web/components/__tests__/itemCard.fixtures.ts`
+- [x] T002 [P] Expose category-aware tag contract surfaces through `packages/contracts/src/index.ts` and `src/web/services/tags.ts`
 
 ---
 
@@ -23,12 +23,12 @@
 
 **⚠️ CRITICAL**: No user story work should begin until this phase is complete.
 
-- [X] T003 Define required `tagCategory` validation, normalization helpers, and category sort support in `packages/contracts/src/tags.ts`
-- [X] T004 Implement `tagCategoryNormalized` persistence and normalized pair lookup methods in `src/api/repositories/tags.repository.ts`
-- [X] T005 Implement legacy `General` backfill compatibility for stored tags in `src/api/repositories/tags.repository.ts`
-- [X] T006 [P] Update tag service parsing and public mapping for category-bearing tags in `src/api/services/tags.service.ts`
-- [X] T007 [P] Update tag HTTP handlers for category-aware payloads in `src/api/controllers/tags.controller.ts` and `src/api/routes/tags.route.ts`
-- [X] T008 Ensure category-bearing tag types flow through `src/web/services/tags.ts` and `src/web/hooks/useTags.ts`
+- [x] T003 Define required `tagCategory` validation, normalization helpers, and category sort support in `packages/contracts/src/tags.ts`
+- [x] T004 Implement `tagCategoryNormalized` persistence and normalized pair lookup methods in `src/api/repositories/tags.repository.ts`
+- [x] T005 Implement legacy `General` backfill compatibility for stored tags in `src/api/repositories/tags.repository.ts`
+- [x] T006 [P] Update tag service parsing and public mapping for category-bearing tags in `src/api/services/tags.service.ts`
+- [x] T007 [P] Update tag HTTP handlers for category-aware payloads in `src/api/controllers/tags.controller.ts` and `src/api/routes/tags.route.ts`
+- [x] T008 Ensure category-bearing tag types flow through `src/web/services/tags.ts` and `src/web/hooks/useTags.ts`
 
 **Checkpoint**: Category-aware contracts, persistence, and API wiring are ready for independent story work.
 
@@ -42,16 +42,16 @@
 
 ### Tests for User Story 1
 
-- [X] T009 [P] [US1] Add contract validation coverage for required and trimmed `tagCategory` values in `src/tests/shared/validation.test.ts`
-- [X] T010 [P] [US1] Add API tests for category create, list, and update behavior in `src/tests/api/tags.test.ts`
-- [X] T011 [P] [US1] Add frontend tests for required category input and category rendering in `src/web/components/__tests__/TagForm.test.tsx` and `src/web/components/__tests__/TagList.test.tsx`
+- [x] T009 [P] [US1] Add contract validation coverage for required and trimmed `tagCategory` values in `src/tests/shared/validation.test.ts`
+- [x] T010 [P] [US1] Add API tests for category create, list, and update behavior in `src/tests/api/tags.test.ts`
+- [x] T011 [P] [US1] Add frontend tests for required category input and category rendering in `src/web/components/__tests__/TagForm.test.tsx` and `src/web/components/__tests__/TagList.test.tsx`
 
 ### Implementation for User Story 1
 
-- [X] T012 [US1] Implement category-required tag create, get, list, and update behavior in `src/api/services/tags.service.ts` and `src/api/repositories/tags.repository.ts`
-- [X] T013 [US1] Add required category input handling and inline validation to `src/web/components/TagForm.tsx`
-- [X] T014 [US1] Display tag categories beside tag names in `src/web/components/TagList.tsx` and `src/web/pages/TagsPage.tsx`
-- [X] T015 [US1] Keep category-bearing tag data flowing through `src/web/services/tags.ts` and `src/web/hooks/useTags.ts`
+- [x] T012 [US1] Implement category-required tag create, get, list, and update behavior in `src/api/services/tags.service.ts` and `src/api/repositories/tags.repository.ts`
+- [x] T013 [US1] Add required category input handling and inline validation to `src/web/components/TagForm.tsx`
+- [x] T014 [US1] Display tag categories beside tag names in `src/web/components/TagList.tsx` and `src/web/pages/TagsPage.tsx`
+- [x] T015 [US1] Keep category-bearing tag data flowing through `src/web/services/tags.ts` and `src/web/hooks/useTags.ts`
 
 **Checkpoint**: User Story 1 is independently functional and testable as the MVP slice.
 
@@ -65,14 +65,14 @@
 
 ### Tests for User Story 2
 
-- [X] T016 [P] [US2] Add API tests for same-name different-category success and duplicate normalized pair conflicts in `src/tests/api/tags.test.ts`
-- [X] T017 [P] [US2] Add frontend tests for duplicate pair conflict feedback in `src/web/pages/__tests__/TagsPage.test.tsx`
+- [x] T016 [P] [US2] Add API tests for same-name different-category success and duplicate normalized pair conflicts in `src/tests/api/tags.test.ts`
+- [x] T017 [P] [US2] Add frontend tests for duplicate pair conflict feedback in `src/web/pages/__tests__/TagsPage.test.tsx`
 
 ### Implementation for User Story 2
 
-- [X] T018 [US2] Enforce normalized `tagName` plus `tagCategory` uniqueness in `src/api/services/tags.service.ts` and `src/api/repositories/tags.repository.ts`
-- [X] T019 [US2] Support category-aware sorting and conflict-safe tag mutations in `packages/contracts/src/tags.ts` and `src/web/services/tags.ts`
-- [X] T020 [US2] Surface duplicate pair save failures in `src/web/pages/TagsPage.tsx` and `src/web/components/TagForm.tsx`
+- [x] T018 [US2] Enforce normalized `tagName` plus `tagCategory` uniqueness in `src/api/services/tags.service.ts` and `src/api/repositories/tags.repository.ts`
+- [x] T019 [US2] Support category-aware sorting and conflict-safe tag mutations in `packages/contracts/src/tags.ts` and `src/web/services/tags.ts`
+- [x] T020 [US2] Surface duplicate pair save failures in `src/web/pages/TagsPage.tsx` and `src/web/components/TagForm.tsx`
 
 **Checkpoint**: User Story 2 works independently on top of the category-aware CRUD surface.
 
@@ -86,14 +86,14 @@
 
 ### Tests for User Story 3
 
-- [X] T021 [P] [US3] Add API tests for `General` backfill, category reassignment, and last-tag category cleanup in `src/tests/api/tags.test.ts`
-- [X] T022 [P] [US3] Add frontend tests proving there is no standalone category management flow and that category display updates after reassignment or delete in `src/web/pages/__tests__/TagsPage.test.tsx`
+- [x] T021 [P] [US3] Add API tests for `General` backfill, category reassignment, and last-tag category cleanup in `src/tests/api/tags.test.ts`
+- [x] T022 [P] [US3] Add frontend tests proving there is no standalone category management flow and that category display updates after reassignment or delete in `src/web/pages/__tests__/TagsPage.test.tsx`
 
 ### Implementation for User Story 3
 
-- [X] T023 [US3] Implement `General` backfill on legacy tag reads and writes in `src/api/repositories/tags.repository.ts`
-- [X] T024 [US3] Ensure category-only updates avoid item tag rewrites while name deletes and renames still cascade in `src/api/services/tags.service.ts` and `src/api/repositories/items.repository.ts`
-- [X] T025 [US3] Refresh delete and reassignment UX without standalone category CRUD in `src/web/pages/TagsPage.tsx` and `src/web/hooks/useTags.ts`
+- [x] T023 [US3] Implement `General` backfill on legacy tag reads and writes in `src/api/repositories/tags.repository.ts`
+- [x] T024 [US3] Ensure category-only updates avoid item tag rewrites while name deletes and renames still cascade in `src/api/services/tags.service.ts` and `src/api/repositories/items.repository.ts`
+- [x] T025 [US3] Refresh delete and reassignment UX without standalone category CRUD in `src/web/pages/TagsPage.tsx` and `src/web/hooks/useTags.ts`
 
 **Checkpoint**: All user stories are independently functional, including legacy compatibility and implicit category cleanup.
 
@@ -103,9 +103,9 @@
 
 **Purpose**: Final documentation alignment and verification across all stories.
 
-- [X] T026 [P] Update category API and data-model documentation in `specs/009-tag-categories/contracts/tag-categories-api.md` and `specs/009-tag-categories/data-model.md`
-- [X] T027 [P] Reconcile manual validation guidance and checklist notes in `specs/009-tag-categories/quickstart.md` and `specs/009-tag-categories/checklists/requirements.md`
-- [X] T028 Run focused category validations against `src/tests/api/tags.test.ts`, `src/web/components/__tests__/TagForm.test.tsx`, `src/web/pages/__tests__/TagsPage.test.tsx`, and `package.json`
+- [x] T026 [P] Update category API and data-model documentation in `specs/009-tag-categories/contracts/tag-categories-api.md` and `specs/009-tag-categories/data-model.md`
+- [x] T027 [P] Reconcile manual validation guidance and checklist notes in `specs/009-tag-categories/quickstart.md` and `specs/009-tag-categories/checklists/requirements.md`
+- [x] T028 Run focused category validations against `src/tests/api/tags.test.ts`, `src/web/components/__tests__/TagForm.test.tsx`, `src/web/pages/__tests__/TagsPage.test.tsx`, and `package.json`
 
 ---
 

@@ -14,7 +14,7 @@
 
 - Q: Which category should existing tags without a category receive during migration? → A: General
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Assign Categories To Tags (Priority: P1)
 
@@ -68,7 +68,7 @@ As an authenticated user, I want categories to appear only when they contain tag
 - A user attempts to save a tag whose name-category pair matches another one after case normalization and surrounding whitespace removal.
 - A user deletes or reassigns the only tag in a category and the category stops existing immediately after that change.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -82,19 +82,19 @@ As an authenticated user, I want categories to appear only when they contain tag
 - **FR-008**: The system MUST stop treating a category as existing for a user once no tags remain assigned to it.
 - **FR-009**: The system MUST validate category input as a non-empty trimmed string with a maximum length of 120 characters.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Tag**: A user-owned label attached to items, including a required name, a required category, and display details such as description and color.
 - **Tag Category**: A user-owned grouping label that exists only because one or more tags currently reference the same category name.
 
-## Constitution Alignment *(mandatory)*
+## Constitution Alignment _(mandatory)_
 
 - The feature MUST preserve private ownership boundaries for tag creation, editing, listing, and duplicate detection.
 - The feature MUST keep category validation and duplicate rules consistent anywhere users create or edit tags.
 - The feature MUST keep category behavior focused on tag management rather than adding a separate category-management workflow.
 - The feature MUST define success and failure outcomes for valid input, invalid input, and ownership-safe behavior.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

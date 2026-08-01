@@ -16,6 +16,7 @@ This document defines the contract-level behavior for required tag categories an
 ```
 
 Validation rules:
+
 - `tagName`: trimmed, alphanumeric and dot (`.`) only.
 - `tagCategory`: trimmed, 1..120 characters.
 - `color`: strict `#RRGGBB`.
@@ -33,6 +34,7 @@ Validation rules:
 ```
 
 Rules:
+
 - At least one field must be present.
 - Conflict detection applies to the final normalized name-category pair after merge with the current stored tag.
 

@@ -24,7 +24,7 @@ Use this guide to validate the feature end-to-end against [contracts/tag-categor
 1. As User A, create tag `deploy.todo` in category `Work`.
 2. Create another tag `deploy.todo` in category `Personal`.
    - Expected: creation succeeds because the category differs.
-3. Attempt to create or edit a tag to `Deploy.Todo` in category ` work `.
+3. Attempt to create or edit a tag to `Deploy.Todo` in category `work`.
    - Expected: conflict because the normalized pair matches the existing `deploy.todo` + `Work` combination.
 
 ## Scenario 3: Categories stay implicit and disappear when unused
@@ -70,6 +70,7 @@ npm run check
 ```
 
 Expected:
+
 - API tests cover required category input, duplicate normalized name-category pairs, owner isolation, and delete behavior.
 - Frontend tests cover required category input and visible category-related form behavior.
 - Full check passes without unresolved lint, test, or build failures.

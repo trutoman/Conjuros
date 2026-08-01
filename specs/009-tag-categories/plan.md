@@ -32,7 +32,7 @@ Extend the existing user-owned tag domain so every tag requires a category, dupl
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 - Ownership and private-data boundaries MUST be preserved for every feature.
 - Shared contracts MUST be updated before API or UI changes that alter request or response shapes.

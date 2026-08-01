@@ -2,19 +2,19 @@
 
 ## Tag
 
-| Field | Type | Rules |
-|---|---|---|
-| `id` | string | Non-empty unique identifier |
-| `ownerId` | string | Required, must match the authenticated user |
-| `tagName` | string | Required, trimmed, 1..120, alphanumeric and `.` only |
-| `tagNameNormalized` | string | Derived canonical lowercase value used for uniqueness and ownership-safe item validation |
-| `tagCategory` | string | Required, trimmed, 1..120, preserved for display |
-| `tagCategoryNormalized` | string | Derived canonical lowercase value used for uniqueness and implicit category lifecycle |
-| `description` | string | Required by contract, trimmed, max 2000 |
-| `color` | string | Required, must match `#RRGGBB` |
-| `order` | number | Positive integer used for stable tag ordering |
-| `createdAt` | string (ISO datetime) | Required |
-| `updatedAt` | string (ISO datetime) | Required |
+| Field                   | Type                  | Rules                                                                                    |
+| ----------------------- | --------------------- | ---------------------------------------------------------------------------------------- |
+| `id`                    | string                | Non-empty unique identifier                                                              |
+| `ownerId`               | string                | Required, must match the authenticated user                                              |
+| `tagName`               | string                | Required, trimmed, 1..120, alphanumeric and `.` only                                     |
+| `tagNameNormalized`     | string                | Derived canonical lowercase value used for uniqueness and ownership-safe item validation |
+| `tagCategory`           | string                | Required, trimmed, 1..120, preserved for display                                         |
+| `tagCategoryNormalized` | string                | Derived canonical lowercase value used for uniqueness and implicit category lifecycle    |
+| `description`           | string                | Required by contract, trimmed, max 2000                                                  |
+| `color`                 | string                | Required, must match `#RRGGBB`                                                           |
+| `order`                 | number                | Positive integer used for stable tag ordering                                            |
+| `createdAt`             | string (ISO datetime) | Required                                                                                 |
+| `updatedAt`             | string (ISO datetime) | Required                                                                                 |
 
 ### Tag invariants
 
@@ -26,12 +26,12 @@
 
 ## Tag Category (derived concept)
 
-| Field | Type | Rules |
-|---|---|---|
-| `name` | string | User-visible category name derived from tags |
-| `nameNormalized` | string | Canonical lowercase comparison value |
-| `ownerId` | string | Implicitly scoped to one authenticated user |
-| `tagCount` | number | Derived count of owned tags that currently reference the category |
+| Field            | Type   | Rules                                                             |
+| ---------------- | ------ | ----------------------------------------------------------------- |
+| `name`           | string | User-visible category name derived from tags                      |
+| `nameNormalized` | string | Canonical lowercase comparison value                              |
+| `ownerId`        | string | Implicitly scoped to one authenticated user                       |
+| `tagCount`       | number | Derived count of owned tags that currently reference the category |
 
 ### Tag category invariants
 
@@ -41,18 +41,18 @@
 
 ## Collection Item (existing, category-aware semantics)
 
-| Field | Type | Rules |
-|---|---|---|
-| `id` | string | Existing |
-| `ownerId` | string | Existing, enforces ownership boundaries |
-| `kind` | `spell | web-link` | Existing |
-| `title` | string | Existing |
-| `description` | string | Existing |
-| `tags` | string[] | Existing string tag references; every value must exist as an owned tag name at write time |
-| `relatedItemIds` | string[] | Existing ownership validation |
-| `command` / `url` | string \| null | Existing kind-specific constraints |
-| `order` | number | Existing |
-| `createdAt` / `updatedAt` | ISO datetime | Existing |
+| Field                     | Type           | Rules                                                                                     |
+| ------------------------- | -------------- | ----------------------------------------------------------------------------------------- |
+| `id`                      | string         | Existing                                                                                  |
+| `ownerId`                 | string         | Existing, enforces ownership boundaries                                                   |
+| `kind`                    | `spell         | web-link`                                                                                 | Existing |
+| `title`                   | string         | Existing                                                                                  |
+| `description`             | string         | Existing                                                                                  |
+| `tags`                    | string[]       | Existing string tag references; every value must exist as an owned tag name at write time |
+| `relatedItemIds`          | string[]       | Existing ownership validation                                                             |
+| `command` / `url`         | string \| null | Existing kind-specific constraints                                                        |
+| `order`                   | number         | Existing                                                                                  |
+| `createdAt` / `updatedAt` | ISO datetime   | Existing                                                                                  |
 
 ### Item-tag association rules
 
@@ -66,21 +66,21 @@
 
 ## Tag List Query
 
-| Field | Type | Rules |
-|---|---|---|
-| `limit` | number | 1..50, default 25 |
-| `skip` | number | >= 0, default 0 |
+| Field    | Type   | Rules                                                                         |
+| -------- | ------ | ----------------------------------------------------------------------------- |
+| `limit`  | number | 1..50, default 25                                                             |
+| `skip`   | number | >= 0, default 0                                                               |
 | `search` | string | Optional, case-insensitive over the existing tag-management searchable fields |
-| `sort` | enum | `order`, `updatedAt`, `tagName`, `tagCategory` |
+| `sort`   | enum   | `order`, `updatedAt`, `tagName`, `tagCategory`                                |
 
 ## Tag Mutations
 
-| Operation | Input | Rules |
-|---|---|---|
-| Create | `TagInput` | Requires `tagName`, `tagCategory`, `description`, `color`; rejects duplicate normalized name-category pair |
-| Update | `TagUpdate` | Allows partial updates; duplicate pair checks apply to the final normalized name-category pair |
-| Delete | Tag ID | Removes the owned tag and cascades tag-name removal from owned items |
-| Reorder | `{ order: number }` | Existing positive-order semantics |
+| Operation | Input               | Rules                                                                                                      |
+| --------- | ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Create    | `TagInput`          | Requires `tagName`, `tagCategory`, `description`, `color`; rejects duplicate normalized name-category pair |
+| Update    | `TagUpdate`         | Allows partial updates; duplicate pair checks apply to the final normalized name-category pair             |
+| Delete    | Tag ID              | Removes the owned tag and cascades tag-name removal from owned items                                       |
+| Reorder   | `{ order: number }` | Existing positive-order semantics                                                                          |
 
 ## State Transitions
 

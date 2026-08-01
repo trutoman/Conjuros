@@ -27,9 +27,7 @@ const tags = [
 
 describe('TagList', () => {
   it('renders each tag category next to the tag name', () => {
-    render(
-      <TagList tags={tags} onEdit={vi.fn()} onDelete={vi.fn()} onMove={vi.fn()} />,
-    );
+    render(<TagList tags={tags} onEdit={vi.fn()} onDelete={vi.fn()} onMove={vi.fn()} />);
 
     expect(screen.getByText('Work')).toBeInTheDocument();
     expect(screen.getByText('Personal')).toBeInTheDocument();
