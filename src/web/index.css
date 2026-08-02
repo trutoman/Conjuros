@@ -1090,20 +1090,24 @@ select {
 }
 
 .app-sidebar {
+  width: auto;
   max-width: 280px;
-  width: 100%;
   opacity: 1;
-  transition: max-width 200ms ease, opacity 150ms ease, margin 200ms ease;
-  overflow: hidden;
+  transition: width 200ms ease, max-width 200ms ease, opacity 150ms ease;
   box-sizing: border-box;
   flex-shrink: 0;
 }
 
 .app-sidebar.collapsed {
-  max-width: 0;
-  opacity: 0;
-  margin-right: -1.5rem;
-  pointer-events: none;
+  max-width: 70px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-sidebar.collapsed .sidebar-header {
+  border-bottom: 0;
+  padding: 0.5rem;
+  justify-content: center;
 }
 
 .tags-sidebar {

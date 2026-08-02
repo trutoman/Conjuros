@@ -156,16 +156,52 @@ describe('Sidebar component', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('renders "Tags" as the sidebar header title', () => {
+  it('renders "Tags" toggle button with aria-expanded="true" when expanded', () => {
     render(
       <Sidebar
         tags={mockTags}
         filters={defaultFilters}
+        isOpen={true}
         onChange={vi.fn()}
         onNavigateToTags={vi.fn()}
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Tags');
+    const toggleBtn = screen.getByRole('button', { name: 'Collapse tags sidebar' });
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(toggleBtn).toHaveAttribute('aria-controls', 'tags-sidebar-panel');
+  });
+
+  it('hides inner content and renders aria-expanded="false" when reduced (isOpen=false)', () => {
+    render(
+      <Sidebar
+        tags={mockTags}
+        filters={defaultFilters}
+        isOpen={false}
+        onChange={vi.fn()}
+        onNavigateToTags={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    const toggleBtn = screen.getByRole('button', { name: 'Expand tags sidebar' });
+    expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: 'Manage tags' })).toBeNull();
+  });
+
+  it('triggers onToggleOpen when Escape key is pressed while expanded', () => {
+    const onToggleOpen = vi.fn();
+    render(
+      <Sidebar
+        tags={mockTags}
+        filters={defaultFilters}
+        isOpen={true}
+        onToggleOpen={onToggleOpen}
+        onChange={vi.fn()}
+        onNavigateToTags={vi.fn()}
+      />,
+    );
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onToggleOpen).toHaveBeenCalled();
   });
 });
