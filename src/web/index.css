@@ -513,7 +513,7 @@ select {
   gap: 0.6rem;
 }
 
-.item-meta>span {
+.item-meta > span {
   color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: 600;
@@ -1052,9 +1052,22 @@ select {
 .collection-subheader {
   display: flex;
   gap: 1rem;
-  align-items: center;
+  align-items: stretch;
   margin-bottom: 1.5rem;
   width: 100%;
+}
+
+.collection-subheader .add-item-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.9rem;
+  aspect-ratio: 1 / 1;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  align-self: stretch;
 }
 
 .collection-subheader .search-field {
@@ -1093,7 +1106,10 @@ select {
   width: auto;
   max-width: 280px;
   opacity: 1;
-  transition: width 200ms ease, max-width 200ms ease, opacity 150ms ease;
+  transition:
+    width 200ms ease,
+    max-width 200ms ease,
+    opacity 150ms ease;
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -1152,6 +1168,10 @@ select {
   justify-content: center;
   gap: 0.15rem;
   padding: 0.35rem 0.65rem;
+}
+
+.tags-toggle-btn span {
+  font-size: 0.8rem;
 }
 
 .sidebar-header-right {
@@ -1228,7 +1248,9 @@ select {
   justify-content: center;
   font-size: 0.9rem;
   border-radius: 50%;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .search-clear-button:hover {

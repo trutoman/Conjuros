@@ -101,9 +101,6 @@ export function CollectionPage({
               <UserWidget userLabel={currentUserLabel} onSignOut={onSignOut} />
             )}
           </div>
-          <div className="topbar-actions">
-            <button onClick={() => setFormItem(null)}>Add item</button>
-          </div>
         </header>
 
         <div className="app-shell-body">
@@ -127,6 +124,15 @@ export function CollectionPage({
 
           <div className="main-content-frame">
             <div className="collection-subheader">
+              <button
+                type="button"
+                className="add-item-button"
+                onClick={() => setFormItem(null)}
+                aria-label="Add item"
+                title="Add item"
+              >
+                +
+              </button>
               <div className="search-field">
                 <svg
                   className="icon icon-filled search-icon"
