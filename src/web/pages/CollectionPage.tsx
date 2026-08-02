@@ -8,7 +8,6 @@ import { Sidebar } from '../components/Sidebar';
 import { ItemForm } from '../components/ItemForm';
 import { LoadingState } from '../components/LoadingState';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { TagColumnIcon } from '../components/TagColumnIcon';
 import { UserWidget } from '../components/UserWidget';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
@@ -30,7 +29,20 @@ export function CollectionPage({
   const { filters, setFilters, query } = useCollectionFilters();
   const { items, isLoading, error, create, update, remove, reorder } = useCollection(query);
   const tagsState = useTags();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth > 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('conjuros_sidebar_open');
+    if (saved !== null) return saved !== 'false';
+    return window.innerWidth > 768;
+  });
+
+  function handleToggleSidebar() {
+    setIsSidebarOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem('conjuros_sidebar_open', String(next));
+      return next;
+    });
+  }
+
   const [formItem, setFormItem] = useState<CollectionItem | null | undefined>(undefined);
   const [deleteItem, setDeleteItem] = useState<CollectionItem | null>(null);
   const [actionError, setActionError] = useState('');
@@ -91,10 +103,6 @@ export function CollectionPage({
           </div>
           <div className="topbar-actions">
             <button onClick={() => setFormItem(null)}>Add item</button>
-            <button className="quiet tags-toggle-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-              <span>Tags</span>
-              <TagColumnIcon />
-            </button>
           </div>
         </header>
 
@@ -103,13 +111,18 @@ export function CollectionPage({
             <Sidebar
               tags={tagsState.tags}
               filters={filters}
+              isOpen={isSidebarOpen}
+              onToggleOpen={handleToggleSidebar}
               onChange={setFilters}
               onNavigateToTags={onNavigateToTags ?? (() => {})}
-              onClose={() => setIsSidebarOpen(false)}
+              onClose={() => {
+                setIsSidebarOpen(false);
+                localStorage.setItem('conjuros_sidebar_open', 'false');
+              }}
             />
           </div>
           {isSidebarOpen && (
-            <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
+            <div className="sidebar-backdrop" onClick={handleToggleSidebar} />
           )}
 
           <div className="main-content-frame">
