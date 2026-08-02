@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { Tag } from '@conjuros/contracts';
 import type { CollectionFilters } from '../hooks/useCollectionFilters';
 import { TagMatchToggle } from './TagMatchToggle';
+import { TagColumnIcon } from './TagColumnIcon';
 
 export function Sidebar({
   tags,
@@ -35,7 +36,10 @@ export function Sidebar({
   return (
     <aside className="tags-sidebar" aria-label="Tags filter panel">
       <div className="sidebar-header">
-        <h2>Tags</h2>
+        <div className="sidebar-header-title">
+          <h2>Tags</h2>
+          <TagColumnIcon />
+        </div>
         <div className="sidebar-header-right">
           <TagMatchToggle
             mode={filters.tagFilterMode}
