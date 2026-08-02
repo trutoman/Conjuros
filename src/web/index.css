@@ -1066,8 +1066,6 @@ select {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem;
-  color: var(--text-muted);
   flex-shrink: 0;
 }
 
@@ -1173,8 +1171,9 @@ select {
 }
 
 .filter-label {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
+  white-space: nowrap;
   user-select: none;
 }
 
