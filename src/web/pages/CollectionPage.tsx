@@ -8,6 +8,7 @@ import { Sidebar } from '../components/Sidebar';
 import { ItemForm } from '../components/ItemForm';
 import { LoadingState } from '../components/LoadingState';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { TagColumnIcon } from '../components/TagColumnIcon';
 import { UserWidget } from '../components/UserWidget';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
@@ -90,8 +91,9 @@ export function CollectionPage({
           </div>
           <div className="topbar-actions">
             <button onClick={() => setFormItem(null)}>Add item</button>
-            <button className="quiet" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-              Tags
+            <button className="quiet tags-toggle-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+              <span>Tags</span>
+              <TagColumnIcon />
             </button>
           </div>
         </header>
