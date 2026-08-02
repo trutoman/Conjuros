@@ -46,7 +46,7 @@ describe('CollectionPage tag filters', () => {
     expect(screen.queryByText('Git only')).not.toBeInTheDocument();
     expect(screen.queryByText('Docs only')).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByDisplayValue('Match all'), { target: { value: 'any' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Match any tag' }));
 
     expect(screen.getByText('Git only')).toBeInTheDocument();
     expect(screen.getByText('Docs only')).toBeInTheDocument();

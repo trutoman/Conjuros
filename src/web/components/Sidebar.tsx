@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { Tag } from '@conjuros/contracts';
 import type { CollectionFilters } from '../hooks/useCollectionFilters';
+import { TagMatchToggle } from './TagMatchToggle';
 
 export function Sidebar({
   tags,
@@ -36,21 +37,10 @@ export function Sidebar({
       <div className="sidebar-header">
         <h2>Tags</h2>
         <div className="sidebar-header-right">
-          <label className="match-mode-selector" aria-label="Tag match mode">
-            <span>Match</span>
-            <select
-              value={filters.tagFilterMode}
-              onChange={(event) =>
-                onChange({
-                  ...filters,
-                  tagFilterMode: event.target.value as 'all' | 'any',
-                })
-              }
-            >
-              <option value="all">Match all</option>
-              <option value="any">Match any</option>
-            </select>
-          </label>
+          <TagMatchToggle
+            mode={filters.tagFilterMode}
+            onChange={(mode) => onChange({ ...filters, tagFilterMode: mode })}
+          />
           <button className="sidebar-close quiet" onClick={onClose} aria-label="Close sidebar">
             ✕
           </button>

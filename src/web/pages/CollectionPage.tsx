@@ -83,6 +83,7 @@ export function CollectionPage({
             <h1>Conjuros</h1>
           </div>
           <div className="topbar-signout">
+            <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
             {onSignOut && currentUserLabel && (
               <UserWidget userLabel={currentUserLabel} onSignOut={onSignOut} />
             )}
@@ -92,7 +93,6 @@ export function CollectionPage({
             <button className="quiet" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
               Tags
             </button>
-            <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
           </div>
         </header>
 
@@ -139,7 +139,7 @@ export function CollectionPage({
                   </button>
                 )}
               </div>
-              <label className="inline-label type-selector-label">
+              <label className="inline-label type-selector-label filter-label">
                 Type
                 <select
                   value={filters.kind ?? ''}
