@@ -105,7 +105,7 @@ describe('Sidebar component', () => {
     });
   });
 
-  it('triggers onChange callback when match mode selector changes', () => {
+  it('triggers onChange callback when match mode toggle is clicked', () => {
     const onChange = vi.fn();
     render(
       <Sidebar
@@ -117,7 +117,7 @@ describe('Sidebar component', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText('Match'), { target: { value: 'any' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Match any tag' }));
     expect(onChange).toHaveBeenCalledWith({
       ...defaultFilters,
       tagFilterMode: 'any',

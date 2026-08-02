@@ -141,6 +141,9 @@ button:disabled {
   grid-column: 2;
   grid-row: 1;
   justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
 }
 
 .topbar-actions {
@@ -510,7 +513,7 @@ select {
   gap: 0.6rem;
 }
 
-.item-meta > span {
+.item-meta>span {
   color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: 600;
@@ -756,6 +759,8 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .theme-toggle button[aria-pressed='true'] {
@@ -1136,21 +1141,47 @@ select {
   gap: 0.5rem;
 }
 
-.match-mode-selector {
-  display: flex;
+.tag-match-toggle-wrapper {
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  gap: 0.3rem;
 }
 
-.match-mode-selector select {
-  padding: 0.2rem 0.4rem;
+.tag-match-toggle {
+  display: inline-flex;
   border: 1px solid var(--border);
-  border-radius: 0.25rem;
+  border-radius: 0.85rem;
+  overflow: hidden;
   background: var(--surface);
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.tag-match-toggle button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text);
-  cursor: pointer;
+  padding: 0.55rem 0.8rem;
+  min-width: 2.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tag-match-toggle button[aria-pressed='true'] {
+  background: var(--primary);
+  color: #fff;
+}
+
+.tag-match-toggle button:hover {
+  transform: none;
 }
 
 .sidebar-close {
