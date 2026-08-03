@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
@@ -75,6 +77,7 @@ vi.mock('../../hooks/useTags', () => ({
 
 afterEach(() => {
   sessionStorage.clear();
+  localStorage.clear();
   reorderMock.mockReset();
   reorderMock.mockResolvedValue(undefined);
   collectionState.items = collectionItems;
@@ -102,7 +105,9 @@ describe('CollectionPage', () => {
     render(<CollectionPage />);
     expect(screen.getByText('Git status')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Search collection'), { target: { value: 'missing' } });
-    expect(screen.getByText("No se encontraron ítems para 'missing' con las etiquetas seleccionadas.")).toBeInTheDocument();
+    expect(
+      screen.getByText("No se encontraron ítems para 'missing' con las etiquetas seleccionadas."),
+    ).toBeInTheDocument();
   });
 
   it('renders the theme controls and shows the two-button item action layout', () => {
@@ -206,5 +211,33 @@ describe('CollectionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign out alicia' }));
 
     expect(onSignOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps tags sidebar expanded and visible on narrow viewports even when persisted as collapsed', () => {
+    localStorage.setItem('conjuros_sidebar_open', 'false');
+    Object.defineProperty(window, 'innerWidth', { value: 720, configurable: true });
+
+    render(<CollectionPage />);
+
+    const appSidebar = document.querySelector('.app-sidebar');
+    expect(appSidebar).toHaveClass('expanded');
+    expect(appSidebar).toHaveClass('stacked-mobile');
+    expect(screen.getByRole('button', { name: 'Manage tags' })).toBeInTheDocument();
+  });
+
+  it('hides the close sidebar button on narrow stacked layout', () => {
+    Object.defineProperty(window, 'innerWidth', { value: 640, configurable: true });
+
+    render(<CollectionPage />);
+
+    expect(screen.queryByRole('button', { name: 'Close sidebar' })).not.toBeInTheDocument();
+  });
+
+  it('defines bounded add button size at narrow breakpoint', () => {
+    const css = readFileSync(join(process.cwd(), 'src/web/index.css'), 'utf8');
+
+    expect(css).toMatch(
+      /@media \(max-width: 650px\)[\s\S]*?\.collection-subheader \.add-item-button\s*\{[^}]*align-self:\s*flex-start;[^}]*width:\s*2\.75rem;[^}]*height:\s*2\.75rem;[^}]*\}/,
+    );
   });
 });

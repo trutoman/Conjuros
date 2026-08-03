@@ -60,7 +60,7 @@ export function Sidebar({
       <div className="sidebar-header">
         <button
           type="button"
-          className="quiet tags-toggle-btn"
+          className="tags-toggle-btn"
           onClick={onToggleOpen ?? onClose}
           aria-expanded={isOpen}
           aria-controls="tags-sidebar-panel"
