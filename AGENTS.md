@@ -2,58 +2,106 @@
 
 All project documentation, code, and code comments must be written in English.
 
-## Product
-Conjuros lets authenticated users manage a private collection of items. An item is
-either a `spell` with a `command` or a `web-link` with a `url`; both have an owner,
-title, description, tags, order, and relationships.
+## Commands
 
-## Domain Rules
-- On private routes, verify that an item belongs to the authenticated user before reading, updating, reordering, or deleting it.
-- A `spell` requires `command`; store and display its exact text, and never execute it.
-- A `web-link` requires an absolute `https:` or `http:` URL; only open it after an explicit user action.
-- `relatedItemIds` may only refer to items owned by the same user.
-- Validate enumerated tags against their catalogs; normalize and validate free-form tags.
+**Development:**
+```bash
+npm run dev              # Start API (port 3000) + frontend (port 5173) concurrently
+npm run dev:api          # API only via tsx watch
+npm run dev:web          # Frontend only via Vite
+```
+
+**Validation (required before finishing):**
+```bash
+npm run check            # Runs lint → test → build (Docker-independent)
+npm run lint             # ESLint
+npm run test             # Vitest (excludes Docker integration test)
+npm run test:watch       # Vitest watch mode
+npm run test:docker      # Docker persistence test only (requires Docker daemon)
+npm run build            # tsc --noEmit + vite build
+```
+
+**Setup:**
+```bash
+npm run docker:check     # Verify Docker CLI and daemon before docker compose up
+docker compose up -d     # Start local MongoDB at localhost:27017
+cp .env.example .env     # Create local config (set MONGODB_DATABASE and SESSION_SECRET ≥32 chars)
+```
+
+## Product
+
+Conjuros lets authenticated users manage a private collection of items. An item is either a `spell` with a `command` or a `web-link` with a `url`; both have an owner, title, description, tags, order, and relationships.
 
 ## Architecture
-- Use strict TypeScript; do not use `any`.
-- Validate all inputs at boundaries with Zod.
-- The HTTP layer contains no business rules.
-- Services do not depend on Fastify, React, or MongoDB.
-- Only repositories access MongoDB.
-- Share Zod schemas and types through `packages/contracts` when both web and API use them.
-- Do not duplicate contracts or expose persistence-only fields in public contracts.
 
-## Frontend
-- Prioritize search, reading, and quick actions for collection items.
-- Every visible `spell` has an accessible action to copy the exact `command` text and report success or failure.
-- Every visible `web-link` has accessible actions to copy its URL and explicitly open it.
-- The common ordering must work with pointer and keyboard input, and must persist.
-- Include loading, empty, no-results, and error states.
-- Do not add components, libraries, or animations without a specific need.
+**Monorepo structure:**
+- `src/api/` — Express API server (entry: `server.ts`)
+- `src/web/` — React frontend (entry: `main.tsx`, served by Vite from `src/web/`)
+- `packages/contracts/` — Shared Zod schemas and types via `@conjuros/contracts`
+- `src/tests/` — Test suite (mirrors `src/api/` and `src/web/` structure)
 
-## Backend
-- Async Operations: Use async MongoDB client calls (e.g., `Motor`). Never block the main thread.
-- Consistent async/await: Use `async/await` instead of `.then().catch()` chains.
-- Parallel operations: Use `Promise.all()` or `Promise.allSettled()` when database queries or external calls do not depend on each other.
-- Connection reuse: Reuse the existing MongoDB connection pool; never open a new connection for each request.
-- Dependency Injection: Use Express middleware and service factories for database sessions, current user authentication, and service instances.
-- Clean controller layer: Controllers and routes handle only input validation, service calls, and HTTP response formatting. Put all business logic and database queries in services or repositories.
-- Centralized error handling: Do not use empty or ignored `try/catch` blocks. Pass unhandled errors to global middleware with `next(error)` in Express, or raise custom exceptions such as `AppError` or `NotFoundError`.
-- Error handling: Raise `HTTPException` with clear error detail structures.
-- Semantic HTTP status codes: Return appropriate statuses, including `200 OK`, `201 Created`, `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, and `409 Conflict`.
-- Required pagination: Never return complete collections (for example, `.find({})`). Every list endpoint must support pagination through `limit` and `skip` or cursor-based pagination, with a default maximum limit of `50`.
+**Layer boundaries:**
+- Controllers → Services → Repositories → MongoDB
+- Only repositories access MongoDB; services are persistence-agnostic
+- HTTP layer has no business logic
+- Validate all inputs at boundaries with Zod; raise `AppError(status, code, message, details)` for domain errors
+- Share contracts via `packages/contracts`; do not duplicate schemas or expose persistence-only fields (e.g., `ownerId`)
+
+**TypeScript paths:**
+- `@conjuros/contracts` resolves to `packages/contracts/src/index.ts` (configured in `tsconfig.json` and `vite.config.ts`)
+
+**API:**
+- Framework: Express (not Fastify)
+- Auth: JWT in `conjuros_session` cookie; `requireAuth(sessionSecret)` middleware sets `request.currentUser`
+- Error handling: `AppError` → `errorHandler` middleware; `ZodError` → 400; unhandled → 500
+- Environment: Zod-validated via `parseApiEnvironment()`; invalid vars throw named error
+
+**Frontend:**
+- Vite dev server proxies `/api/*` → `http://localhost:3000`
+- Build output: `dist/web/`
+
+## Domain Rules
+
+- Verify item ownership before read/update/reorder/delete
+- `spell` requires `command`; store and display exact text, never execute
+- `web-link` requires absolute `https:` or `http:` URL; open only after explicit user action
+- `relatedItemIds` may only refer to items owned by the same user
+- Validate enumerated tags against catalogs; normalize free-form tags
 
 ## Testing
-- Add or update risk-proportionate tests for every feature, bug fix, and endpoint; keep test files near the code they cover or in a mirrored test directory.
-- Structure unit and integration tests using Arrange-Act-Assert.
-- Cover the successful path, relevant edge cases, input-validation failures, and ownership or authorization boundaries. Invalid inputs must return `400 Bad Request`; cross-user access must return `403 Forbidden` or `404 Not Found`.
-- Never run tests against a production or shared database. Isolate persistence with a test database, in-memory database, or mocks appropriate to the test level, and reset state between tests.
-- Keep tests deterministic: control time, randomness, and external network calls.
-- Use descriptive `describe` and `it` names. In frontend tests, query accessible roles, visible text, or `data-testid`; do not rely on CSS classes or implementation details.
-- Do not leave placeholder or empty tests unless explicitly requested.
 
-## Security and Quality
-- Do not store secrets or real `.env` values.
-- Do not expose internal identifiers, other users' data, or sessions.
-- Every feature includes risk-proportionate tests and updates contracts or OpenAPI when needed.
-- Before finishing, run the most specific available validation and `npm run check` when it exists; report any unresolved failures.
+**Setup:**
+- Unit/integration tests use in-memory repositories (`InMemoryItemsRepository`, `InMemoryUsersRepository`, etc.)
+- Helper: `createTestApp()` in `src/tests/api/testApp.ts` returns `{ app, items, tags, users }`
+- Vitest config excludes `docker-compose.test.ts` from default suite; run separately via `npm run test:docker`
+
+**Conventions:**
+- Use `supertest` for API tests; `@testing-library/react` for frontend
+- Structure: Arrange-Act-Assert
+- Cover ownership boundaries: cross-user access must return 403 or 404
+- Frontend: query accessible roles, visible text, or `data-testid`; avoid CSS classes
+
+## Frontend
+
+- Prioritize search, reading, and quick actions
+- Every `spell` has an accessible action to copy `command` text
+- Every `web-link` has actions to copy URL and open it
+- Ordering must work with pointer and keyboard; persist via API
+- Include loading, empty, no-results, and error states
+- Do not add components, libraries, or animations without a specific need
+
+## Backend
+
+- Use `async/await`, not `.then()/.catch()`
+- Parallel operations: `Promise.all()` or `Promise.allSettled()`
+- Dependency injection: `createApp(dependencies)` in `app.ts`
+- Paginate all list endpoints (default max 50)
+- Status codes: 200, 201, 400, 401, 403, 404, 409 (semantic, not generic)
+- Error handling: raise `AppError`; never use empty `try/catch`
+
+## Quality
+
+- Run `npm run check` before finishing; report unresolved failures
+- Do not store secrets or real `.env` values
+- Do not expose internal identifiers or other users' data
+- Update `packages/contracts` when adding/changing API shapes
