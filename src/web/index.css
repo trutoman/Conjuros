@@ -918,6 +918,15 @@ select {
     gap: 0.75rem;
   }
 
+  .collection-subheader .add-item-button {
+    align-self: flex-start;
+    width: 2.75rem;
+    height: 2.75rem;
+    aspect-ratio: auto;
+    padding: 0;
+    font-size: 1.7rem;
+  }
+
   .collection-subheader .type-selector-label {
     justify-content: space-between;
   }

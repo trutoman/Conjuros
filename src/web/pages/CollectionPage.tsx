@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import type { CollectionItem, CollectionItemInput, ItemKind, ThemePreference } from '@conjuros/contracts';
+import type {
+  CollectionItem,
+  CollectionItemInput,
+  ItemKind,
+  ThemePreference,
+} from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { EmptyState } from '../components/EmptyState';
@@ -31,8 +36,8 @@ export function CollectionPage({
   const { filters, setFilters, query } = useCollectionFilters();
   const { items, isLoading, error, create, update, remove, reorder } = useCollection(query);
   const tagsState = useTags();
-  const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
-    window.innerWidth <= MOBILE_BREAKPOINT_PX,
+  const [isNarrowViewport, setIsNarrowViewport] = useState(
+    () => window.innerWidth <= MOBILE_BREAKPOINT_PX,
   );
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('conjuros_sidebar_open');
@@ -217,7 +222,9 @@ export function CollectionPage({
                 tags={tagsState.tags}
                 onReorder={(id, order) =>
                   void reorder({ id, order }).catch((cause: unknown) =>
-                    setActionError(cause instanceof Error ? cause.message : 'Could not reorder item'),
+                    setActionError(
+                      cause instanceof Error ? cause.message : 'Could not reorder item',
+                    ),
                   )
                 }
                 onEdit={setFormItem}

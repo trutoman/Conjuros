@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
@@ -103,7 +105,9 @@ describe('CollectionPage', () => {
     render(<CollectionPage />);
     expect(screen.getByText('Git status')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Search collection'), { target: { value: 'missing' } });
-    expect(screen.getByText("No se encontraron ítems para 'missing' con las etiquetas seleccionadas.")).toBeInTheDocument();
+    expect(
+      screen.getByText("No se encontraron ítems para 'missing' con las etiquetas seleccionadas."),
+    ).toBeInTheDocument();
   });
 
   it('renders the theme controls and shows the two-button item action layout', () => {
@@ -227,5 +231,13 @@ describe('CollectionPage', () => {
     render(<CollectionPage />);
 
     expect(screen.queryByRole('button', { name: 'Close sidebar' })).not.toBeInTheDocument();
+  });
+
+  it('defines bounded add button size at narrow breakpoint', () => {
+    const css = readFileSync(join(process.cwd(), 'src/web/index.css'), 'utf8');
+
+    expect(css).toMatch(
+      /@media \(max-width: 650px\)[\s\S]*?\.collection-subheader \.add-item-button\s*\{[^}]*align-self:\s*flex-start;[^}]*width:\s*2\.75rem;[^}]*height:\s*2\.75rem;[^}]*\}/,
+    );
   });
 });

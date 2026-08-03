@@ -19,10 +19,12 @@ When viewport width reaches a certain narrow range and the tags panel is in redu
 3. Observe tags sidebar area.
 
 Observed result:
+
 - Sidebar container is moved off-screen to the left.
 - No visible on-screen control remains to re-open tags from the collection viewport.
 
 Expected result:
+
 - On narrow screens, users must still have an always-reachable tags entry point.
 - For very narrow widths, layout should switch to vertical stacking with collection first and tags panel expanded below.
 
@@ -36,6 +38,7 @@ Expected result:
 3. When collapsed in mobile range, the entire sidebar leaves viewport, including the internal `tags-toggle-btn` control.
 
 Primary files involved:
+
 - `src/web/index.css` (mobile media query and sidebar positioning)
 - `src/web/pages/CollectionPage.tsx` (isSidebarOpen persistence and class toggling)
 - `src/web/components/Sidebar.tsx` (internal toggle lives inside sidebar, so it disappears with container)
