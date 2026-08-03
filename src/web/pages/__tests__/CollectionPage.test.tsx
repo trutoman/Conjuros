@@ -75,6 +75,7 @@ vi.mock('../../hooks/useTags', () => ({
 
 afterEach(() => {
   sessionStorage.clear();
+  localStorage.clear();
   reorderMock.mockReset();
   reorderMock.mockResolvedValue(undefined);
   collectionState.items = collectionItems;
@@ -206,5 +207,25 @@ describe('CollectionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign out alicia' }));
 
     expect(onSignOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps tags sidebar expanded and visible on narrow viewports even when persisted as collapsed', () => {
+    localStorage.setItem('conjuros_sidebar_open', 'false');
+    Object.defineProperty(window, 'innerWidth', { value: 720, configurable: true });
+
+    render(<CollectionPage />);
+
+    const appSidebar = document.querySelector('.app-sidebar');
+    expect(appSidebar).toHaveClass('expanded');
+    expect(appSidebar).toHaveClass('stacked-mobile');
+    expect(screen.getByRole('button', { name: 'Manage tags' })).toBeInTheDocument();
+  });
+
+  it('hides the close sidebar button on narrow stacked layout', () => {
+    Object.defineProperty(window, 'innerWidth', { value: 640, configurable: true });
+
+    render(<CollectionPage />);
+
+    expect(screen.queryByRole('button', { name: 'Close sidebar' })).not.toBeInTheDocument();
   });
 });

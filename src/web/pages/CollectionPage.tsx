@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CollectionItem, CollectionItemInput, ItemKind, ThemePreference } from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
@@ -12,6 +12,8 @@ import { UserWidget } from '../components/UserWidget';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
 import { useTags } from '../hooks/useTags';
+
+const MOBILE_BREAKPOINT_PX = 768;
 
 export function CollectionPage({
   onSignOut,
@@ -29,11 +31,26 @@ export function CollectionPage({
   const { filters, setFilters, query } = useCollectionFilters();
   const { items, isLoading, error, create, update, remove, reorder } = useCollection(query);
   const tagsState = useTags();
+  const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
+    window.innerWidth <= MOBILE_BREAKPOINT_PX,
+  );
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('conjuros_sidebar_open');
     if (saved !== null) return saved !== 'false';
-    return window.innerWidth > 768;
+    return window.innerWidth > MOBILE_BREAKPOINT_PX;
   });
+
+  useEffect(() => {
+    function handleResize() {
+      setIsNarrowViewport(window.innerWidth <= MOBILE_BREAKPOINT_PX);
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const shouldForceExpandedSidebar = isNarrowViewport;
+  const effectiveSidebarOpen = shouldForceExpandedSidebar ? true : isSidebarOpen;
 
   function handleToggleSidebar() {
     setIsSidebarOpen((prev) => {
@@ -88,7 +105,7 @@ export function CollectionPage({
     );
   });
   return (
-    <div className={`collection-layout-wrapper ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+    <div className={`collection-layout-wrapper ${effectiveSidebarOpen ? 'sidebar-open' : ''}`}>
       <main className="app-shell">
         <header className="topbar">
           <div className="topbar-brand">
@@ -104,21 +121,29 @@ export function CollectionPage({
         </header>
 
         <div className="app-shell-body">
-          <div className={`app-sidebar ${isSidebarOpen ? 'expanded' : 'collapsed'}`}>
+          <div
+            className={`app-sidebar ${effectiveSidebarOpen ? 'expanded' : 'collapsed'} ${
+              shouldForceExpandedSidebar ? 'stacked-mobile' : ''
+            }`}
+          >
             <Sidebar
               tags={tagsState.tags}
               filters={filters}
-              isOpen={isSidebarOpen}
+              isOpen={effectiveSidebarOpen}
               onToggleOpen={handleToggleSidebar}
               onChange={setFilters}
               onNavigateToTags={onNavigateToTags ?? (() => {})}
-              onClose={() => {
-                setIsSidebarOpen(false);
-                localStorage.setItem('conjuros_sidebar_open', 'false');
-              }}
+              onClose={
+                shouldForceExpandedSidebar
+                  ? undefined
+                  : () => {
+                      setIsSidebarOpen(false);
+                      localStorage.setItem('conjuros_sidebar_open', 'false');
+                    }
+              }
             />
           </div>
-          {isSidebarOpen && (
+          {effectiveSidebarOpen && !shouldForceExpandedSidebar && (
             <div className="sidebar-backdrop" onClick={handleToggleSidebar} />
           )}
 
