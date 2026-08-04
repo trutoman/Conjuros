@@ -153,95 +153,97 @@ export function CollectionPage({
           )}
 
           <div className="main-content-frame">
-            <div className="collection-subheader">
-              <button
-                type="button"
-                className="add-item-button"
-                onClick={() => setFormItem(null)}
-                aria-label="Add item"
-                title="Add item"
-              >
-                +
-              </button>
-              <div className="search-field">
-                <svg
-                  className="icon icon-filled search-icon"
-                  role="img"
-                  aria-hidden="true"
-                  viewBox="0 -960 960 960"
-                  focusable="false"
-                >
-                  <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
-                </svg>
-                <input
-                  aria-label="Search collection"
-                  value={filters.search}
-                  onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-                  placeholder="Buscar en título y contenido..."
-                />
-                {filters.search && (
+            {formItem !== undefined ? (
+              <ItemForm
+                item={formItem ?? undefined}
+                availableTags={tagsState.tags}
+                onSubmit={save}
+                onCancel={() => setFormItem(undefined)}
+              />
+            ) : (
+              <>
+                <div className="collection-subheader">
                   <button
                     type="button"
-                    className="search-clear-button"
-                    onClick={() => setFilters({ ...filters, search: '' })}
-                    aria-label="Clear search"
+                    className="add-item-button"
+                    onClick={() => setFormItem(null)}
+                    aria-label="Add item"
+                    title="Add item"
                   >
-                    ✕
+                    +
                   </button>
+                  <div className="search-field">
+                    <svg
+                      className="icon icon-filled search-icon"
+                      role="img"
+                      aria-hidden="true"
+                      viewBox="0 -960 960 960"
+                      focusable="false"
+                    >
+                      <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
+                    </svg>
+                    <input
+                      aria-label="Search collection"
+                      value={filters.search}
+                      onChange={(event) => setFilters({ ...filters, search: event.target.value })}
+                      placeholder="Buscar en título y contenido..."
+                    />
+                    {filters.search && (
+                      <button
+                        type="button"
+                        className="search-clear-button"
+                        onClick={() => setFilters({ ...filters, search: '' })}
+                        aria-label="Clear search"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <label className="inline-label type-selector-label filter-label">
+                    Type
+                    <select
+                      value={filters.kind ?? ''}
+                      onChange={(event) =>
+                        setFilters({
+                          ...filters,
+                          kind: (event.target.value || undefined) as ItemKind | undefined,
+                        })
+                      }
+                    >
+                      <option value="">All types</option>
+                      <option value="spell">Spells</option>
+                      <option value="web-link">Web links</option>
+                    </select>
+                  </label>
+                </div>
+                {actionError && <ErrorState message={actionError} />}
+                {isLoading || tagsState.isLoading ? (
+                  <LoadingState />
+                ) : error ? (
+                  <ErrorState message={error.message} />
+                ) : tagsState.error ? (
+                  <ErrorState message={tagsState.error.message} />
+                ) : visibleItems.length === 0 ? (
+                  <EmptyState filtered={filtered} filters={filters} />
+                ) : (
+                  <CollectionList
+                    items={visibleItems}
+                    tags={tagsState.tags}
+                    onReorder={(id, order) =>
+                      void reorder({ id, order }).catch((cause: unknown) =>
+                        setActionError(
+                          cause instanceof Error ? cause.message : 'Could not reorder item',
+                        ),
+                      )
+                    }
+                    onEdit={setFormItem}
+                    onDelete={setDeleteItem}
+                  />
                 )}
-              </div>
-              <label className="inline-label type-selector-label filter-label">
-                Type
-                <select
-                  value={filters.kind ?? ''}
-                  onChange={(event) =>
-                    setFilters({
-                      ...filters,
-                      kind: (event.target.value || undefined) as ItemKind | undefined,
-                    })
-                  }
-                >
-                  <option value="">All types</option>
-                  <option value="spell">Spells</option>
-                  <option value="web-link">Web links</option>
-                </select>
-              </label>
-            </div>
-            {actionError && <ErrorState message={actionError} />}
-            {isLoading || tagsState.isLoading ? (
-              <LoadingState />
-            ) : error ? (
-              <ErrorState message={error.message} />
-            ) : tagsState.error ? (
-              <ErrorState message={tagsState.error.message} />
-            ) : visibleItems.length === 0 ? (
-              <EmptyState filtered={filtered} filters={filters} />
-            ) : (
-              <CollectionList
-                items={visibleItems}
-                tags={tagsState.tags}
-                onReorder={(id, order) =>
-                  void reorder({ id, order }).catch((cause: unknown) =>
-                    setActionError(
-                      cause instanceof Error ? cause.message : 'Could not reorder item',
-                    ),
-                  )
-                }
-                onEdit={setFormItem}
-                onDelete={setDeleteItem}
-              />
+              </>
             )}
           </div>
         </div>
-
-        {formItem !== undefined && (
-          <ItemForm
-            item={formItem ?? undefined}
-            availableTags={tagsState.tags}
-            onSubmit={save}
-            onCancel={() => setFormItem(undefined)}
-          />
-        )}
         {deleteItem && (
           <DeleteConfirmDialog
             title={deleteItem.title}
