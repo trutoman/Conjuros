@@ -192,7 +192,6 @@ export function CollectionPage({
               onChange={setFilters}
               onManageTags={openManageTags}
               onAddTag={() => openTagForm(null)}
-              onEditTag={openTagForm}
               onClose={
                 shouldForceExpandedSidebar
                   ? undefined

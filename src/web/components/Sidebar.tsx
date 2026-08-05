@@ -12,7 +12,6 @@ export function Sidebar({
   onChange,
   onManageTags,
   onAddTag,
-  onEditTag,
   onClose,
 }: {
   tags: Tag[];
@@ -22,7 +21,6 @@ export function Sidebar({
   onChange: (filters: CollectionFilters) => void;
   onManageTags: () => void;
   onAddTag?: () => void;
-  onEditTag?: (tag: Tag) => void;
   onClose?: () => void;
 }) {
   const groupedCategories = useMemo(() => {
@@ -102,7 +100,7 @@ export function Sidebar({
                       const normalized = tag.tagName.toLowerCase();
                       const isSelected = filters.tags.includes(normalized);
                       return (
-                        <li key={tag.id} className="tag-filter-item">
+                        <li key={tag.id}>
                           <label
                             className="tag-filter-pill"
                             style={{
@@ -126,17 +124,6 @@ export function Sidebar({
                             />
                             {tag.tagName}
                           </label>
-                          {onEditTag && (
-                            <button
-                              type="button"
-                              className="tag-edit-button"
-                              aria-label={`Edit tag ${tag.tagName}`}
-                              title="Edit tag"
-                              onClick={() => onEditTag(tag)}
-                            >
-                              ✎
-                            </button>
-                          )}
                         </li>
                       );
                     })}

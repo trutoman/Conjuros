@@ -78,16 +78,6 @@ describe('CollectionPage inline tag form', () => {
     expect(screen.queryByText('Git status')).not.toBeInTheDocument();
   });
 
-  it('pre-fills the tag edit form with the tag current values', () => {
-    render(<CollectionPage />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit tag git' }));
-
-    expect(screen.getByRole('heading', { name: 'Edit tag' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Tag name')).toHaveValue('git');
-    expect(screen.getByLabelText('Tag color')).toHaveValue('#123ABC');
-  });
-
   it('returns to the collection view after saving a new tag', async () => {
     render(<CollectionPage />);
 
@@ -106,26 +96,6 @@ describe('CollectionPage inline tag form', () => {
     expect(await screen.findByLabelText('Search collection')).toBeInTheDocument();
     expect(screen.getByText('Git status')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Add tag' })).not.toBeInTheDocument();
-  });
-
-  it('returns to the collection view after saving an edited tag', async () => {
-    render(<CollectionPage />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Edit tag git' }));
-    fireEvent.change(screen.getByLabelText('Tag name'), { target: { value: 'git.work' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save tag' }));
-
-    expect(tagsState.update).toHaveBeenCalledWith({
-      id: 'tag-1',
-      tag: {
-        tagName: 'git.work',
-        tagCategory: 'Development',
-        description: '',
-        color: '#123ABC',
-      },
-    });
-    expect(await screen.findByLabelText('Search collection')).toBeInTheDocument();
-    expect(screen.getByText('Git status')).toBeInTheDocument();
   });
 
   it('returns to the collection view when the tag form is canceled', () => {

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import jwt from 'jsonwebtoken';
 import type { AuthenticatedUser } from '@conjuros/contracts';
 import { createSession, readSession } from '../../api/services/auth.service';
-import { AppError } from '../../api/errors';
 
 const TEST_SECRET = 'test-secret-key-for-jwt-signing';
 const validUser: AuthenticatedUser = { id: 'user-123', email: 'test@example.com' };
