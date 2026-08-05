@@ -50,7 +50,7 @@ describe('Sidebar component', () => {
         tags={mockTags}
         filters={defaultFilters}
         onChange={vi.fn()}
-        onNavigateToTags={vi.fn()}
+        onManageTags={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -74,7 +74,7 @@ describe('Sidebar component', () => {
         tags={mockTags}
         filters={defaultFilters}
         onChange={onChange}
-        onNavigateToTags={vi.fn()}
+        onManageTags={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -93,7 +93,7 @@ describe('Sidebar component', () => {
         tags={mockTags}
         filters={{ ...defaultFilters, tags: ['docker'] }}
         onChange={onChange}
-        onNavigateToTags={vi.fn()}
+        onManageTags={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -112,7 +112,7 @@ describe('Sidebar component', () => {
         tags={mockTags}
         filters={defaultFilters}
         onChange={onChange}
-        onNavigateToTags={vi.fn()}
+        onManageTags={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -124,20 +124,20 @@ describe('Sidebar component', () => {
     });
   });
 
-  it('triggers onNavigateToTags callback when manage tags is clicked', () => {
-    const onNavigateToTags = vi.fn();
+  it('triggers onManageTags callback when manage tags is clicked', () => {
+    const onManageTags = vi.fn();
     render(
       <Sidebar
         tags={mockTags}
         filters={defaultFilters}
         onChange={vi.fn()}
-        onNavigateToTags={onNavigateToTags}
+        onManageTags={onManageTags}
         onClose={vi.fn()}
       />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage tags' }));
-    expect(onNavigateToTags).toHaveBeenCalled();
+    expect(onManageTags).toHaveBeenCalled();
   });
 
   it('triggers onClose callback when close button is clicked', () => {
@@ -147,7 +147,7 @@ describe('Sidebar component', () => {
         tags={mockTags}
         filters={defaultFilters}
         onChange={vi.fn()}
-        onNavigateToTags={vi.fn()}
+        onManageTags={vi.fn()}
         onClose={onClose}
       />,
     );
@@ -163,7 +163,7 @@ describe('Sidebar component', () => {
         filters={defaultFilters}
         isOpen={true}
         onChange={vi.fn()}
-        onNavigateToTags={vi.fn()}
+        onManageTags={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -179,7 +179,7 @@ describe('Sidebar component', () => {
         filters={defaultFilters}
         isOpen={false}
         onChange={vi.fn()}
-        onNavigateToTags={vi.fn()}
+        onManageTags={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -197,7 +197,7 @@ describe('Sidebar component', () => {
         isOpen={true}
         onToggleOpen={onToggleOpen}
         onChange={vi.fn()}
-        onNavigateToTags={vi.fn()}
+        onManageTags={vi.fn()}
       />,
     );
 

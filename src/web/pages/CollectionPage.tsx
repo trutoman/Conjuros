@@ -3,6 +3,8 @@ import type {
   CollectionItem,
   CollectionItemInput,
   ItemKind,
+  Tag,
+  TagInput,
   ThemePreference,
 } from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
@@ -11,6 +13,8 @@ import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Sidebar } from '../components/Sidebar';
 import { ItemForm } from '../components/ItemForm';
+import { TagForm } from '../components/TagForm';
+import { TagList } from '../components/TagList';
 import { LoadingState } from '../components/LoadingState';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { UserWidget } from '../components/UserWidget';
@@ -23,13 +27,11 @@ const MOBILE_BREAKPOINT_PX = 768;
 export function CollectionPage({
   onSignOut,
   currentUserLabel,
-  onNavigateToTags,
   theme = 'light',
   onThemeChange,
 }: {
   onSignOut?: () => void;
   currentUserLabel?: string;
-  onNavigateToTags?: () => void;
   theme?: ThemePreference;
   onThemeChange?: (theme: ThemePreference) => void | Promise<void>;
 }) {
@@ -66,7 +68,10 @@ export function CollectionPage({
   }
 
   const [formItem, setFormItem] = useState<CollectionItem | null | undefined>(undefined);
+  const [formTag, setFormTag] = useState<Tag | null | undefined>(undefined);
   const [deleteItem, setDeleteItem] = useState<CollectionItem | null>(null);
+  const [deleteTag, setDeleteTag] = useState<Tag | null>(null);
+  const [manageTags, setManageTags] = useState(false);
   const [actionError, setActionError] = useState('');
 
   async function save(input: CollectionItemInput) {
@@ -79,6 +84,44 @@ export function CollectionPage({
     }
   }
 
+  async function saveTag(input: TagInput) {
+    try {
+      if (formTag) await tagsState.update({ id: formTag.id, tag: input });
+      else await tagsState.create(input);
+      setFormTag(undefined);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Could not save tag');
+    }
+  }
+
+  function openItemForm(item: CollectionItem | null) {
+    setFormTag(undefined);
+    setManageTags(false);
+    setFormItem(item);
+  }
+
+  function openTagForm(tag: Tag | null) {
+    setFormItem(undefined);
+    setManageTags(false);
+    setFormTag(tag);
+  }
+
+  function openTagFormInManage(tag: Tag | null) {
+    setFormItem(undefined);
+    setFormTag(tag);
+  }
+
+  function openManageTags() {
+    setFormItem(undefined);
+    setFormTag(undefined);
+    setManageTags(true);
+  }
+
+  function closeManageTags() {
+    setFormTag(undefined);
+    setManageTags(false);
+  }
+
   async function confirmDelete() {
     if (!deleteItem) return;
     try {
@@ -86,6 +129,16 @@ export function CollectionPage({
       setDeleteItem(null);
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : 'Could not delete item');
+    }
+  }
+
+  async function confirmTagDelete() {
+    if (!deleteTag) return;
+    try {
+      await tagsState.remove(deleteTag.id);
+      setDeleteTag(null);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Could not delete tag');
     }
   }
 
@@ -137,7 +190,9 @@ export function CollectionPage({
               isOpen={effectiveSidebarOpen}
               onToggleOpen={handleToggleSidebar}
               onChange={setFilters}
-              onNavigateToTags={onNavigateToTags ?? (() => {})}
+              onManageTags={openManageTags}
+              onAddTag={() => openTagForm(null)}
+              onEditTag={openTagForm}
               onClose={
                 shouldForceExpandedSidebar
                   ? undefined
@@ -153,7 +208,54 @@ export function CollectionPage({
           )}
 
           <div className="main-content-frame">
-            {formItem !== undefined ? (
+            {manageTags ? (
+              formTag !== undefined ? (
+                <TagForm
+                  tag={formTag ?? undefined}
+                  onSubmit={saveTag}
+                  onCancel={() => setFormTag(undefined)}
+                />
+              ) : (
+                <div className="item-form tag-management-view">
+                  <div className="tag-management-header">
+                    <h2>Manage tags</h2>
+                    <div className="tag-management-actions">
+                      <button type="button" onClick={() => openTagFormInManage(null)}>
+                        Add tag
+                      </button>
+                      <button type="button" className="quiet" onClick={closeManageTags}>
+                        ← Collection
+                      </button>
+                    </div>
+                  </div>
+                  {actionError && <ErrorState message={actionError} />}
+                  {tagsState.isLoading ? (
+                    <LoadingState />
+                  ) : tagsState.error ? (
+                    <ErrorState message={tagsState.error.message} />
+                  ) : (
+                    <TagList
+                      tags={tagsState.tags}
+                      onEdit={setFormTag}
+                      onDelete={setDeleteTag}
+                      onMove={(id, order) =>
+                        void tagsState.reorder({ id, order }).catch((cause: unknown) =>
+                          setActionError(
+                            cause instanceof Error ? cause.message : 'Could not reorder tag',
+                          ),
+                        )
+                      }
+                    />
+                  )}
+                </div>
+              )
+            ) : formTag !== undefined ? (
+              <TagForm
+                tag={formTag ?? undefined}
+                onSubmit={saveTag}
+                onCancel={() => setFormTag(undefined)}
+              />
+            ) : formItem !== undefined ? (
               <ItemForm
                 item={formItem ?? undefined}
                 availableTags={tagsState.tags}
@@ -166,7 +268,7 @@ export function CollectionPage({
                   <button
                     type="button"
                     className="add-item-button"
-                    onClick={() => setFormItem(null)}
+                    onClick={() => openItemForm(null)}
                     aria-label="Add item"
                     title="Add item"
                   >
@@ -236,7 +338,7 @@ export function CollectionPage({
                         ),
                       )
                     }
-                    onEdit={setFormItem}
+                    onEdit={openItemForm}
                     onDelete={setDeleteItem}
                   />
                 )}
@@ -249,6 +351,13 @@ export function CollectionPage({
             title={deleteItem.title}
             onConfirm={() => void confirmDelete()}
             onCancel={() => setDeleteItem(null)}
+          />
+        )}
+        {deleteTag && (
+          <DeleteConfirmDialog
+            title={deleteTag.tagName}
+            onConfirm={() => void confirmTagDelete()}
+            onCancel={() => setDeleteTag(null)}
           />
         )}
       </main>
