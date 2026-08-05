@@ -100,7 +100,7 @@ export function Sidebar({
                       const normalized = tag.tagName.toLowerCase();
                       const isSelected = filters.tags.includes(normalized);
                       return (
-                        <li key={tag.id}>
+                        <li key={tag.id} className="tag-filter-item">
                           <label
                             className="tag-filter-pill"
                             style={{
@@ -124,6 +124,17 @@ export function Sidebar({
                             />
                             {tag.tagName}
                           </label>
+                          {onEditTag && (
+                            <button
+                              type="button"
+                              className="tag-edit-button"
+                              aria-label={`Edit tag ${tag.tagName}`}
+                              title="Edit tag"
+                              onClick={() => onEditTag(tag)}
+                            >
+                              ✎
+                            </button>
+                          )}
                         </li>
                       );
                     })}
