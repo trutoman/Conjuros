@@ -3,6 +3,8 @@ import type {
   CollectionItem,
   CollectionItemInput,
   ItemKind,
+  Tag,
+  TagInput,
   ThemePreference,
 } from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
@@ -11,6 +13,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Sidebar } from '../components/Sidebar';
 import { ItemForm } from '../components/ItemForm';
+import { TagForm } from '../components/TagForm';
 import { LoadingState } from '../components/LoadingState';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { UserWidget } from '../components/UserWidget';
@@ -66,6 +69,7 @@ export function CollectionPage({
   }
 
   const [formItem, setFormItem] = useState<CollectionItem | null | undefined>(undefined);
+  const [formTag, setFormTag] = useState<Tag | null | undefined>(undefined);
   const [deleteItem, setDeleteItem] = useState<CollectionItem | null>(null);
   const [actionError, setActionError] = useState('');
 
@@ -77,6 +81,26 @@ export function CollectionPage({
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : 'Could not save item');
     }
+  }
+
+  async function saveTag(input: TagInput) {
+    try {
+      if (formTag) await tagsState.update({ id: formTag.id, tag: input });
+      else await tagsState.create(input);
+      setFormTag(undefined);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Could not save tag');
+    }
+  }
+
+  function openItemForm(item: CollectionItem | null) {
+    setFormTag(undefined);
+    setFormItem(item);
+  }
+
+  function openTagForm(tag: Tag | null) {
+    setFormItem(undefined);
+    setFormTag(tag);
   }
 
   async function confirmDelete() {
@@ -138,6 +162,8 @@ export function CollectionPage({
               onToggleOpen={handleToggleSidebar}
               onChange={setFilters}
               onNavigateToTags={onNavigateToTags ?? (() => {})}
+              onAddTag={() => openTagForm(null)}
+              onEditTag={openTagForm}
               onClose={
                 shouldForceExpandedSidebar
                   ? undefined
@@ -153,7 +179,13 @@ export function CollectionPage({
           )}
 
           <div className="main-content-frame">
-            {formItem !== undefined ? (
+            {formTag !== undefined ? (
+              <TagForm
+                tag={formTag ?? undefined}
+                onSubmit={saveTag}
+                onCancel={() => setFormTag(undefined)}
+              />
+            ) : formItem !== undefined ? (
               <ItemForm
                 item={formItem ?? undefined}
                 availableTags={tagsState.tags}
@@ -166,7 +198,7 @@ export function CollectionPage({
                   <button
                     type="button"
                     className="add-item-button"
-                    onClick={() => setFormItem(null)}
+                    onClick={() => openItemForm(null)}
                     aria-label="Add item"
                     title="Add item"
                   >
@@ -236,7 +268,7 @@ export function CollectionPage({
                         ),
                       )
                     }
-                    onEdit={setFormItem}
+                    onEdit={openItemForm}
                     onDelete={setDeleteItem}
                   />
                 )}

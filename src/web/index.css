@@ -1315,6 +1315,28 @@ select {
   gap: 0.4rem;
 }
 
+.tag-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tag-edit-button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .tags-sidebar .tag-filter-pill {
   font-size: 0.65rem;
   padding: 0.15rem 0.45rem;
@@ -1325,6 +1347,9 @@ select {
   border-top: 1px solid var(--border);
   text-align: center;
   background: var(--surface-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .sidebar-footer button {

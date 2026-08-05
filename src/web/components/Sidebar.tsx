@@ -11,6 +11,8 @@ export function Sidebar({
   onToggleOpen,
   onChange,
   onNavigateToTags,
+  onAddTag,
+  onEditTag,
   onClose,
 }: {
   tags: Tag[];
@@ -19,6 +21,8 @@ export function Sidebar({
   onToggleOpen?: () => void;
   onChange: (filters: CollectionFilters) => void;
   onNavigateToTags: () => void;
+  onAddTag?: () => void;
+  onEditTag?: (tag: Tag) => void;
   onClose?: () => void;
 }) {
   const groupedCategories = useMemo(() => {
@@ -98,7 +102,7 @@ export function Sidebar({
                       const normalized = tag.tagName.toLowerCase();
                       const isSelected = filters.tags.includes(normalized);
                       return (
-                        <li key={tag.id}>
+                        <li key={tag.id} className="tag-filter-item">
                           <label
                             className="tag-filter-pill"
                             style={{
@@ -122,6 +126,17 @@ export function Sidebar({
                             />
                             {tag.tagName}
                           </label>
+                          {onEditTag && (
+                            <button
+                              type="button"
+                              className="tag-edit-button"
+                              aria-label={`Edit tag ${tag.tagName}`}
+                              title="Edit tag"
+                              onClick={() => onEditTag(tag)}
+                            >
+                              ✎
+                            </button>
+                          )}
                         </li>
                       );
                     })}
@@ -131,6 +146,11 @@ export function Sidebar({
             )}
           </div>
           <div className="sidebar-footer">
+            {onAddTag && (
+              <button className="quiet" aria-label="Add tag" onClick={onAddTag}>
+                Add tag
+              </button>
+            )}
             <button className="quiet" onClick={onNavigateToTags}>
               Manage tags
             </button>
