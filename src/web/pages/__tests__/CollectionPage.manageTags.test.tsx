@@ -172,7 +172,9 @@ describe('CollectionPage inline manage tags view', () => {
     render(<CollectionPage />);
     openManageTags();
 
-    fireEvent.click(manageFrame().getAllByRole('button', { name: 'Edit' })[0]);
+    fireEvent.click(
+      manageFrame().getAllByRole('button', { name: 'Edit' })[0],
+    );
     expect(screen.getByRole('heading', { name: 'Edit tag' })).toBeInTheDocument();
     expect(screen.getByLabelText('Tag name')).toHaveValue('git');
 
@@ -195,10 +197,12 @@ describe('CollectionPage inline manage tags view', () => {
     render(<CollectionPage />);
     openManageTags();
 
-    fireEvent.click(manageFrame().getAllByRole('button', { name: 'Delete' })[0]);
+    fireEvent.click(
+      manageFrame().getAllByRole('button', { name: 'Delete' })[0],
+    );
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete tag' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
     expect(tagsState.remove).toHaveBeenCalledWith('tag-1');
     expect(await screen.findByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
