@@ -842,6 +842,30 @@ select {
   margin-top: 0;
 }
 
+.tag-management-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.tag-management-header h2 {
+  margin: 0;
+}
+
+.tag-management-actions {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tag-management-view .tag-panel {
+  margin-top: 0;
+}
+
 .item-form fieldset {
   border: 0;
   padding: 0;

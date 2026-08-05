@@ -10,7 +10,7 @@ export function Sidebar({
   isOpen = true,
   onToggleOpen,
   onChange,
-  onNavigateToTags,
+  onManageTags,
   onAddTag,
   onEditTag,
   onClose,
@@ -20,7 +20,7 @@ export function Sidebar({
   isOpen?: boolean;
   onToggleOpen?: () => void;
   onChange: (filters: CollectionFilters) => void;
-  onNavigateToTags: () => void;
+  onManageTags: () => void;
   onAddTag?: () => void;
   onEditTag?: (tag: Tag) => void;
   onClose?: () => void;
@@ -151,7 +151,7 @@ export function Sidebar({
                 Add tag
               </button>
             )}
-            <button className="quiet" onClick={onNavigateToTags}>
+            <button className="quiet" onClick={onManageTags}>
               Manage tags
             </button>
           </div>

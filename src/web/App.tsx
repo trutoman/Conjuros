@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AuthenticatedUserProfile } from '@conjuros/contracts';
 import { CollectionPage } from './pages/CollectionPage';
-import { TagsPage } from './pages/TagsPage';
 import { useThemePreference } from './hooks/useThemePreference';
 
 const queryClient = new QueryClient();
@@ -86,7 +85,6 @@ function Application() {
   const [authenticated, setAuthenticated] = useState<AuthenticatedUserProfile | null | undefined>(
     undefined,
   );
-  const [page, setPage] = useState<'collection' | 'tags'>('collection');
   const themePreference = useThemePreference(
     authenticated?.theme ?? 'light',
     authenticated !== null && authenticated !== undefined,
@@ -113,23 +111,12 @@ function Application() {
   }
   if (authenticated === undefined) return <main className="auth-shell">Loading...</main>;
   if (!authenticated) return <AuthScreen onAuthenticated={setAuthenticated} />;
-  if (page === 'tags')
-    return (
-      <TagsPage
-        currentUserLabel={currentUserLabel}
-        theme={themePreference.theme}
-        onThemeChange={themePreference.setTheme}
-        onSignOut={() => void signOut()}
-        onBack={() => setPage('collection')}
-      />
-    );
   return (
     <CollectionPage
       currentUserLabel={currentUserLabel}
       theme={themePreference.theme}
       onThemeChange={themePreference.setTheme}
       onSignOut={() => void signOut()}
-      onNavigateToTags={() => setPage('tags')}
     />
   );
 }
