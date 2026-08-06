@@ -24,6 +24,15 @@ export function TagsPage({
   const [formTag, setFormTag] = useState<Tag | null | undefined>(undefined);
   const [deleteTag, setDeleteTag] = useState<Tag | null>(null);
   const [actionError, setActionError] = useState('');
+  const [tagQuery, setTagQuery] = useState('');
+
+  const normalizedTagQuery = tagQuery.trim().toLowerCase();
+  const visibleTags = tagsState.tags.filter(
+    (tag) =>
+      !normalizedTagQuery ||
+      tag.tagName.toLowerCase().includes(normalizedTagQuery) ||
+      tag.tagCategory.toLowerCase().includes(normalizedTagQuery),
+  );
 
   async function saveTag(input: TagInput) {
     try {
@@ -53,6 +62,33 @@ export function TagsPage({
           <h1>Conjuros</h1>
         </div>
         <div className="topbar-actions">
+          <div className="search-field">
+            <svg
+              className="icon icon-filled search-icon"
+              role="img"
+              aria-hidden="true"
+              viewBox="0 -960 960 960"
+              focusable="false"
+            >
+              <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
+            </svg>
+            <input
+              aria-label="Search tags"
+              value={tagQuery}
+              onChange={(event) => setTagQuery(event.target.value)}
+              placeholder="Search in name or category..."
+            />
+            {tagQuery && (
+              <button
+                type="button"
+                className="search-clear-button"
+                onClick={() => setTagQuery('')}
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <button onClick={onBack}>← Collection</button>
           <button onClick={() => setFormTag(null)}>Add tag</button>
           <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
@@ -63,7 +99,7 @@ export function TagsPage({
       </header>
       {actionError && <p className="field-error">{actionError}</p>}
       <TagList
-        tags={tagsState.tags}
+        tags={visibleTags}
         onEdit={setFormTag}
         onDelete={setDeleteTag}
         onMove={(id, order) =>

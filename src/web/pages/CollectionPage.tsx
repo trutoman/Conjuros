@@ -73,6 +73,7 @@ export function CollectionPage({
   const [deleteTag, setDeleteTag] = useState<Tag | null>(null);
   const [manageTags, setManageTags] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [tagQuery, setTagQuery] = useState('');
 
   async function save(input: CollectionItemInput) {
     try {
@@ -108,6 +109,7 @@ export function CollectionPage({
   function openManageTags() {
     setFormItem(undefined);
     setFormTag(undefined);
+    setTagQuery('');
     setManageTags(true);
   }
 
@@ -137,6 +139,13 @@ export function CollectionPage({
   }
 
   const filtered = Boolean(filters.search || filters.kind || filters.tags.length > 0);
+  const normalizedTagQuery = tagQuery.trim().toLowerCase();
+  const visibleTags = tagsState.tags.filter(
+    (tag) =>
+      !normalizedTagQuery ||
+      tag.tagName.toLowerCase().includes(normalizedTagQuery) ||
+      tag.tagCategory.toLowerCase().includes(normalizedTagQuery),
+  );
   const visibleItems = items.filter((item) => {
     const searchable = [
       item.title,
@@ -220,6 +229,33 @@ export function CollectionPage({
                   <div className="tag-management-header">
                     <h2>Manage tags</h2>
                     <div className="tag-management-actions">
+                      <div className="search-field">
+                        <svg
+                          className="icon icon-filled search-icon"
+                          role="img"
+                          aria-hidden="true"
+                          viewBox="0 -960 960 960"
+                          focusable="false"
+                        >
+                          <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
+                        </svg>
+                        <input
+                          aria-label="Search tags"
+                          value={tagQuery}
+                          onChange={(event) => setTagQuery(event.target.value)}
+                          placeholder="Search in name or category..."
+                        />
+                        {tagQuery && (
+                          <button
+                            type="button"
+                            className="search-clear-button"
+                            onClick={() => setTagQuery('')}
+                            aria-label="Clear search"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
                       <button type="button" onClick={() => openTagFormInManage(null)}>
                         Add tag
                       </button>
@@ -232,15 +268,17 @@ export function CollectionPage({
                     <ErrorState message={tagsState.error.message} />
                   ) : (
                     <TagList
-                      tags={tagsState.tags}
+                      tags={visibleTags}
                       onEdit={setFormTag}
                       onDelete={setDeleteTag}
                       onMove={(id, order) =>
-                        void tagsState.reorder({ id, order }).catch((cause: unknown) =>
-                          setActionError(
-                            cause instanceof Error ? cause.message : 'Could not reorder tag',
-                          ),
-                        )
+                        void tagsState
+                          .reorder({ id, order })
+                          .catch((cause: unknown) =>
+                            setActionError(
+                              cause instanceof Error ? cause.message : 'Could not reorder tag',
+                            ),
+                          )
                       }
                     />
                   )}
@@ -279,7 +317,7 @@ export function CollectionPage({
                       aria-label="Search collection"
                       value={filters.search}
                       onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-                      placeholder="Buscar en título y contenido..."
+                      placeholder="Search in title and content..."
                     />
                     {filters.search && (
                       <button

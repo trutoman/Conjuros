@@ -1,4 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
 
@@ -187,9 +189,8 @@ describe('CollectionPage inline manage tags view', () => {
     render(<CollectionPage />);
     openManageTags();
 
-    fireEvent.click(
-      manageFrame().getAllByRole('button', { name: 'Edit' })[0],
-    );
+    fireEvent.click(manageFrame().getAllByRole('button', { name: 'Tag menu' })[0]);
+    fireEvent.click(manageFrame().getByRole('menuitem', { name: 'Edit' }));
     expect(screen.getByRole('heading', { name: 'Edit tag' })).toBeInTheDocument();
     expect(screen.getByLabelText('Tag name')).toHaveValue('git');
 
@@ -212,9 +213,8 @@ describe('CollectionPage inline manage tags view', () => {
     render(<CollectionPage />);
     openManageTags();
 
-    fireEvent.click(
-      manageFrame().getAllByRole('button', { name: 'Delete' })[0],
-    );
+    fireEvent.click(manageFrame().getAllByRole('button', { name: 'Tag menu' })[0]);
+    fireEvent.click(manageFrame().getByRole('menuitem', { name: 'Delete' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
@@ -227,10 +227,12 @@ describe('CollectionPage inline manage tags view', () => {
     render(<CollectionPage />);
     openManageTags();
 
-    const moves = manageFrame().getAllByRole('button', { name: /move (up|down)/i });
-    fireEvent.click(moves[1]);
+    const secondRow = manageFrame().getByTestId('tag-row-tag-2');
+    fireEvent.dragStart(secondRow);
+    fireEvent.dragOver(manageFrame().getByTestId('tag-row-tag-1'));
+    fireEvent.drop(manageFrame().getByTestId('tag-row-tag-1'));
 
-    expect(tagsState.reorder).toHaveBeenCalledWith({ id: 'tag-1', order: 2 });
+    expect(tagsState.reorder).toHaveBeenCalledWith({ id: 'tag-2', order: 1 });
   });
 
   it('restores the item collection when exiting the management view', () => {
@@ -259,5 +261,68 @@ describe('CollectionPage inline manage tags view', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     expect(screen.getByRole('heading', { name: 'Add item' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Manage tags' })).not.toBeInTheDocument();
+  });
+
+  it('filters tags by name through the tag search box', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.change(manageFrame().getByLabelText('Search tags'), {
+      target: { value: 'git' },
+    });
+
+    expect(manageFrame().queryByText('docs')).not.toBeInTheDocument();
+    expect(manageFrame().getByText('git')).toBeInTheDocument();
+  });
+
+  it('filters tags by category through the tag search box', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.change(manageFrame().getByLabelText('Search tags'), {
+      target: { value: 'documentation' },
+    });
+
+    expect(manageFrame().queryByText('git')).not.toBeInTheDocument();
+    expect(manageFrame().getByText('docs')).toBeInTheDocument();
+  });
+
+  it('clearing the tag search shows all tags again', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.change(manageFrame().getByLabelText('Search tags'), {
+      target: { value: 'docs' },
+    });
+    expect(manageFrame().queryByText('git')).not.toBeInTheDocument();
+
+    fireEvent.click(manageFrame().getByRole('button', { name: 'Clear search' }));
+
+    expect(manageFrame().getByText('git')).toBeInTheDocument();
+    expect(manageFrame().getByText('docs')).toBeInTheDocument();
+  });
+
+  it('shows no tags when the search matches nothing', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.change(manageFrame().getByLabelText('Search tags'), {
+      target: { value: 'zzz' },
+    });
+
+    expect(manageFrame().queryByText('git')).not.toBeInTheDocument();
+    expect(manageFrame().queryByText('docs')).not.toBeInTheDocument();
+  });
+
+  it('lets the tag search box expand to fill the available header width', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    expect(manageFrame().getByLabelText('Search tags').closest('.search-field')).toBeInTheDocument();
+
+    const css = readFileSync(join(process.cwd(), 'src/web/index.css'), 'utf8');
+    expect(css).toMatch(
+      /\.tag-management-actions \.search-field\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-width:\s*0;[^}]*\}/,
+    );
   });
 });
