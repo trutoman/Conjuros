@@ -168,6 +168,21 @@ describe('CollectionPage inline manage tags view', () => {
     expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
   });
 
+  it('returns to the management list when the tag form is closed via its close button', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.click(manageFrame().getByRole('button', { name: 'Add tag' }));
+    expect(screen.getByRole('heading', { name: 'Add tag' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Tag name'), { target: { value: 'discard.me' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Close tag form' }));
+
+    expect(tagsState.create).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
+  });
+
   it('pre-fills the edit form and saves the updated tag', async () => {
     render(<CollectionPage />);
     openManageTags();
@@ -222,7 +237,7 @@ describe('CollectionPage inline manage tags view', () => {
     render(<CollectionPage />);
     openManageTags();
 
-    fireEvent.click(screen.getByRole('button', { name: '← Collection' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close tag management' }));
 
     expect(screen.queryByRole('heading', { name: 'Manage tags' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
@@ -238,7 +253,7 @@ describe('CollectionPage inline manage tags view', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '← Collection' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close tag management' }));
     expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));

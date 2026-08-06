@@ -830,12 +830,40 @@ select {
 }
 
 .item-form {
+  position: relative;
   padding: 1rem;
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: 1rem;
   height: 100%;
   overflow-y: auto;
+}
+
+.form-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+  border-radius: 50%;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.form-close:hover {
+  background: var(--page-bg-accent);
+  color: var(--text);
 }
 
 .item-form h2 {
@@ -860,6 +888,10 @@ select {
   gap: 0.55rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.tag-management-view .tag-management-header {
+  padding-right: 2.25rem;
 }
 
 .tag-management-view .tag-panel {
