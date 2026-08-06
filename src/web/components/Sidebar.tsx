@@ -52,11 +52,7 @@ export function Sidebar({
   }, [isOpen, onToggleOpen, onClose]);
 
   return (
-    <aside
-      id="tags-sidebar-panel"
-      className="tags-sidebar"
-      aria-label="Tags filter panel"
-    >
+    <aside id="tags-sidebar-panel" className="tags-sidebar" aria-label="Tags filter panel">
       <div className="sidebar-header">
         <button
           type="button"
