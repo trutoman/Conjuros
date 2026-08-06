@@ -5,13 +5,13 @@
 
 ## 2. Replace the tag management view back control
 
-- [x] 2.1 Replace the `← Collection` button in the `tag-management-view` in `src/web/pages/CollectionPage.tsx` with a borderless floating close button wired to `closeManageTags`
-- [x] 2.2 Position the manage-view close button in the top-left corner with an accessible label (e.g., "Close tag management") and an "X" glyph with no visible frame
+- [x] 2.1 Replace the `← Collection` button in the `tag-management-view` in `src/web/pages/CollectionPage.tsx` with a borderless floating close button wired to `closeManageTags`, positioned in the top-right corner
+- [x] 2.2 Position the manage-view close button in the top-right corner with an accessible label (e.g., "Close tag management") and an "X" glyph with no visible frame
 
 ## 3. Style the close button
 
-- [x] 3.1 Add CSS in `src/web/index.css` for a shared `.form-close` rule (borderless, floating, circular hover) positioned in the top-right corner of the `.item-form` container, with a top-left variant for the tag management view
-- [x] 3.2 Add CSS so the `Manage tags` heading does not overlap the top-left close button
+- [x] 3.1 Add CSS in `src/web/index.css` for a shared `.form-close` rule (borderless, floating, circular hover) positioned in the top-right corner of the `.item-form` container
+- [x] 3.2 Add CSS so the `Manage tags` heading does not overlap the top-right close button
 
 ## 4. Tests
 

@@ -19,7 +19,7 @@ The Add tag form SHALL provide a borderless floating close button displaying an 
 - **THEN** the button is announced with an accessible label identifying it as the close action for the form
 
 ### Requirement: Tag management view close button
-The tag management view SHALL replace its text back control ("← Collection") with a borderless floating close button displaying an "X" in the top-left corner of the view. Activating it SHALL dismiss the view and return to the collection view, with the same behavior as the replaced back control.
+The tag management view SHALL replace its text back control ("← Collection") with a borderless floating close button displaying an "X" in the top-right corner of the view. Activating it SHALL dismiss the view and return to the collection view, with the same behavior as the replaced back control.
 
 #### Scenario: Closing the tag management view
 - **WHEN** a user activates the close button on the tag management view

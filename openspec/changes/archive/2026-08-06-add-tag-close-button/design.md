@@ -25,9 +25,9 @@ See proposal.md for motivation. Two surfaces need a borderless "X" close control
 
 ### Decision 1: Shared `.form-close` style with position variants
 
-**Approach:** Add one `.form-close` rule (borderless, transparent background, circular hover mirroring `.search-clear-button`) positioned absolute at `top: 0.5rem; right: 0.5rem` (top-right, for the Add tag form). Override for the manage view with `.tag-management-view .form-close { right: auto; left: 0.5rem; }` so it floats in the top-left corner per the request.
+**Approach:** Add one `.form-close` rule (borderless, transparent background, circular hover mirroring `.search-clear-button`) positioned absolute at `top: 0.5rem; right: 0.5rem` (top-right, for the Add tag form). The manage view uses the same default top-right position so both buttons float in the top-right corner of their surfaces.
 
-**Rationale:** One class keeps both buttons visually identical; only the corner differs. Avoids duplicating button styles.
+**Rationale:** One class keeps both buttons visually identical and both sit in the top-right corner. Avoids duplicating button styles.
 
 **Alternative considered:** A `float`/flex approach without absolute positioning. Rejected because the buttons must overlay the form corner without disturbing the document flow.
 
@@ -37,11 +37,11 @@ See proposal.md for motivation. Two surfaces need a borderless "X" close control
 
 **Rationale:** Both surfaces already share the `.item-form` class, so a single rule gives both a positioning context with no new wrapper elements.
 
-### Decision 3: Clear the top-left corner of the manage view heading
+### Decision 3: Clear the top-right corner of the manage view heading
 
-**Approach:** Give `.tag-management-view .tag-management-header` `padding-left` so the `Manage tags` heading does not sit under the floating top-left "X".
+**Approach:** Give `.tag-management-view .tag-management-header` `padding-right` so the `Manage tags` heading and actions do not sit under the floating top-right "X".
 
-**Rationale:** The header `h2` currently occupies the top-left corner where the manage-view close button floats; padding shifts the heading right without affecting the Add tag form (whose heading stays clear of the top-right button).
+**Rationale:** The header `h2` and actions occupy the top-right area where the manage-view close button floats; padding shifts the header left without affecting the Add tag form (whose heading stays clear of the top-right button).
 
 ### Decision 4: Keep `Cancel` and reuse existing dismiss handlers
 
@@ -58,5 +58,5 @@ See proposal.md for motivation. Two surfaces need a borderless "X" close control
 ## Risks / Trade-offs
 
 - [Absolutely positioned buttons scroll with `.item-form`'s `overflow-y: auto`] → Acceptable: both buttons sit at the top of the form where they remain visible; the manage view header is the first element.
-- [Top-left "X" overlaps the `Manage tags` heading] → Mitigated by header `padding-left`.
+- [Top-right "X" overlaps the `Manage tags` heading] → Mitigated by header `padding-right`.
 - [An `✕` text glyph may render differently across fonts] → Mitigated by reusing the existing `✕` glyph already used by `.search-clear-button`.
