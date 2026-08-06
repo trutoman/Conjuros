@@ -69,4 +69,16 @@ describe('ItemForm', () => {
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
+
+  it('renders a borderless close button that invokes onCancel', () => {
+    const onCancel = vi.fn();
+    render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={onCancel} />);
+
+    const closeButton = screen.getByRole('button', { name: 'Close item form' });
+    expect(closeButton).toHaveTextContent('✕');
+    expect(closeButton.className).toBe('form-close');
+    fireEvent.click(closeButton);
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
 });

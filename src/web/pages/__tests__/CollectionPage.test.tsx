@@ -233,6 +233,21 @@ describe('CollectionPage', () => {
     expect(screen.queryByRole('button', { name: 'Close sidebar' })).not.toBeInTheDocument();
   });
 
+  it('returns to the collection view when the Add item form is closed via its close button', () => {
+    render(<CollectionPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    expect(screen.getByRole('heading', { name: 'Add item' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'discard.me' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Close item form' }));
+
+    expect(collectionState.create).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
+    expect(screen.getByText('Git status')).toBeInTheDocument();
+  });
+
   it('defines bounded add button size at narrow breakpoint', () => {
     const css = readFileSync(join(process.cwd(), 'src/web/index.css'), 'utf8');
 

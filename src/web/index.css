@@ -789,22 +789,42 @@ select {
   gap: 0.55rem;
 }
 
-.tag-list li {
+.tag-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.55rem;
   flex-wrap: wrap;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: 0.85rem;
   background: var(--surface);
+  cursor: grab;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
-.tag-name {
+.tag-row:focus-visible {
+  outline: 3px solid var(--warning);
+  outline-offset: 3px;
+}
+
+.tag-row.tag-row-dragging {
+  cursor: grabbing;
+  transform: scale(0.99);
+}
+
+.tag-row.tag-row-drop-target {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.tag-row-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-weight: 600;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .tag-swatch {
@@ -815,10 +835,30 @@ select {
   flex: 0 0 auto;
 }
 
+.tag-category {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
 .tag-color {
   color: var(--text-muted);
   font-family: 'Cutive Mono', monospace;
   font-size: 0.75rem;
+}
+
+.tag-description {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag-list li .item-menu-wrapper {
+  flex: 0 0 auto;
 }
 
 .state,
@@ -889,10 +929,17 @@ select {
 }
 
 .tag-management-actions {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   gap: 0.55rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.tag-management-actions .search-field {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .tag-management-view .tag-management-header {
