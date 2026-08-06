@@ -1,10 +1,60 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
+import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ItemCard } from '../ItemCard';
 import { createSpellItem, createTag, createWebLinkItem, denseTags } from './itemCard.fixtures';
 import { getTopRowParts } from './itemCard.test-utils';
 
 const spell = createSpellItem();
+
+function ControlledItemCard({
+  item = spell,
+  onEdit = vi.fn(),
+  onDelete = vi.fn(),
+}: {
+  item?: CollectionItem;
+  onEdit?: (item: CollectionItem) => void;
+  onDelete?: (item: CollectionItem) => void;
+}) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  return (
+    <ItemCard
+      item={item}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      isMenuOpen={isMenuOpen}
+      onMenuToggle={() => setIsMenuOpen((v) => !v)}
+    />
+  );
+}
+
+function renderItemCard({
+  item = spell,
+  tags,
+  onEdit = vi.fn(),
+  onDelete = vi.fn(),
+  isMenuOpen = false,
+  onMenuToggle = vi.fn(),
+}: {
+  item?: CollectionItem;
+  tags?: Tag[];
+  onEdit?: (item: CollectionItem) => void;
+  onDelete?: (item: CollectionItem) => void;
+  isMenuOpen?: boolean;
+  onMenuToggle?: () => void;
+} = {}) {
+  return render(
+    <ItemCard
+      item={item}
+      tags={tags}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      isMenuOpen={isMenuOpen}
+      onMenuToggle={onMenuToggle}
+    />,
+  );
+}
 
 function mockNarrowTopRowLayout(width = 220) {
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
@@ -57,7 +107,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('ItemCard', () => {
   it('places item content on the top row between title and tags', () => {
-    const { container } = render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    const { container } = renderItemCard();
     const { title, content, tags } = getTopRowParts(container);
 
     expect(content).toHaveTextContent('git status --short');
@@ -66,7 +116,7 @@ describe('ItemCard', () => {
   });
 
   it('retains aligned top-row/action structure for vertical centering styles', () => {
-    const { container } = render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    const { container } = renderItemCard();
 
     const header = container.querySelector('.item-header');
     const topRow = container.querySelector('.item-title-row');
@@ -78,7 +128,7 @@ describe('ItemCard', () => {
   });
 
   it('renders description accordion toggle inside the item inline content box', () => {
-    const { container } = render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    const { container } = renderItemCard();
 
     const inlineBox = container.querySelector('.item-inline-content-box');
     const toggle = screen.getByRole('button', { name: 'Show description' });
@@ -90,7 +140,7 @@ describe('ItemCard', () => {
   it('copies the exact spell command and reports success', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
-    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    renderItemCard();
 
     expect(screen.getByRole('img', { name: 'Spell' })).toBeInTheDocument();
 
@@ -101,9 +151,7 @@ describe('ItemCard', () => {
   });
 
   it('renders tag colors and shows only two buttons in item-actions for a spell', () => {
-    const { container } = render(
-      <ItemCard item={spell} tags={[createTag('git')]} onEdit={vi.fn()} onDelete={vi.fn()} />,
-    );
+    const { container } = renderItemCard({ tags: [createTag('git')] });
 
     expect(screen.getByText('git')).toHaveStyle({ color: '#123ABC' });
     const actions = container.querySelector('.item-actions');
@@ -113,13 +161,7 @@ describe('ItemCard', () => {
   });
 
   it('shows only two buttons in item-actions for a web-link', () => {
-    const { container } = render(
-      <ItemCard
-        item={createWebLinkItem({ url: 'https://example.com' })}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
+    const { container } = renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
     const actions = container.querySelector('.item-actions');
     expect(actions?.querySelectorAll('button')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Open link' })).toBeInTheDocument();
@@ -127,7 +169,7 @@ describe('ItemCard', () => {
   });
 
   it('opens the contextual menu when the trigger is clicked', () => {
-    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(<ControlledItemCard />);
     const trigger = screen.getByRole('button', { name: 'Item menu' });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
 
@@ -139,8 +181,71 @@ describe('ItemCard', () => {
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 
+  it('calls onMenuToggle when the open menu trigger is clicked again', () => {
+    const onMenuToggle = vi.fn();
+    renderItemCard({ isMenuOpen: true, onMenuToggle });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+
+    expect(onMenuToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not close the menu when a pointer press lands on the trigger', () => {
+    const onMenuToggle = vi.fn();
+    renderItemCard({ isMenuOpen: true, onMenuToggle });
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Item menu' }));
+
+    expect(onMenuToggle).not.toHaveBeenCalled();
+  });
+
+  it('closes the open menu when the same trigger is clicked again', () => {
+    render(<ControlledItemCard />);
+    const trigger = screen.getByRole('button', { name: 'Item menu' });
+
+    fireEvent.click(trigger);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    fireEvent.click(trigger);
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('adds the menu-open class to the card article when the menu is opened', () => {
+    const { container } = render(<ControlledItemCard />);
+    const card = container.querySelector('.item-card');
+    expect(card).not.toHaveClass('item-card--menu-open');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+
+    expect(card).toHaveClass('item-card--menu-open');
+  });
+
+  it('removes the menu-open class from the card article when the menu closes on Escape', () => {
+    const { container } = render(<ControlledItemCard />);
+    const card = container.querySelector('.item-card');
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    expect(card).toHaveClass('item-card--menu-open');
+
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+
+    expect(card).not.toHaveClass('item-card--menu-open');
+  });
+
+  it('removes the menu-open class from the card article when the menu closes on outside click', () => {
+    const { container } = render(<ControlledItemCard />);
+    const card = container.querySelector('.item-card');
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    expect(card).toHaveClass('item-card--menu-open');
+
+    fireEvent.pointerDown(document.body);
+
+    expect(card).not.toHaveClass('item-card--menu-open');
+  });
+
   it('closes the menu when clicking outside', () => {
-    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(<ControlledItemCard />);
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     expect(screen.getByRole('menu')).toBeInTheDocument();
 
@@ -150,7 +255,7 @@ describe('ItemCard', () => {
   });
 
   it('closes the menu on Escape key', () => {
-    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(<ControlledItemCard />);
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     const menu = screen.getByRole('menu');
 
@@ -161,7 +266,7 @@ describe('ItemCard', () => {
 
   it('calls onEdit and closes the menu when Edit is clicked', () => {
     const onEdit = vi.fn();
-    render(<ItemCard item={spell} onEdit={onEdit} onDelete={vi.fn()} />);
+    render(<ControlledItemCard onEdit={onEdit} />);
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
 
@@ -170,7 +275,7 @@ describe('ItemCard', () => {
   });
 
   it('shows inline confirmation when Delete is clicked', () => {
-    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(<ControlledItemCard />);
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
@@ -182,7 +287,7 @@ describe('ItemCard', () => {
 
   it('calls onDelete and closes the menu when Confirm is clicked', () => {
     const onDelete = vi.fn();
-    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={onDelete} />);
+    render(<ControlledItemCard onDelete={onDelete} />);
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Confirm delete' }));
@@ -193,7 +298,7 @@ describe('ItemCard', () => {
 
   it('does not call onDelete when Cancel is clicked', () => {
     const onDelete = vi.fn();
-    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={onDelete} />);
+    render(<ControlledItemCard onDelete={onDelete} />);
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Cancel delete' }));
@@ -203,7 +308,7 @@ describe('ItemCard', () => {
   });
 
   it('moves focus with ArrowDown and ArrowUp between menu items', () => {
-    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(<ControlledItemCard />);
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     const menu = screen.getByRole('menu');
     const [editItem, deleteItem] = screen.getAllByRole('menuitem');
@@ -215,7 +320,7 @@ describe('ItemCard', () => {
   });
 
   it('returns focus to the trigger when Escape is pressed', () => {
-    render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    render(<ControlledItemCard />);
     const trigger = screen.getByRole('button', { name: 'Item menu' });
     fireEvent.click(trigger);
     const menu = screen.getByRole('menu');
@@ -227,13 +332,7 @@ describe('ItemCard', () => {
 
   it('opens a link only when the open action is clicked', () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
-    render(
-      <ItemCard
-        item={createWebLinkItem({ url: 'https://example.com' })}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
+    renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
 
     expect(screen.queryByRole('button', { name: 'Copy command' })).not.toBeInTheDocument();
     expect(open).not.toHaveBeenCalled();
@@ -243,14 +342,10 @@ describe('ItemCard', () => {
 
   it('collapses overflowing tags into a +N indicator and reveals hidden tags on hover', async () => {
     mockNarrowTopRowLayout();
-    render(
-      <ItemCard
-        item={createSpellItem({ tags: denseTags.map((tag) => tag.tagName) })}
-        tags={denseTags}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
+    renderItemCard({
+      item: createSpellItem({ tags: denseTags.map((tag) => tag.tagName) }),
+      tags: denseTags,
+    });
 
     const overflowButton = await screen.findByRole('button', { name: /show \d+ hidden tags/i });
     expect(overflowButton).toHaveTextContent(/^\+\d+$/);
@@ -261,14 +356,10 @@ describe('ItemCard', () => {
 
   it('reveals hidden tags on keyboard focus of +N indicator', async () => {
     mockNarrowTopRowLayout();
-    render(
-      <ItemCard
-        item={createSpellItem({ tags: denseTags.map((tag) => tag.tagName) })}
-        tags={denseTags}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
+    renderItemCard({
+      item: createSpellItem({ tags: denseTags.map((tag) => tag.tagName) }),
+      tags: denseTags,
+    });
 
     const overflowButton = await screen.findByRole('button', { name: /show \d+ hidden tags/i });
     fireEvent.focus(overflowButton);
@@ -280,14 +371,10 @@ describe('ItemCard', () => {
     mockNarrowTopRowLayout();
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }));
 
-    render(
-      <ItemCard
-        item={createSpellItem({ tags: denseTags.map((tag) => tag.tagName) })}
-        tags={denseTags}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
+    renderItemCard({
+      item: createSpellItem({ tags: denseTags.map((tag) => tag.tagName) }),
+      tags: denseTags,
+    });
 
     const overflowButton = await screen.findByRole('button', { name: /show \d+ hidden tags/i });
     fireEvent.mouseEnter(overflowButton);

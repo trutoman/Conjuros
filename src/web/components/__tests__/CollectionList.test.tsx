@@ -95,4 +95,39 @@ describe('CollectionList', () => {
     expect(screen.queryByRole('button', { name: /move .* up/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /move .* down/i })).not.toBeInTheDocument();
   });
+
+  it('keeps only one item menu open at a time', () => {
+    render(
+      <CollectionList items={items} onReorder={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />,
+    );
+    const [firstTrigger, secondTrigger] = screen.getAllByRole('button', { name: 'Item menu' });
+
+    fireEvent.click(firstTrigger);
+    expect(screen.getAllByRole('menu')).toHaveLength(1);
+    const firstRow = screen.getByTestId('collection-row-first');
+    expect(firstRow.querySelector('.item-card')).toHaveClass('item-card--menu-open');
+
+    fireEvent.click(secondTrigger);
+
+    expect(screen.getAllByRole('menu')).toHaveLength(1);
+    expect(firstRow.querySelector('.item-card')).not.toHaveClass('item-card--menu-open');
+    const secondRow = screen.getByTestId('collection-row-second');
+    expect(secondRow.querySelector('.item-card')).toHaveClass('item-card--menu-open');
+  });
+
+  it('closes the open item menu when its trigger is clicked again', () => {
+    render(
+      <CollectionList items={items} onReorder={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} />,
+    );
+    const [firstTrigger] = screen.getAllByRole('button', { name: 'Item menu' });
+
+    fireEvent.click(firstTrigger);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+
+    fireEvent.click(firstTrigger);
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    const firstRow = screen.getByTestId('collection-row-first');
+    expect(firstRow.querySelector('.item-card')).not.toHaveClass('item-card--menu-open');
+  });
 });
