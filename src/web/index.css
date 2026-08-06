@@ -911,6 +911,23 @@ select {
   gap: 1rem;
 }
 
+.item-form .item-form-tags {
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.item-form .item-form-tags legend {
+  width: 100%;
+  margin-bottom: 0.35rem;
+  color: var(--text-muted);
+  font-family: 'Cutive Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.item-form .item-form-tags .tag-filter-pill {
+  font-size: 0.75rem;
+}
+
 .color-field {
   display: flex;
   align-items: center;
@@ -1354,12 +1371,13 @@ select {
 }
 
 .category-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .category-group h3 {
-  font-size: 0.9rem;
-  text-transform: uppercase;
+  font-size: 0.7rem;
+  text-transform: lowercase;
+  text-align: left;
   color: var(--text-muted);
   letter-spacing: 0.05em;
   margin: 0 0 0.5rem;
@@ -1373,6 +1391,7 @@ select {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.4rem;
 }
 
