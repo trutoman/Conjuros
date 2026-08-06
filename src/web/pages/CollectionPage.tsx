@@ -216,14 +216,19 @@ export function CollectionPage({
                 />
               ) : (
                 <div className="item-form tag-management-view">
+                  <button
+                    type="button"
+                    className="form-close"
+                    aria-label="Close tag management"
+                    onClick={closeManageTags}
+                  >
+                    ✕
+                  </button>
                   <div className="tag-management-header">
                     <h2>Manage tags</h2>
                     <div className="tag-management-actions">
                       <button type="button" onClick={() => openTagFormInManage(null)}>
                         Add tag
-                      </button>
-                      <button type="button" className="quiet" onClick={closeManageTags}>
-                        ← Collection
                       </button>
                     </div>
                   </div>

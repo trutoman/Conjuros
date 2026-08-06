@@ -32,6 +32,9 @@ export function TagForm({
 
   return (
     <form className="item-form" onSubmit={submit}>
+      <button type="button" className="form-close" aria-label="Close tag form" onClick={onCancel}>
+        ✕
+      </button>
       <h2>{tag ? 'Edit tag' : 'Add tag'}</h2>
       <FormField label="Tag name">
         <input value={tagName} onChange={(event) => setTagName(event.target.value)} />
