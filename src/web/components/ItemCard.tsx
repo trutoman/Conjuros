@@ -35,11 +35,15 @@ export function ItemCard({
   tags = [],
   onEdit,
   onDelete,
+  isMenuOpen,
+  onMenuToggle,
 }: {
   item: CollectionItem;
   tags?: Tag[];
   onEdit: (item: CollectionItem) => void;
   onDelete: (item: CollectionItem) => void;
+  isMenuOpen: boolean;
+  onMenuToggle: () => void;
 }) {
   const [message, setMessage] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -47,7 +51,6 @@ export function ItemCard({
   const [isTagOverflowOpen, setIsTagOverflowOpen] = useState(false);
   const topRowRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuView, setMenuView] = useState<'menu' | 'confirm'>('menu');
   const menuRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -130,8 +133,7 @@ export function ItemCard({
   const openUrl = item.kind === 'web-link' ? (item.url ?? undefined) : undefined;
 
   function closeMenu() {
-    setIsMenuOpen(false);
-    setMenuView('menu');
+    onMenuToggle();
   }
 
   function handleEdit() {
@@ -174,20 +176,28 @@ export function ItemCard({
   useEffect(() => {
     if (!isMenuOpen) return;
     const handlePointerDown = (e: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setIsMenuOpen(false);
-        setMenuView('menu');
+      const target = e.target as Node;
+      const isInsideMenu = Boolean(menuRef.current?.contains(target));
+      const isOnTrigger = Boolean(triggerRef.current?.contains(target));
+      if (!isInsideMenu && !isOnTrigger) {
+        onMenuToggle();
       }
     };
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [isMenuOpen]);
+  }, [isMenuOpen, onMenuToggle]);
 
   useEffect(() => {
     if (!isMenuOpen) return;
     const firstItem = menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
     firstItem?.focus();
   }, [isMenuOpen, menuView]);
+
+  useEffect(() => {
+    if (isMenuOpen) {
+      setMenuView('menu');
+    }
+  }, [isMenuOpen]);
 
   return (
     <article
@@ -330,7 +340,7 @@ export function ItemCard({
               aria-expanded={isMenuOpen}
               aria-controls={`item-menu-${item.id}`}
               ref={triggerRef}
-              onClick={() => setIsMenuOpen((v) => !v)}
+              onClick={onMenuToggle}
             >
               <Icon
                 label="Menu"
@@ -413,8 +423,7 @@ export function ItemCard({
                   aria-label="Cancel delete"
                   tabIndex={-1}
                   onClick={() => {
-                    setIsMenuOpen(false);
-                    setMenuView('menu');
+                    onMenuToggle();
                     triggerRef.current?.focus();
                   }}
                 >

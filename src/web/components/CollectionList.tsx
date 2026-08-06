@@ -19,6 +19,7 @@ export function CollectionList({
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [interactionMessage, setInteractionMessage] = useState('');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   function reorderByIndex(itemId: string, targetIndex: number) {
     const sourceIndex = items.findIndex((item) => item.id === itemId);
@@ -100,7 +101,16 @@ export function CollectionList({
           onDrop={() => handleDrop(item.id)}
           aria-label={`Collection item ${item.title}`}
         >
-          <ItemCard item={item} tags={tags} onEdit={onEdit} onDelete={onDelete} />
+          <ItemCard
+            item={item}
+            tags={tags}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            isMenuOpen={openMenuId === item.id}
+            onMenuToggle={() =>
+              setOpenMenuId((current) => (current === item.id ? null : item.id))
+            }
+          />
         </div>
       ))}
       {interactionMessage && (
