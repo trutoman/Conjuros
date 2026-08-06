@@ -13,7 +13,6 @@ export function TagList({
 }) {
   return (
     <section className="tag-panel">
-      <h2>Tags</h2>
       <ul className="tag-list">
         {tags.map((tag, index) => (
           <li key={tag.id}>

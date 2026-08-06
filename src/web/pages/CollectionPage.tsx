@@ -100,12 +100,6 @@ export function CollectionPage({
     setFormItem(item);
   }
 
-  function openTagForm(tag: Tag | null) {
-    setFormItem(undefined);
-    setManageTags(false);
-    setFormTag(tag);
-  }
-
   function openTagFormInManage(tag: Tag | null) {
     setFormItem(undefined);
     setFormTag(tag);
@@ -191,7 +185,6 @@ export function CollectionPage({
               onToggleOpen={handleToggleSidebar}
               onChange={setFilters}
               onManageTags={openManageTags}
-              onAddTag={() => openTagForm(null)}
               onClose={
                 shouldForceExpandedSidebar
                   ? undefined
@@ -253,12 +246,6 @@ export function CollectionPage({
                   )}
                 </div>
               )
-            ) : formTag !== undefined ? (
-              <TagForm
-                tag={formTag ?? undefined}
-                onSubmit={saveTag}
-                onCancel={() => setFormTag(undefined)}
-              />
             ) : formItem !== undefined ? (
               <ItemForm
                 item={formItem ?? undefined}
