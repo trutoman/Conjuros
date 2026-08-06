@@ -385,6 +385,11 @@ select {
   border-color: var(--border-strong);
 }
 
+.item-card.item-card--menu-open {
+  position: relative;
+  z-index: 20;
+}
+
 .item-card.kind-spell {
   border-left-color: var(--spell);
 }

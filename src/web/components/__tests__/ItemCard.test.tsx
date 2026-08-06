@@ -139,6 +139,38 @@ describe('ItemCard', () => {
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
   });
 
+  it('adds the menu-open class to the card article when the menu is opened', () => {
+    const { container } = render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    const card = container.querySelector('.item-card');
+    expect(card).not.toHaveClass('item-card--menu-open');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+
+    expect(card).toHaveClass('item-card--menu-open');
+  });
+
+  it('removes the menu-open class from the card article when the menu closes on Escape', () => {
+    const { container } = render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    const card = container.querySelector('.item-card');
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    expect(card).toHaveClass('item-card--menu-open');
+
+    fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+
+    expect(card).not.toHaveClass('item-card--menu-open');
+  });
+
+  it('removes the menu-open class from the card article when the menu closes on outside click', () => {
+    const { container } = render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
+    const card = container.querySelector('.item-card');
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    expect(card).toHaveClass('item-card--menu-open');
+
+    fireEvent.pointerDown(document.body);
+
+    expect(card).not.toHaveClass('item-card--menu-open');
+  });
+
   it('closes the menu when clicking outside', () => {
     render(<ItemCard item={spell} onEdit={vi.fn()} onDelete={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));

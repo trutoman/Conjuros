@@ -190,7 +190,9 @@ export function ItemCard({
   }, [isMenuOpen, menuView]);
 
   return (
-    <article className={`item-card kind-${item.kind}`}>
+    <article
+      className={`item-card kind-${item.kind}${isMenuOpen ? ' item-card--menu-open' : ''}`}
+    >
       <div className="item-header">
         <div className="item-title-group">
           <div
