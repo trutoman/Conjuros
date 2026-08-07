@@ -160,6 +160,16 @@ describe('ItemCard', () => {
     expect(screen.getByRole('button', { name: 'Item menu' })).toBeInTheDocument();
   });
 
+  it('renders item tags in lowercase even when stored mixed-case', () => {
+    renderItemCard({
+      item: createSpellItem({ tags: ['GIT'] }),
+      tags: [createTag('GIT')],
+    });
+
+    expect(screen.getByText('git')).toBeInTheDocument();
+    expect(screen.queryByText('GIT')).not.toBeInTheDocument();
+  });
+
   it('shows only two buttons in item-actions for a web-link', () => {
     const { container } = renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
     const actions = container.querySelector('.item-actions');

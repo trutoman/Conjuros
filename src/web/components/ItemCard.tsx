@@ -262,7 +262,7 @@ export function ItemCard({
                           : undefined
                       }
                     >
-                      {tag}
+                      {tag.toLowerCase()}
                     </span>
                   ))}
                   {hiddenTags.length > 0 && (
@@ -288,7 +288,7 @@ export function ItemCard({
                       </button>
                       {isTagOverflowOpen && (
                         <div className="tag-overflow-popover" role="tooltip">
-                          {hiddenTags.join(', ')}
+                          {hiddenTags.map((hiddenTag) => hiddenTag.toLowerCase()).join(', ')}
                         </div>
                       )}
                     </div>

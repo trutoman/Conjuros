@@ -149,7 +149,7 @@ describe('CollectionPage inline manage tags view', () => {
 
     expect(tagsState.create).toHaveBeenCalledWith({
       tagName: 'work.todo',
-      tagCategory: 'Work',
+      tagCategory: 'work',
       description: '',
       color: '#112233',
     });
@@ -201,7 +201,7 @@ describe('CollectionPage inline manage tags view', () => {
       id: 'tag-1',
       tag: {
         tagName: 'git.work',
-        tagCategory: 'Development',
+        tagCategory: 'development',
         description: '',
         color: '#123ABC',
       },

@@ -59,7 +59,7 @@ export class TagsService {
     const normalizedCategory = normalizeTagCategory(input.tagCategory);
     await this.assertUnique(ownerId, normalizedName, normalizedCategory);
     const order = await this.tags.nextOrder(ownerId);
-    const created = await this.tags.create(ownerId, input, order);
+    const created = await this.tags.create(ownerId, { ...input, tagCategory: normalizedCategory }, order);
     return toPublicTag(created);
   }
 
@@ -81,7 +81,7 @@ export class TagsService {
       ...current,
       tagName: nextTagName,
       tagNameNormalized: nextNormalized,
-      tagCategory: nextTagCategory,
+      tagCategory: nextNormalizedCategory,
       tagCategoryNormalized: nextNormalizedCategory,
       description: update.description ?? current.description,
       color: update.color ?? current.color,

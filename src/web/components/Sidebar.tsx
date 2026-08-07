@@ -24,7 +24,7 @@ export function Sidebar({
   const groupedCategories = useMemo(() => {
     const grouped: Record<string, Tag[]> = {};
     for (const tag of tags) {
-      const category = tag.tagCategory || 'General';
+      const category = (tag.tagCategory || 'General').toLowerCase();
       if (!grouped[category]) {
         grouped[category] = [];
       }
@@ -107,7 +107,7 @@ export function Sidebar({
                           >
                             <input
                               type="checkbox"
-                              aria-label={tag.tagName}
+                              aria-label={tag.tagName.toLowerCase()}
                               checked={isSelected}
                               onChange={(event) => {
                                 const nextTags = event.target.checked
@@ -116,7 +116,7 @@ export function Sidebar({
                                 onChange({ ...filters, tags: [...new Set(nextTags)] });
                               }}
                             />
-                            {tag.tagName}
+                            {tag.tagName.toLowerCase()}
                           </label>
                         </li>
                       );

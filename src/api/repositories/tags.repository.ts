@@ -23,16 +23,15 @@ type PersistedTagRecord =
 
 type PersistedTagDocument = PersistedTagRecord & { _id?: unknown };
 
-const legacyTagCategory = 'General';
+const legacyTagCategory = 'general';
 const legacyTagCategoryNormalized = normalizeTagCategory(legacyTagCategory);
 
 function hydrateTag(record: PersistedTagDocument): StoredTag {
-  const tagCategory = record.tagCategory ?? legacyTagCategory;
+  const tagCategory = normalizeTagCategory(record.tagCategory ?? legacyTagCategory);
   return {
     ...record,
     tagCategory,
-    tagCategoryNormalized:
-      record.tagCategoryNormalized ?? normalizeTagCategory(record.tagCategory ?? legacyTagCategory),
+    tagCategoryNormalized: normalizeTagCategory(record.tagCategory ?? legacyTagCategory),
   };
 }
 

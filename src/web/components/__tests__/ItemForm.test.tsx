@@ -55,6 +55,14 @@ describe('ItemForm', () => {
     expect(docsPill).toHaveStyle({ color: '#ABC123', borderColor: '#ABC123' });
   });
 
+  it('renders available tag names in lowercase', () => {
+    const mixedCase: Tag[] = [{ ...availableTags[0], tagName: 'GIT' }];
+    render(<ItemForm availableTags={mixedCase} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    const gitPill = screen.getByRole('checkbox', { name: 'git' }).closest('label');
+    expect(gitPill).toHaveTextContent('git');
+  });
+
   it('renders the command field above the tag selector and above the buttons', () => {
     render(<ItemForm availableTags={availableTags} onSubmit={vi.fn()} onCancel={vi.fn()} />);
 

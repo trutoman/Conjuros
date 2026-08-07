@@ -56,7 +56,7 @@ describe('TagsPage', () => {
   it('renders tag categories and does not expose standalone category management actions', () => {
     render(<TagsPage onBack={vi.fn()} />);
 
-    expect(screen.getByText('Work')).toBeInTheDocument();
+    expect(screen.getByText('work')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add tag' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /add category/i })).not.toBeInTheDocument();
   });
@@ -77,7 +77,7 @@ describe('TagsPage', () => {
   it('updates displayed categories after a tag category changes or the tag is removed', () => {
     const { rerender } = render(<TagsPage onBack={vi.fn()} />);
 
-    expect(screen.getByText('Work')).toBeInTheDocument();
+    expect(screen.getByText('work')).toBeInTheDocument();
 
     mockTags = [
       {
@@ -87,13 +87,13 @@ describe('TagsPage', () => {
     ];
     rerender(<TagsPage onBack={vi.fn()} />);
 
-    expect(screen.getByText('Archive')).toBeInTheDocument();
-    expect(screen.queryByText('Work')).not.toBeInTheDocument();
+    expect(screen.getByText('archive')).toBeInTheDocument();
+    expect(screen.queryByText('work')).not.toBeInTheDocument();
 
     mockTags = [];
     rerender(<TagsPage onBack={vi.fn()} />);
 
-    expect(screen.queryByText('Archive')).not.toBeInTheDocument();
+    expect(screen.queryByText('archive')).not.toBeInTheDocument();
     expect(screen.queryByText('deploy.todo')).not.toBeInTheDocument();
   });
 });
