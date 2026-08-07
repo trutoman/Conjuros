@@ -39,8 +39,20 @@ describe('TagList', () => {
     );
     expect(pills[1]).toHaveStyle({ color: '#ABC123', borderColor: '#ABC123' });
 
-    expect(screen.getByText('Work')).toBeInTheDocument();
-    expect(screen.getByText('Personal')).toBeInTheDocument();
+    expect(screen.getByText('work')).toBeInTheDocument();
+    expect(screen.getByText('personal')).toBeInTheDocument();
+  });
+
+  it('renders tag names and categories in lowercase', () => {
+    const mixedCase = [
+      { ...tags[0], tagName: 'Deploy.Todo', tagCategory: 'Work' },
+      { ...tags[1], tagName: 'deploy.done', tagCategory: 'PERSONAL' },
+    ];
+    render(<TagList tags={mixedCase} onEdit={vi.fn()} onDelete={vi.fn()} onMove={vi.fn()} />);
+
+    expect(screen.getByText('deploy.todo')).toBeInTheDocument();
+    expect(screen.getByText('work')).toBeInTheDocument();
+    expect(screen.getByText('personal')).toBeInTheDocument();
   });
 
   it('does not render inline edit, delete, move up, or move down buttons', () => {

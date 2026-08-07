@@ -15,7 +15,7 @@ describe('tag endpoints', () => {
 
     expect(created.body).toMatchObject({
       tagName: 'Work.Todo',
-      tagCategory: 'Work',
+      tagCategory: 'work',
       color: '#12AB34',
     });
 
@@ -34,6 +34,51 @@ describe('tag endpoints', () => {
       .expect(200);
 
     await request(app).delete(`/api/tags/${created.body.id}`).set('Cookie', cookie).expect(204);
+  });
+
+  it('normalizes the tag category to lowercase on create', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+
+    const mixedCase = await request(app)
+      .post('/api/tags')
+      .set('Cookie', cookie)
+      .send({ tagName: 'ci.build', tagCategory: 'DeV.Ops', description: '', color: '#123456' })
+      .expect(201);
+    expect(mixedCase.body.tagCategory).toBe('dev.ops');
+
+    const trimmed = await request(app)
+      .post('/api/tags')
+      .set('Cookie', cookie)
+      .send({ tagName: 'code.review', tagCategory: '  Quality  ', description: '', color: '#123456' })
+      .expect(201);
+    expect(trimmed.body.tagCategory).toBe('quality');
+
+    await request(app)
+      .post('/api/tags')
+      .set('Cookie', cookie)
+      .send({ tagName: 'bad.cat', tagCategory: 'bad category!', description: '', color: '#123456' })
+      .expect(400);
+  });
+
+  it('normalizes the tag category to lowercase on update', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+
+    const tag = await createTag(request, app, cookie, 'release.tag');
+
+    const updated = await request(app)
+      .patch(`/api/tags/${tag.body.id}`)
+      .set('Cookie', cookie)
+      .send({ tagCategory: 'Release' })
+      .expect(200);
+    expect(updated.body.tagCategory).toBe('release');
+
+    const fetched = await request(app)
+      .get(`/api/tags/${tag.body.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(fetched.body.tagCategory).toBe('release');
   });
 
   it('rejects invalid tag names, colors, and case-insensitive duplicates', async () => {
@@ -190,7 +235,7 @@ describe('tag endpoints', () => {
     expect(afterCategoryUpdate.body.tags).toEqual(['old.tag']);
   });
 
-  it('surfaces legacy tags without category as General', async () => {
+  it('surfaces legacy tags without category or with capitalized categories as general', async () => {
     const { app, tags } = createTestApp();
     const cookie = await registerUser(request, app, 'owner@example.com');
     await createTag(request, app, cookie, 'seed.tag', 'Seed');
@@ -203,6 +248,8 @@ describe('tag endpoints', () => {
           ownerId: string;
           tagName: string;
           tagNameNormalized: string;
+          tagCategory?: string;
+          tagCategoryNormalized?: string;
           description: string;
           color: string;
           order: number;
@@ -227,13 +274,31 @@ describe('tag endpoints', () => {
       updatedAt: '2026-01-01T00:00:00.000Z',
     });
 
+    legacyStore.tags.set('legacy-capitalized', {
+      id: 'legacy-capitalized',
+      ownerId,
+      tagName: 'legacy.capitalized',
+      tagNameNormalized: 'legacy.capitalized',
+      tagCategory: 'General',
+      tagCategoryNormalized: 'general',
+      description: '',
+      color: '#123ABC',
+      order: 1,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+
     const listed = await request(app).get('/api/tags').set('Cookie', cookie).expect(200);
 
     expect(listed.body.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'legacy-tag',
-          tagCategory: 'General',
+          tagCategory: 'general',
+        }),
+        expect.objectContaining({
+          id: 'legacy-capitalized',
+          tagCategory: 'general',
         }),
       ]),
     );

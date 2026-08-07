@@ -11,8 +11,8 @@ export function TagForm({
   onSubmit: (input: TagInput) => Promise<unknown> | void;
   onCancel: () => void;
 }) {
-  const [tagName, setTagName] = useState(tag?.tagName ?? '');
-  const [tagCategory, setTagCategory] = useState(tag?.tagCategory ?? '');
+  const [tagName, setTagName] = useState(tag?.tagName.toLowerCase() ?? '');
+  const [tagCategory, setTagCategory] = useState(tag?.tagCategory.toLowerCase() ?? '');
   const [description, setDescription] = useState(tag?.description ?? '');
   const [color, setColor] = useState(tag?.color ?? '#1A73E8');
   const [error, setError] = useState('');
@@ -37,10 +37,16 @@ export function TagForm({
       </button>
       <h2>{tag ? 'Edit tag' : 'Add tag'}</h2>
       <FormField label="Tag name">
-        <input value={tagName} onChange={(event) => setTagName(event.target.value)} />
+        <input
+          value={tagName}
+          onChange={(event) => setTagName(event.target.value.toLowerCase())}
+        />
       </FormField>
       <FormField label="Tag category">
-        <input value={tagCategory} onChange={(event) => setTagCategory(event.target.value)} />
+        <input
+          value={tagCategory}
+          onChange={(event) => setTagCategory(event.target.value.toLowerCase())}
+        />
       </FormField>
       <FormField label="Description">
         <textarea value={description} onChange={(event) => setDescription(event.target.value)} />

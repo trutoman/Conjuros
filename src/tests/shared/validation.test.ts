@@ -63,4 +63,17 @@ describe('collection item contracts', () => {
       }).tagCategory,
     ).toBe('Work');
   });
+
+  it('rejects tag categories with characters other than alphanumeric characters and dots', () => {
+    const base = {
+      tagName: 'deploy.todo',
+      description: '',
+      color: '#123ABC',
+    };
+
+    expect(tagInputSchema.safeParse({ ...base, tagCategory: 'Work Todo' }).success).toBe(false);
+    expect(tagInputSchema.safeParse({ ...base, tagCategory: 'work!' }).success).toBe(false);
+    expect(tagInputSchema.safeParse({ ...base, tagCategory: 'Work-Tag' }).success).toBe(false);
+    expect(tagInputSchema.safeParse({ ...base, tagCategory: 'dev.ops' }).success).toBe(true);
+  });
 });

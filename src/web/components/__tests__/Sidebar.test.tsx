@@ -56,8 +56,8 @@ describe('Sidebar component', () => {
     );
 
     const headers = screen.getAllByRole('heading', { level: 3 });
-    expect(headers[0]).toHaveTextContent('Development');
-    expect(headers[1]).toHaveTextContent('Documentation');
+    expect(headers[0]).toHaveTextContent('development');
+    expect(headers[1]).toHaveTextContent('documentation');
 
     const devTags = screen
       .getAllByRole('checkbox')
@@ -65,6 +65,44 @@ describe('Sidebar component', () => {
     expect(devTags[0]).toBe('docker');
     expect(devTags[1]).toBe('git');
     expect(devTags[2]).toBe('docs');
+  });
+
+  it('merges categories that differ only by case into a single lowercase group', () => {
+    const mixedCaseTags: Tag[] = [
+      { ...mockTags[0], tagCategory: 'Development' },
+      { ...mockTags[2], tagCategory: 'development' },
+    ];
+    render(
+      <Sidebar
+        tags={mixedCaseTags}
+        filters={defaultFilters}
+        onChange={vi.fn()}
+        onManageTags={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const headers = screen.getAllByRole('heading', { level: 3 });
+    expect(headers).toHaveLength(1);
+    expect(headers[0]).toHaveTextContent('development');
+    expect(screen.getByText('git')).toBeInTheDocument();
+    expect(screen.getByText('docker')).toBeInTheDocument();
+  });
+
+  it('renders tag names in lowercase even when stored mixed-case', () => {
+    const mixedCaseTags: Tag[] = [{ ...mockTags[0], tagName: 'GIT' }];
+    render(
+      <Sidebar
+        tags={mixedCaseTags}
+        filters={defaultFilters}
+        onChange={vi.fn()}
+        onManageTags={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('git')).toBeInTheDocument();
+    expect(screen.getByText('git')).toBeInTheDocument();
   });
 
   it('triggers onChange callback when a tag checkbox is clicked', () => {

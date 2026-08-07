@@ -48,6 +48,38 @@ describe('TagForm', () => {
     expect(document.querySelector('.color-preview')).toBeInTheDocument();
   });
 
+  it('renders existing tag name and category in lowercase', () => {
+    render(
+      <TagForm
+        tag={{
+          id: 'tag-1',
+          tagName: 'Work.Todo',
+          tagCategory: 'Work',
+          description: '',
+          color: '#123ABC',
+          order: 1,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        }}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('Tag name')).toHaveValue('work.todo');
+    expect(screen.getByLabelText('Tag category')).toHaveValue('work');
+  });
+
+  it('lowercases tag name and category as the user types', () => {
+    render(<TagForm onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Tag name'), { target: { value: 'Work.Todo' } });
+    fireEvent.change(screen.getByLabelText('Tag category'), { target: { value: 'Work' } });
+
+    expect(screen.getByLabelText('Tag name')).toHaveValue('work.todo');
+    expect(screen.getByLabelText('Tag category')).toHaveValue('work');
+  });
+
   it('renders a borderless close button that invokes onCancel', () => {
     const onCancel = vi.fn();
     render(<TagForm onSubmit={vi.fn()} onCancel={onCancel} />);

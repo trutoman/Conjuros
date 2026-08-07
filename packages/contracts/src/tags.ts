@@ -16,7 +16,12 @@ export const tagColorSchema = z
   .trim()
   .regex(hexColorPattern, 'Tag color must use the #RRGGBB format');
 
-export const tagCategorySchema = z.string().trim().min(1).max(120);
+export const tagCategorySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(tagNamePattern, 'Tag category must use only alphanumeric characters and dots');
 
 export function normalizeTagName(tagName: string): string {
   return tagName.trim().toLowerCase();

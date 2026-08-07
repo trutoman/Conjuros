@@ -121,7 +121,7 @@ export function TagList({
               }
             }}
             onDrop={() => handleDrop(tag.id)}
-            aria-label={`Tag ${tag.tagName}`}
+            aria-label={`Tag ${tag.tagName.toLowerCase()}`}
           >
             <div className="tag-row-label">
               <span
@@ -132,10 +132,10 @@ export function TagList({
                   background: `color-mix(in srgb, ${tag.color} 8%, var(--surface))`,
                 }}
               >
-                {tag.tagName}
+                {tag.tagName.toLowerCase()}
               </span>
               <span className="tag-swatch" aria-hidden="true" style={{ backgroundColor: tag.color }} />
-              <span className="tag-category">{tag.tagCategory}</span>
+              <span className="tag-category">{tag.tagCategory.toLowerCase()}</span>
               <span className="tag-color">{tag.color}</span>
               {tag.description && <span className="tag-description">{tag.description}</span>}
             </div>
