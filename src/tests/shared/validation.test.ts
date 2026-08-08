@@ -1,5 +1,6 @@
 import {
   collectionItemInputSchema,
+  collectionItemSchema,
   collectionItemUpdateSchema,
   normalizeTags,
   reorderItemSchema,
@@ -49,6 +50,55 @@ describe('collection item contracts', () => {
 
     if (parsed.kind !== 'markdown') throw new Error('Expected a markdown item');
     expect(parsed.content).toBe(content);
+  });
+
+  it('allows markdown items without a description', () => {
+    const parsed = collectionItemInputSchema.safeParse({
+      kind: 'markdown',
+      title: 'Notes',
+      tags: [],
+      relatedItemIds: [],
+      content: '# Notes',
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('allows markdown items with a description', () => {
+    const parsed = collectionItemInputSchema.parse({
+      kind: 'markdown',
+      title: 'Notes',
+      description: 'A short summary',
+      tags: [],
+      relatedItemIds: [],
+      content: '# Notes',
+    });
+    if (parsed.kind !== 'markdown') throw new Error('Expected a markdown item');
+    expect(parsed.description).toBe('A short summary');
+  });
+
+  it('accepts a null description in the read model', () => {
+    const item = {
+      id: 'markdown-1',
+      kind: 'markdown',
+      title: 'Notes',
+      description: null,
+      tags: [],
+      order: 1,
+      relatedItemIds: [],
+      command: null,
+      url: null,
+      content: '# Notes',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(collectionItemSchema.safeParse(item).success).toBe(true);
+  });
+
+  it('allows markdown updates to carry a description', () => {
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'markdown', description: 'Updated summary' })
+        .success,
+    ).toBe(true);
   });
 
   it('requires non-empty content for markdown items', () => {

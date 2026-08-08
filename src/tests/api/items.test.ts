@@ -148,7 +148,6 @@ describe('markdown collection items', () => {
       .send({
         kind: 'markdown',
         title: 'Incident notes',
-        description: '',
         tags: [],
         relatedItemIds: [],
         content: '# Outage\n\nResolved by restarting.',
@@ -158,10 +157,29 @@ describe('markdown collection items', () => {
       kind: 'markdown',
       title: 'Incident notes',
       content: '# Outage\n\nResolved by restarting.',
+      description: null,
       command: null,
       url: null,
     });
     expect(created.body).not.toHaveProperty('ownerId');
+
+    const withDescription = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'markdown',
+        title: 'Runbook',
+        description: 'Incident runbook',
+        tags: [],
+        relatedItemIds: [],
+        content: '# Runbook',
+      })
+      .expect(201);
+    expect(withDescription.body).toMatchObject({
+      kind: 'markdown',
+      title: 'Runbook',
+      description: 'Incident runbook',
+    });
 
     const updated = await request(app)
       .patch(`/api/items/${created.body.id}`)
@@ -186,7 +204,7 @@ describe('markdown collection items', () => {
       .get('/api/items?kind=markdown')
       .set('Cookie', cookie)
       .expect(200);
-    expect(kindFilter.body.items).toHaveLength(1);
+    expect(kindFilter.body.items).toHaveLength(2);
     expect(kindFilter.body.items[0].kind).toBe('markdown');
   });
 });

@@ -48,7 +48,9 @@ describe('ItemForm', () => {
     const gitPill = screen.getByRole('checkbox', { name: 'git' }).closest('label');
     expect(gitPill).toHaveClass('tag-filter-pill');
     expect(gitPill).toHaveStyle({ color: '#123ABC', borderColor: '#123ABC' });
-    expect(gitPill?.getAttribute('style')).toContain('color-mix(in srgb, #123ABC 8%, var(--surface))');
+    expect(gitPill?.getAttribute('style')).toContain(
+      'color-mix(in srgb, #123ABC 8%, var(--surface))',
+    );
 
     const docsPill = screen.getByRole('checkbox', { name: 'docs' }).closest('label');
     expect(docsPill).toHaveClass('tag-filter-pill');
@@ -96,7 +98,7 @@ describe('ItemForm', () => {
 
     fireEvent.click(screen.getByLabelText('Markdown'));
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My note' } });
-    fireEvent.change(screen.getByLabelText('Content'), {
+    fireEvent.change(screen.getByLabelText('Content - Edit'), {
       target: { value: '# Notes\n\nBody' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
@@ -104,6 +106,7 @@ describe('ItemForm', () => {
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'markdown', content: '# Notes\n\nBody' }),
     );
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('description');
   });
 
   it('shows inline validation when a markdown item has no content', () => {
@@ -113,5 +116,63 @@ describe('ItemForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
 
     expect(screen.getByText('Content is required for a markdown note')).toBeInTheDocument();
+  });
+
+  it('hides the Description field for markdown items', () => {
+    render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    expect(screen.queryByLabelText('Description')).not.toBeInTheDocument();
+  });
+
+  it('renders Content - Edit and Content - View panes with no standalone Content label', () => {
+    render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    expect(screen.getByLabelText('Content - Edit')).toBeInTheDocument();
+    expect(screen.getByLabelText('Content - View')).toBeInTheDocument();
+    expect(document.querySelector('.content-panes')).not.toBeNull();
+    expect(screen.queryByText('Content')).not.toBeInTheDocument();
+  });
+
+  it('syncs the Content - Edit and Content - View panes', () => {
+    render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    fireEvent.change(screen.getByLabelText('Content - Edit'), { target: { value: '# Sync' } });
+
+    const editor = screen.getByLabelText('Content - Edit') as HTMLTextAreaElement;
+    const viewer = screen.getByLabelText('Content - View') as HTMLTextAreaElement;
+    expect(editor.value).toBe('# Sync');
+    expect(viewer.value).toBe('# Sync');
+
+    fireEvent.change(screen.getByLabelText('Content - View'), {
+      target: { value: '# From viewer' },
+    });
+    expect((screen.getByLabelText('Content - Edit') as HTMLTextAreaElement).value).toBe(
+      '# From viewer',
+    );
+  });
+
+  it('auto-resizes the markdown content textareas to their scroll height on mount and on input', () => {
+    render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    const editor = screen.getByLabelText('Content - Edit') as HTMLTextAreaElement;
+    const viewer = screen.getByLabelText('Content - View') as HTMLTextAreaElement;
+
+    Object.defineProperty(editor, 'scrollHeight', { value: 128, configurable: true });
+    Object.defineProperty(viewer, 'scrollHeight', { value: 128, configurable: true });
+    fireEvent.change(editor, { target: { value: '# Notes\n\nBody' } });
+
+    expect(editor.style.height).toBe('128px');
+    expect(viewer.style.height).toBe('128px');
+
+    Object.defineProperty(editor, 'scrollHeight', { value: 256, configurable: true });
+    Object.defineProperty(viewer, 'scrollHeight', { value: 256, configurable: true });
+    fireEvent.change(editor, { target: { value: '# Notes\n\nBody\n\nMore lines' } });
+
+    expect(editor.style.height).toBe('256px');
+    expect(viewer.style.height).toBe('256px');
   });
 });

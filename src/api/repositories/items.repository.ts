@@ -30,7 +30,7 @@ function matchesQuery(item: StoredCollectionItem, query: CollectionQuery): boole
   }
   if (!query.search) return true;
   const value = query.search.toLowerCase();
-  return [item.title, item.description, item.command ?? '', item.url ?? '', item.content ?? '', ...item.tags]
+  return [item.title, item.description ?? '', item.command ?? '', item.url ?? '', item.content ?? '', ...item.tags]
     .join(' ')
     .toLowerCase()
     .includes(value);
@@ -80,7 +80,7 @@ export class InMemoryItemsRepository implements ItemsRepository {
       ownerId,
       kind: input.kind,
       title: input.title,
-      description: input.description,
+      description: input.description ?? null,
       tags: input.tags,
       relatedItemIds: input.relatedItemIds,
       order,
@@ -161,6 +161,7 @@ export class MongoItemsRepository implements ItemsRepository {
   private static normalizeRead(doc: StoredCollectionItem): StoredCollectionItem {
     return {
       ...doc,
+      description: doc.description ?? null,
       command: doc.command ?? null,
       url: doc.url ?? null,
       content: doc.content ?? null,
@@ -208,7 +209,7 @@ export class MongoItemsRepository implements ItemsRepository {
   async create(ownerId: string, input: CollectionItemInput, order: number) {
     const timestamp = new Date().toISOString();
     const item: StoredCollectionItem = {
-      id: randomUUID(), ownerId, kind: input.kind, title: input.title, description: input.description,
+      id: randomUUID(), ownerId, kind: input.kind, title: input.title, description: input.description ?? null,
       tags: input.tags, relatedItemIds: input.relatedItemIds, order,
       command: input.kind === 'spell' ? input.command : null,
       url: input.kind === 'web-link' ? input.url : null,

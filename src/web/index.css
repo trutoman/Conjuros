@@ -1095,6 +1095,40 @@ select {
   resize: vertical;
 }
 
+.item-form--markdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.item-form--markdown .form-field {
+  flex-shrink: 0;
+}
+
+.item-form--markdown .form-field:has(.content-panes) {
+  display: flex;
+  flex-direction: column;
+}
+
+.content-panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.content-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  font-family: 'Cutive Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.content-pane textarea {
+  min-height: 12rem;
+  resize: none;
+}
+
 .dialog-backdrop {
   position: fixed;
   inset: 0;
