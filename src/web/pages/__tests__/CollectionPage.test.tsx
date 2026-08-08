@@ -290,10 +290,10 @@ describe('CollectionPage', () => {
 
     render(<CollectionPage />);
 
-    expect(screen.getByText('Runbook')).toBeInTheDocument();
-    const card = screen.getByText('Runbook').closest('.item-card');
+    expect(screen.getAllByText('Runbook').length).toBeGreaterThan(0);
+    const card = screen.getAllByText('Runbook')[0].closest('.item-card');
     expect(card).toBeTruthy();
-    expect(card?.querySelector('.item-inline-content')).toHaveTextContent('Steps here.');
+    expect(card?.querySelector('.item-inline-content')).toHaveTextContent('Runbook');
     expect(screen.queryByRole('button', { name: 'Copy command' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Copy content' })).not.toBeInTheDocument();
@@ -337,7 +337,7 @@ describe('CollectionPage', () => {
     fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'markdown' } });
     fireEvent.change(screen.getByLabelText('Search collection'), { target: { value: 'Steps' } });
 
-    expect(screen.getByText('Runbook')).toBeInTheDocument();
+    expect(screen.getAllByText('Runbook').length).toBeGreaterThan(0);
     expect(screen.queryByText('Git status')).not.toBeInTheDocument();
   });
 });

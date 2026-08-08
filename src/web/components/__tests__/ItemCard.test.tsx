@@ -395,13 +395,35 @@ describe('ItemCard', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  it('renders markdown content inline in the top row like a spell command', () => {
+  it('renders the markdown slug inline instead of the full content', () => {
     const { container } = renderItemCard({ item: createMarkdownItem() });
 
     expect(screen.getByRole('img', { name: 'Markdown' })).toBeInTheDocument();
     const { content } = getTopRowParts(container);
-    expect(content).toHaveTextContent('# Heading');
-    expect(content).toHaveTextContent('Some **bold** text.');
+    expect(content).toHaveTextContent('Heading');
+    expect(content).not.toHaveTextContent('Some **bold** text.');
+    expect(content).not.toHaveTextContent('Second line stays hidden.');
+  });
+
+  it('strips markdown markers from the markdown inline slug', () => {
+    const { container } = renderItemCard({
+      item: createMarkdownItem({ content: '- **Task one**\n\n- Task two' }),
+    });
+
+    const { content } = getTopRowParts(container);
+    expect(content).toHaveTextContent('Task one');
+    expect(content).not.toHaveTextContent('**');
+  });
+
+  it('keeps the full markdown content available for editing', () => {
+    const item = createMarkdownItem();
+    const onEdit = vi.fn();
+    render(<ControlledItemCard item={item} onEdit={onEdit} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
+
+    expect(onEdit).toHaveBeenCalledWith(item);
+    expect(onEdit.mock.calls[0][0].content).toBe(item.content);
   });
 
   it('shows only the menu button in item-actions for a markdown item', () => {
