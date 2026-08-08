@@ -1,4 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { collectionItemInputSchema, type CollectionItem, type CollectionItemInput, type ItemKind, type Tag } from '@conjuros/contracts';
 import { FormField } from './FormField';
 import { ItemTypeSelector } from './ItemTypeSelector';
@@ -27,12 +29,22 @@ export function ItemForm({
   const [content, setContent] = useState(item?.command ?? item?.url ?? item?.content ?? '');
   const [error, setError] = useState('');
   const editPaneRef = useRef<HTMLTextAreaElement>(null);
-  const viewPaneRef = useRef<HTMLTextAreaElement>(null);
+  const viewPaneRef = useRef<HTMLDivElement>(null);
+
+  const previewHtml = useMemo(
+    () => (kind === 'markdown' ? DOMPurify.sanitize(marked.parse(content) as string) : ''),
+    [kind, content],
+  );
 
   useLayoutEffect(() => {
     if (kind !== 'markdown') return;
-    autoResizeTextarea(editPaneRef.current);
-    autoResizeTextarea(viewPaneRef.current);
+    const editPane = editPaneRef.current;
+    if (!editPane) return;
+    autoResizeTextarea(editPane);
+    const viewPane = viewPaneRef.current;
+    if (viewPane) {
+      viewPane.style.height = editPane.style.height;
+    }
   }, [kind, content]);
 
   async function submit(event: React.FormEvent) {
@@ -70,10 +82,15 @@ export function ItemForm({
               <span>Content - Edit</span>
               <textarea ref={editPaneRef} value={content} onChange={(event) => setContent(event.target.value)} />
             </label>
-            <label className="content-pane">
+            <div className="content-pane">
               <span>Content - View</span>
-              <textarea ref={viewPaneRef} value={content} onChange={(event) => setContent(event.target.value)} />
-            </label>
+              <div
+                className="content-pane-preview"
+                ref={viewPaneRef}
+                aria-label="Content - View"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            </div>
           </div>
           {error && <span className="field-error" role="alert">{error}</span>}
         </div>
