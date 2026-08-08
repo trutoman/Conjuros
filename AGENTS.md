@@ -30,7 +30,7 @@ cp .env.example .env     # Create local config (set MONGODB_DATABASE and SESSION
 
 ## Product
 
-Conjuros lets authenticated users manage a private collection of items. An item is either a `spell` with a `command` or a `web-link` with a `url`; both have an owner, title, description, tags, order, and relationships.
+Conjuros lets authenticated users manage a private collection of items. An item is either a `spell` with a `command`, a `web-link` with a `url`, or a `markdown` note with `content`; all items have an owner, title, description, tags, order, and relationships.
 
 ## Architecture
 
@@ -65,6 +65,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - Verify item ownership before read/update/reorder/delete
 - `spell` requires `command`; store and display exact text, never execute
 - `web-link` requires absolute `https:` or `http:` URL; open only after explicit user action
+- `markdown` requires `content`; render and store the exact text, never execute or transform it
 - `relatedItemIds` may only refer to items owned by the same user
 - Validate enumerated tags against catalogs; normalize free-form tags
 
@@ -86,6 +87,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - Prioritize search, reading, and quick actions
 - Every `spell` has an accessible action to copy `command` text
 - Every `web-link` has actions to copy URL and open it
+- `markdown` cards render `content` inline and offer no kind-specific actions
 - Ordering must work with pointer and keyboard; persist via API
 - Include loading, empty, no-results, and error states
 - Do not add components, libraries, or animations without a specific need

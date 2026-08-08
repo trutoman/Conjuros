@@ -49,7 +49,11 @@ export class ItemsService {
       description: update.description ?? current.description,
       tags: update.tags ?? current.tags,
       relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
-      ...(kind === 'spell' ? { command: update.command ?? current.command } : { url: update.url ?? current.url }),
+      ...(kind === 'spell'
+        ? { command: update.command ?? current.command }
+        : kind === 'web-link'
+          ? { url: update.url ?? current.url }
+          : { content: update.content ?? current.content }),
     });
     await this.assertRelatedItemsOwned(ownerId, candidate.relatedItemIds);
     await this.assertOwnedTags(ownerId, candidate.tags);
@@ -62,6 +66,7 @@ export class ItemsService {
       relatedItemIds: candidate.relatedItemIds,
       command: candidate.kind === 'spell' ? candidate.command : null,
       url: candidate.kind === 'web-link' ? candidate.url : null,
+      content: candidate.kind === 'markdown' ? candidate.content : null,
       updatedAt: new Date().toISOString(),
     }));
   }

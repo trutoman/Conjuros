@@ -11,6 +11,7 @@ export function createSpellItem(overrides: Partial<CollectionItem> = {}): Collec
     relatedItemIds: [],
     command: 'git status --short',
     url: null,
+    content: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
@@ -28,6 +29,25 @@ export function createWebLinkItem(overrides: Partial<CollectionItem> = {}): Coll
     relatedItemIds: [],
     command: null,
     url: 'https://example.com/docs',
+    content: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+export function createMarkdownItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
+  return {
+    id: 'markdown-1',
+    kind: 'markdown',
+    title: 'Notes',
+    description: '',
+    tags: ['docs'],
+    order: 3,
+    relatedItemIds: [],
+    command: null,
+    url: null,
+    content: '# Heading\n\nSome **bold** text.',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,

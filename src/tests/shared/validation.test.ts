@@ -1,5 +1,6 @@
 import {
   collectionItemInputSchema,
+  collectionItemUpdateSchema,
   normalizeTags,
   reorderItemSchema,
   tagInputSchema,
@@ -33,6 +34,67 @@ describe('collection item contracts', () => {
         url: 'docs.example.com',
       }).success,
     ).toBe(false);
+  });
+
+  it('preserves markdown content exactly as entered', () => {
+    const content = '# Heading\n\nLine with `code` and **bold**.';
+    const parsed = collectionItemInputSchema.parse({
+      kind: 'markdown',
+      title: 'Notes',
+      description: '',
+      tags: ['docs'],
+      relatedItemIds: [],
+      content,
+    });
+
+    if (parsed.kind !== 'markdown') throw new Error('Expected a markdown item');
+    expect(parsed.content).toBe(content);
+  });
+
+  it('requires non-empty content for markdown items', () => {
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'markdown',
+        title: 'Notes',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        content: '',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('preserves long markdown content beyond the spell command limit', () => {
+    const longContent = Array.from({ length: 2_500 }, () => 'lorem').join(' ');
+    const parsed = collectionItemInputSchema.parse({
+      kind: 'markdown',
+      title: 'Notes',
+      description: '',
+      tags: [],
+      relatedItemIds: [],
+      content: longContent,
+    });
+
+    if (parsed.kind !== 'markdown') throw new Error('Expected a markdown item');
+    expect(parsed.content).toBe(longContent);
+  });
+
+  it('rejects cross-kind fields in item updates', () => {
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'markdown', command: 'echo hi' }).success,
+    ).toBe(false);
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'markdown', url: 'https://example.com' }).success,
+    ).toBe(false);
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'spell', content: 'note' }).success,
+    ).toBe(false);
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'web-link', content: 'note' }).success,
+    ).toBe(false);
+    expect(collectionItemUpdateSchema.safeParse({ kind: 'markdown', content: 'note' }).success).toBe(
+      true,
+    );
   });
 
   it('normalizes and de-duplicates tags', () => {

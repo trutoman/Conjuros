@@ -89,4 +89,29 @@ describe('ItemForm', () => {
 
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it('submits markdown content when the markdown type is selected', () => {
+    const onSubmit = vi.fn();
+    render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My note' } });
+    fireEvent.change(screen.getByLabelText('Content'), {
+      target: { value: '# Notes\n\nBody' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'markdown', content: '# Notes\n\nBody' }),
+    );
+  });
+
+  it('shows inline validation when a markdown item has no content', () => {
+    render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+    expect(screen.getByText('Content is required for a markdown note')).toBeInTheDocument();
+  });
 });

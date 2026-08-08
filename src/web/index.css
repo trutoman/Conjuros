@@ -16,6 +16,7 @@
   --accent-soft: #e0e7ff;
   --spell: #7c3aed;
   --link: #2563eb;
+  --markdown: #b45309;
   --danger: #dc2626;
   --success: #15803d;
   --warning: #b45309;
@@ -40,6 +41,7 @@
   --accent-soft: rgba(99, 102, 241, 0.2);
   --spell: #c084fc;
   --link: #60a5fa;
+  --markdown: #fbbf24;
   --danger: #f87171;
   --success: #4ade80;
   --warning: #fbbf24;
@@ -398,6 +400,10 @@ select {
   border-left-color: var(--link);
 }
 
+.item-card.kind-markdown {
+  border-left-color: var(--markdown);
+}
+
 .item-header {
   display: flex;
   justify-content: space-between;
@@ -429,6 +435,11 @@ select {
 .item-type-badge.kind-web-link {
   background: rgba(37, 99, 235, 0.12);
   color: var(--link);
+}
+
+.item-type-badge.kind-markdown {
+  background: rgba(180, 83, 9, 0.12);
+  color: var(--markdown);
 }
 
 .icon {

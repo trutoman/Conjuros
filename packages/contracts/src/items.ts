@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { normalizeTagName, tagNameSchema } from './tags';
 
-export const itemKinds = ['spell', 'web-link'] as const;
+export const itemKinds = ['spell', 'web-link', 'markdown'] as const;
 
 export const itemKindSchema = z.enum(itemKinds);
 export const itemIdSchema = z.string().min(1).max(128);
@@ -34,9 +34,16 @@ export const webLinkInputSchema = z.object({
     .refine((value) => /^https?:\/\//i.test(value), 'URL must use the http or https protocol'),
 });
 
+export const markdownInputSchema = z.object({
+  kind: z.literal('markdown'),
+  ...commonItemFields,
+  content: z.string().trim().min(1),
+});
+
 export const collectionItemInputSchema = z.discriminatedUnion('kind', [
   spellInputSchema,
   webLinkInputSchema,
+  markdownInputSchema,
 ]);
 
 export const collectionItemUpdateSchema = z
@@ -48,13 +55,26 @@ export const collectionItemUpdateSchema = z
     relatedItemIds: commonItemFields.relatedItemIds.optional(),
     command: z.string().min(1).max(10_000).optional(),
     url: webLinkInputSchema.shape.url.optional(),
+    content: markdownInputSchema.shape.content.optional(),
   })
   .superRefine((value, context) => {
     if (value.kind === 'spell' && value.url !== undefined) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Spell updates cannot include a URL' });
     }
+    if (value.kind === 'spell' && value.content !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Spell updates cannot include content' });
+    }
     if (value.kind === 'web-link' && value.command !== undefined) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Web-link updates cannot include a command' });
+    }
+    if (value.kind === 'web-link' && value.content !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Web-link updates cannot include content' });
+    }
+    if (value.kind === 'markdown' && value.command !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Markdown updates cannot include a command' });
+    }
+    if (value.kind === 'markdown' && value.url !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Markdown updates cannot include a URL' });
     }
   });
 
@@ -68,6 +88,7 @@ export const collectionItemSchema = z.object({
   relatedItemIds: z.array(itemIdSchema),
   command: z.string().nullable(),
   url: z.string().url().nullable(),
+  content: z.string().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

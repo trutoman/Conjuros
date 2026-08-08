@@ -56,7 +56,8 @@ export function ItemCard({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const tagColors = new Map(tags.map((tag) => [tag.tagName, tag.color]));
   const isSpell = item.kind === 'spell';
-  const contentValue = item.command ?? item.url ?? '';
+  const contentValue = item.command ?? item.url ?? item.content ?? '';
+  const kindLabel = isSpell ? 'Spell' : item.kind === 'web-link' ? 'Web link' : 'Markdown';
 
   const supportsHover = useMemo(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -207,9 +208,9 @@ export function ItemCard({
         <div className="item-title-group">
           <div
             className={`item-type-badge kind-${item.kind}`}
-            aria-label={isSpell ? 'Spell' : 'Web link'}
+            aria-label={kindLabel}
           >
-            {isSpell ? (
+            {item.kind === 'spell' ? (
               <Icon
                 label="Spell"
                 title="Spell"
@@ -217,12 +218,19 @@ export function ItemCard({
                 viewBox="0 -960 960 960"
                 filled
               />
-            ) : (
+            ) : item.kind === 'web-link' ? (
               <Icon
                 label="Web link"
                 title="Web link"
                 path="M320-160q-33 0-56.5-23.5T240-240v-120h120v-90q-35-2-66.5-15.5T236-506v-44h-46L60-680q36-46 89-65t107-19q27 0 52.5 4t51.5 15v-55h480v520q0 50-35 85t-85 35H320Zm120-200h240v80q0 17 11.5 28.5T720-240q17 0 28.5-11.5T760-280v-440H440v24l240 240v56h-56L510-514l-8 8q-14 14-29.5 25T440-464v104ZM224-630h92v86q12 8 25 11t27 3q23 0 41.5-7t36.5-25l8-8-56-56q-29-29-65-43.5T256-684q-20 0-38 3t-36 9l42 42Zm376 350H320v40h286q-3-9-4.5-19t-1.5-21Zm-280 40v-40 40Z"
                 viewBox="0 -960 960 960"
+                filled
+              />
+            ) : (
+              <Icon
+                label="Markdown"
+                title="Markdown"
+                path="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM16 18H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
                 filled
               />
             )}
