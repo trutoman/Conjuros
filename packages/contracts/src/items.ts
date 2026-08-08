@@ -14,7 +14,7 @@ export function normalizeTags(tags: readonly string[]): string[] {
 
 const commonItemFields = {
   title: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(2_000),
+  description: z.string().trim().max(2_000).optional(),
   tags: z.array(z.string()).max(10).transform(normalizeTags).pipe(z.array(tagValueSchema).max(10)),
   relatedItemIds: z.array(itemIdSchema).max(20).transform((ids) => [...new Set(ids)]),
 };
@@ -82,7 +82,7 @@ export const collectionItemSchema = z.object({
   id: itemIdSchema,
   kind: itemKindSchema,
   title: z.string(),
-  description: z.string(),
+  description: z.string().nullable(),
   tags: z.array(tagValueSchema),
   order: z.number().int().positive(),
   relatedItemIds: z.array(itemIdSchema),

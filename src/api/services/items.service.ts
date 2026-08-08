@@ -46,7 +46,7 @@ export class ItemsService {
     const candidate = collectionItemInputSchema.parse({
       kind,
       title: update.title ?? current.title,
-      description: update.description ?? current.description,
+      description: update.description ?? current.description ?? undefined,
       tags: update.tags ?? current.tags,
       relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
       ...(kind === 'spell'
@@ -61,7 +61,7 @@ export class ItemsService {
       ...current,
       kind: candidate.kind,
       title: candidate.title,
-      description: candidate.description,
+      description: candidate.description ?? null,
       tags: candidate.tags,
       relatedItemIds: candidate.relatedItemIds,
       command: candidate.kind === 'spell' ? candidate.command : null,

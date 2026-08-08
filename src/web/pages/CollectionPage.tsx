@@ -149,7 +149,7 @@ export function CollectionPage({
   const visibleItems = items.filter((item) => {
     const searchable = [
       item.title,
-      item.description,
+      item.description ?? '',
       item.command ?? '',
       item.url ?? '',
       item.content ?? '',

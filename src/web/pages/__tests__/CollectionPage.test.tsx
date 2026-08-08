@@ -305,7 +305,7 @@ describe('CollectionPage', () => {
         id: 'item-md',
         kind: 'markdown',
         title: 'Runbook',
-        description: '',
+        description: null,
         tags: [],
         order: 1,
         relatedItemIds: [],
