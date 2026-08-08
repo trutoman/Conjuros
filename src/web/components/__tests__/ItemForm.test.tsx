@@ -135,44 +135,52 @@ describe('ItemForm', () => {
     expect(screen.queryByText('Content')).not.toBeInTheDocument();
   });
 
-  it('syncs the Content - Edit and Content - View panes', () => {
+  it('renders a markdown preview that updates as the user types in the edit pane', () => {
     render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
     fireEvent.click(screen.getByLabelText('Markdown'));
     fireEvent.change(screen.getByLabelText('Content - Edit'), { target: { value: '# Sync' } });
 
-    const editor = screen.getByLabelText('Content - Edit') as HTMLTextAreaElement;
-    const viewer = screen.getByLabelText('Content - View') as HTMLTextAreaElement;
-    expect(editor.value).toBe('# Sync');
-    expect(viewer.value).toBe('# Sync');
+    const preview = document.querySelector('.content-pane-preview');
+    expect(preview).not.toBeNull();
+    expect(preview?.querySelector('h1')).toHaveTextContent('Sync');
+    expect(screen.getByLabelText('Content - View')).toHaveClass('content-pane-preview');
 
-    fireEvent.change(screen.getByLabelText('Content - View'), {
-      target: { value: '# From viewer' },
+    fireEvent.change(screen.getByLabelText('Content - Edit'), {
+      target: { value: '## Next' },
     });
-    expect((screen.getByLabelText('Content - Edit') as HTMLTextAreaElement).value).toBe(
-      '# From viewer',
-    );
+    expect(preview?.querySelector('h2')).toHaveTextContent('Next');
   });
 
-  it('auto-resizes the markdown content textareas to their scroll height on mount and on input', () => {
+  it('does not execute scripts embedded in the markdown content', () => {
+    render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    fireEvent.change(screen.getByLabelText('Content - Edit'), {
+      target: { value: '# Safe\n\n<script>window.hacked = true</script>' },
+    });
+
+    expect((window as { hacked?: boolean }).hacked).toBeUndefined();
+    expect(document.querySelector('.content-pane-preview script')).toBeNull();
+  });
+
+  it('auto-resizes the edit textarea and shares its height with the preview pane', () => {
     render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
     fireEvent.click(screen.getByLabelText('Markdown'));
     const editor = screen.getByLabelText('Content - Edit') as HTMLTextAreaElement;
-    const viewer = screen.getByLabelText('Content - View') as HTMLTextAreaElement;
+    const preview = document.querySelector('.content-pane-preview') as HTMLDivElement;
 
     Object.defineProperty(editor, 'scrollHeight', { value: 128, configurable: true });
-    Object.defineProperty(viewer, 'scrollHeight', { value: 128, configurable: true });
     fireEvent.change(editor, { target: { value: '# Notes\n\nBody' } });
 
     expect(editor.style.height).toBe('128px');
-    expect(viewer.style.height).toBe('128px');
+    expect(preview.style.height).toBe('128px');
 
     Object.defineProperty(editor, 'scrollHeight', { value: 256, configurable: true });
-    Object.defineProperty(viewer, 'scrollHeight', { value: 256, configurable: true });
     fireEvent.change(editor, { target: { value: '# Notes\n\nBody\n\nMore lines' } });
 
     expect(editor.style.height).toBe('256px');
-    expect(viewer.style.height).toBe('256px');
+    expect(preview.style.height).toBe('256px');
   });
 });
