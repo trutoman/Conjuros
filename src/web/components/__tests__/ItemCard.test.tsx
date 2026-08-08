@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ItemCard } from '../ItemCard';
-import { createSpellItem, createTag, createWebLinkItem, denseTags } from './itemCard.fixtures';
+import { createMarkdownItem, createSpellItem, createTag, createWebLinkItem, denseTags } from './itemCard.fixtures';
 import { getTopRowParts } from './itemCard.test-utils';
 
 const spell = createSpellItem();
@@ -103,7 +103,10 @@ function mockNarrowTopRowLayout(width = 220) {
   });
 }
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('ItemCard', () => {
   it('places item content on the top row between title and tags', () => {
@@ -390,5 +393,25 @@ describe('ItemCard', () => {
     fireEvent.mouseEnter(overflowButton);
 
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('renders markdown content inline in the top row like a spell command', () => {
+    const { container } = renderItemCard({ item: createMarkdownItem() });
+
+    expect(screen.getByRole('img', { name: 'Markdown' })).toBeInTheDocument();
+    const { content } = getTopRowParts(container);
+    expect(content).toHaveTextContent('# Heading');
+    expect(content).toHaveTextContent('Some **bold** text.');
+  });
+
+  it('shows only the menu button in item-actions for a markdown item', () => {
+    const { container } = renderItemCard({ item: createMarkdownItem() });
+
+    const actions = container.querySelector('.item-actions');
+    expect(actions?.querySelectorAll('button')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Item menu' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy command' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy content' })).not.toBeInTheDocument();
   });
 });

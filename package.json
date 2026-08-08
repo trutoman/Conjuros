@@ -13,6 +13,7 @@
     "build": "tsc --noEmit && vite build",
     "check": "npm run lint && npm run test && npm run build",
     "docker:check": "node scripts/check-docker.mjs",
+    "migrate:backfill-content": "node scripts/backfill-content-null.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:docker": "vitest run --config vitest.docker.config.ts",

@@ -30,7 +30,7 @@ function matchesQuery(item: StoredCollectionItem, query: CollectionQuery): boole
   }
   if (!query.search) return true;
   const value = query.search.toLowerCase();
-  return [item.title, item.description, item.command ?? '', item.url ?? '', ...item.tags]
+  return [item.title, item.description, item.command ?? '', item.url ?? '', item.content ?? '', ...item.tags]
     .join(' ')
     .toLowerCase()
     .includes(value);
@@ -86,6 +86,7 @@ export class InMemoryItemsRepository implements ItemsRepository {
       order,
       command: input.kind === 'spell' ? input.command : null,
       url: input.kind === 'web-link' ? input.url : null,
+      content: input.kind === 'markdown' ? input.content : null,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -157,6 +158,15 @@ export class MongoItemsRepository implements ItemsRepository {
     this.items = database.collection<StoredCollectionItem>('collectionItems');
   }
 
+  private static normalizeRead(doc: StoredCollectionItem): StoredCollectionItem {
+    return {
+      ...doc,
+      command: doc.command ?? null,
+      url: doc.url ?? null,
+      content: doc.content ?? null,
+    };
+  }
+
   async list(ownerId: string, query: CollectionQuery) {
     const filter: Filter<StoredCollectionItem> = { ownerId };
     if (query.kind) filter.kind = query.kind;
@@ -165,27 +175,30 @@ export class MongoItemsRepository implements ItemsRepository {
     }
     if (query.search) {
       const expression = { $regex: query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
-      filter.$or = [{ title: expression }, { description: expression }, { command: expression }, { url: expression }, { tags: expression }];
+      filter.$or = [{ title: expression }, { description: expression }, { command: expression }, { url: expression }, { content: expression }, { tags: expression }];
     }
     const sort: Sort = query.sort === 'title' ? { title: 1 } : query.sort === 'updatedAt' ? { updatedAt: -1 } : { order: 1 };
     const [items, total] = await Promise.all([
       this.items.find(filter).sort(sort).skip(query.skip).limit(query.limit).toArray(),
       this.items.countDocuments(filter),
     ]);
-    return { items, total };
+    return { items: items.map(MongoItemsRepository.normalizeRead), total };
   }
 
   async findOwned(id: string, ownerId: string) {
-    return this.items.findOne({ id, ownerId });
+    const doc = await this.items.findOne({ id, ownerId });
+    return doc ? MongoItemsRepository.normalizeRead(doc) : null;
   }
 
   async findOwnedByIds(ids: string[], ownerId: string) {
-    return this.items.find({ id: { $in: ids }, ownerId }).toArray();
+    const docs = await this.items.find({ id: { $in: ids }, ownerId }).toArray();
+    return docs.map(MongoItemsRepository.normalizeRead);
   }
 
   async findOwnedByTags(ownerId: string, tags: string[]) {
     if (tags.length === 0) return [];
-    return this.items.find({ ownerId, tags: { $all: tags } }).toArray();
+    const docs = await this.items.find({ ownerId, tags: { $all: tags } }).toArray();
+    return docs.map(MongoItemsRepository.normalizeRead);
   }
 
   async nextOrder(ownerId: string) {
@@ -199,6 +212,7 @@ export class MongoItemsRepository implements ItemsRepository {
       tags: input.tags, relatedItemIds: input.relatedItemIds, order,
       command: input.kind === 'spell' ? input.command : null,
       url: input.kind === 'web-link' ? input.url : null,
+      content: input.kind === 'markdown' ? input.content : null,
       createdAt: timestamp, updatedAt: timestamp,
     };
     await this.items.insertOne(item);
@@ -218,7 +232,7 @@ export class MongoItemsRepository implements ItemsRepository {
     const item = await this.findOwned(id, ownerId);
     if (!item) return null;
     const all = await this.items.find({ ownerId }).sort({ order: 1 }).toArray();
-    const reordered = all.filter((candidate) => candidate.id !== id);
+    const reordered = all.filter((candidate) => candidate.id !== id).map(MongoItemsRepository.normalizeRead);
     reordered.splice(Math.min(order - 1, reordered.length), 0, item);
     const timestamp = new Date().toISOString();
     await this.items.bulkWrite(reordered.map((candidate, index) => ({

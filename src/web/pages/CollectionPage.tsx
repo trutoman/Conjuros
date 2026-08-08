@@ -152,6 +152,7 @@ export function CollectionPage({
       item.description,
       item.command ?? '',
       item.url ?? '',
+      item.content ?? '',
       ...item.tags,
     ]
       .join(' ')
@@ -344,6 +345,7 @@ export function CollectionPage({
                       <option value="">All types</option>
                       <option value="spell">Spells</option>
                       <option value="web-link">Web links</option>
+                      <option value="markdown">Markdown</option>
                     </select>
                   </label>
                 </div>

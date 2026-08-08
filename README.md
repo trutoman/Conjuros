@@ -1,6 +1,6 @@
 # Conjuros
 
-Conjuros is a private collection for spells and web links. This repository includes a contributor-owned MongoDB service for local development.
+Conjuros is a private collection for spells, web links, and markdown notes. This repository includes a contributor-owned MongoDB service for local development.
 
 ## Local Development
 
@@ -68,3 +68,13 @@ npm run test:docker
 ```
 
 The Docker persistence test uses an isolated Compose project and removes its test volume after completion.
+
+## Data Migration
+
+After upgrading an existing database to support markdown items, run the backfill so every stored item carries the `content` field (as `null` for non-markdown items). Without it, reads of pre-existing items fail validation because the nullable `content` field is missing rather than `null`.
+
+```sh
+npm run migrate:backfill-content
+```
+
+The script is idempotent: it only touches documents that are missing the `content` field.

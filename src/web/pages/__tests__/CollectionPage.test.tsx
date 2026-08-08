@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/react';
+import type { CollectionItem } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
 
 const reorderMock = vi.fn().mockResolvedValue(undefined);
-const collectionItems = [
+const collectionItems: CollectionItem[] = [
   {
     id: 'item-1',
     kind: 'spell',
@@ -16,6 +17,7 @@ const collectionItems = [
     relatedItemIds: [],
     command: 'git status',
     url: null,
+    content: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
@@ -29,6 +31,7 @@ const collectionItems = [
     relatedItemIds: [],
     command: 'git diff',
     url: null,
+    content: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
@@ -254,5 +257,87 @@ describe('CollectionPage', () => {
     expect(css).toMatch(
       /@media \(max-width: 650px\)[\s\S]*?\.collection-subheader \.add-item-button\s*\{[^}]*align-self:\s*flex-start;[^}]*width:\s*2\.75rem;[^}]*height:\s*2\.75rem;[^}]*\}/,
     );
+  });
+
+  it('exposes a markdown option in the type filter', () => {
+    render(<CollectionPage />);
+
+    const select = screen.getByLabelText('Type');
+    const options = Array.from(select.querySelectorAll('option')).map(
+      (option) => option.textContent,
+    );
+    expect(options).toContain('Markdown');
+  });
+
+  it('renders markdown items inline with no kind-specific actions', () => {
+    collectionState.items = [
+      {
+        id: 'item-md',
+        kind: 'markdown',
+        title: 'Runbook',
+        description: '',
+        tags: [],
+        order: 1,
+        relatedItemIds: [],
+        command: null,
+        url: null,
+        content: '# Runbook\n\nSteps here.',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    collectionState.total = 1;
+
+    render(<CollectionPage />);
+
+    expect(screen.getByText('Runbook')).toBeInTheDocument();
+    const card = screen.getByText('Runbook').closest('.item-card');
+    expect(card).toBeTruthy();
+    expect(card?.querySelector('.item-inline-content')).toHaveTextContent('Steps here.');
+    expect(screen.queryByRole('button', { name: 'Copy command' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy content' })).not.toBeInTheDocument();
+  });
+
+  it('shows only matching markdown items when the type filter and content search are combined', () => {
+    collectionState.items = [
+      {
+        id: 'item-md',
+        kind: 'markdown',
+        title: 'Runbook',
+        description: '',
+        tags: [],
+        order: 1,
+        relatedItemIds: [],
+        command: null,
+        url: null,
+        content: '# Runbook\n\nSteps here.',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'item-spell',
+        kind: 'spell',
+        title: 'Git status',
+        description: '',
+        tags: ['git'],
+        order: 2,
+        relatedItemIds: [],
+        command: 'git status',
+        url: null,
+        content: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    collectionState.total = 2;
+
+    render(<CollectionPage />);
+
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'markdown' } });
+    fireEvent.change(screen.getByLabelText('Search collection'), { target: { value: 'Steps' } });
+
+    expect(screen.getByText('Runbook')).toBeInTheDocument();
+    expect(screen.queryByText('Git status')).not.toBeInTheDocument();
   });
 });

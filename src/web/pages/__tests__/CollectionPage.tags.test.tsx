@@ -5,9 +5,9 @@ import { CollectionPage } from '../CollectionPage';
 vi.mock('../../hooks/useCollection', () => ({
   useCollection: () => ({
     items: [
-      { id: 'item-1', kind: 'spell', title: 'Git only', description: '', tags: ['git'], order: 1, relatedItemIds: [], command: 'git status', url: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
-      { id: 'item-2', kind: 'spell', title: 'Docs only', description: '', tags: ['docs'], order: 2, relatedItemIds: [], command: 'cat docs', url: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
-      { id: 'item-3', kind: 'spell', title: 'Both tags', description: '', tags: ['git', 'docs'], order: 3, relatedItemIds: [], command: 'echo both', url: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'item-1', kind: 'spell', title: 'Git only', description: '', tags: ['git'], order: 1, relatedItemIds: [], command: 'git status', url: null, content: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'item-2', kind: 'spell', title: 'Docs only', description: '', tags: ['docs'], order: 2, relatedItemIds: [], command: 'cat docs', url: null, content: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'item-3', kind: 'spell', title: 'Both tags', description: '', tags: ['git', 'docs'], order: 3, relatedItemIds: [], command: 'echo both', url: null, content: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
     ],
     total: 3,
     isLoading: false,

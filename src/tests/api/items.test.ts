@@ -130,3 +130,63 @@ describe('GET /api/items', () => {
     await request(app).get(`/api/items/${created.body.id}`).set('Cookie', ownerCookie).expect(200);
   });
 });
+
+describe('markdown collection items', () => {
+  it('creates, updates, and searches markdown items by content', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+
+    await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({ kind: 'markdown', title: 'Notes', description: '', tags: [], relatedItemIds: [], content: '' })
+      .expect(400);
+
+    const created = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'markdown',
+        title: 'Incident notes',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        content: '# Outage\n\nResolved by restarting.',
+      })
+      .expect(201);
+    expect(created.body).toMatchObject({
+      kind: 'markdown',
+      title: 'Incident notes',
+      content: '# Outage\n\nResolved by restarting.',
+      command: null,
+      url: null,
+    });
+    expect(created.body).not.toHaveProperty('ownerId');
+
+    const updated = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ content: '# Outage\n\nRestarted twice.' })
+      .expect(200);
+    expect(updated.body.content).toBe('# Outage\n\nRestarted twice.');
+
+    await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ kind: 'markdown', command: 'nope' })
+      .expect(400);
+
+    const search = await request(app)
+      .get('/api/items?search=restarted')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(search.body.total).toBe(1);
+
+    const kindFilter = await request(app)
+      .get('/api/items?kind=markdown')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(kindFilter.body.items).toHaveLength(1);
+    expect(kindFilter.body.items[0].kind).toBe('markdown');
+  });
+});
