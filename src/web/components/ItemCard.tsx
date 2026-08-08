@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { computeTagOverflow, estimateInlineWidth } from './itemCardOverflow';
+import { markdownSlug } from '../lib/itemCardSlug';
 
 function Icon({
   label,
@@ -57,6 +58,7 @@ export function ItemCard({
   const tagColors = new Map(tags.map((tag) => [tag.tagName, tag.color]));
   const isSpell = item.kind === 'spell';
   const contentValue = item.command ?? item.url ?? item.content ?? '';
+  const inlineContent = item.kind === 'markdown' ? markdownSlug(item.content ?? '') : contentValue;
   const kindLabel = isSpell ? 'Spell' : item.kind === 'web-link' ? 'Web link' : 'Markdown';
 
   const supportsHover = useMemo(() => {
@@ -240,7 +242,7 @@ export function ItemCard({
               <h2 ref={titleRef}>{item.title}</h2>
               <div className="item-inline-content-box">
                 <code className="item-inline-content" aria-label="Item content">
-                  {contentValue}
+                  {inlineContent}
                 </code>
                 {item.description && (
                   <button

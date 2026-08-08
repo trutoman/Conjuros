@@ -1124,6 +1124,22 @@ select {
   font-size: 0.75rem;
 }
 
+.content-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 1.75rem;
+  line-height: 1;
+}
+
+.content-pane-header .quiet {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+}
+
 .content-pane textarea,
 .content-pane-preview {
   min-height: 8rem;
@@ -1131,7 +1147,6 @@ select {
 }
 
 .content-pane-preview {
-  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 0.65rem;
   background: var(--surface);

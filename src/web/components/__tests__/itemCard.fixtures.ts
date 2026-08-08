@@ -47,7 +47,7 @@ export function createMarkdownItem(overrides: Partial<CollectionItem> = {}): Col
     relatedItemIds: [],
     command: null,
     url: null,
-    content: '# Heading\n\nSome **bold** text.',
+    content: '\n\n# Heading\n\nSome **bold** text.\n\nSecond line stays hidden.',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
