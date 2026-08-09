@@ -34,6 +34,7 @@ function renderItemCard({
   tags,
   onEdit = vi.fn(),
   onDelete = vi.fn(),
+  onView = vi.fn(),
   isMenuOpen = false,
   onMenuToggle = vi.fn(),
 }: {
@@ -41,6 +42,7 @@ function renderItemCard({
   tags?: Tag[];
   onEdit?: (item: CollectionItem) => void;
   onDelete?: (item: CollectionItem) => void;
+  onView?: (item: CollectionItem) => void;
   isMenuOpen?: boolean;
   onMenuToggle?: () => void;
 } = {}) {
@@ -50,6 +52,7 @@ function renderItemCard({
       tags={tags}
       onEdit={onEdit}
       onDelete={onDelete}
+      onView={onView}
       isMenuOpen={isMenuOpen}
       onMenuToggle={onMenuToggle}
     />,
@@ -426,14 +429,33 @@ describe('ItemCard', () => {
     expect(onEdit.mock.calls[0][0].content).toBe(item.content);
   });
 
-  it('shows only the menu button in item-actions for a markdown item', () => {
-    const { container } = renderItemCard({ item: createMarkdownItem() });
+  it('shows a View markdown action button on markdown cards only', () => {
+    const onView = vi.fn();
+    const md = createMarkdownItem();
+    const { container } = renderItemCard({ item: md, onView });
 
     const actions = container.querySelector('.item-actions');
-    expect(actions?.querySelectorAll('button')).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Item menu' })).toBeInTheDocument();
+    expect(actions?.querySelectorAll('button')).toHaveLength(2);
+    const viewButton = screen.getByRole('button', { name: 'View markdown' });
+    expect(viewButton).toBeInTheDocument();
+    expect(actions?.querySelector('.item-menu-wrapper')).not.toBeNull();
+
+    fireEvent.click(viewButton);
+
+    expect(onView).toHaveBeenCalledTimes(1);
+    expect(onView).toHaveBeenCalledWith(md);
+
     expect(screen.queryByRole('button', { name: 'Copy command' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Copy content' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Item menu' })).toBeInTheDocument();
+  });
+
+  it('never shows the View markdown button on spell or web-link cards', () => {
+    renderItemCard({ item: spell });
+    expect(screen.queryByRole('button', { name: 'View markdown' })).not.toBeInTheDocument();
+
+    renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
+    expect(screen.queryByRole('button', { name: 'View markdown' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open link' })).toBeInTheDocument();
   });
 });

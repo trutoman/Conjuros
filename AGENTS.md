@@ -87,7 +87,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - Prioritize search, reading, and quick actions
 - Every `spell` has an accessible action to copy `command` text
 - Every `web-link` has actions to copy URL and open it
-- `markdown` cards render `content` inline and offer no kind-specific actions
+- `markdown` cards render a `content` slug inline and offer a "View markdown" action that opens a read-only sanitized viewer of the full note
 - Ordering must work with pointer and keyboard; persist via API
 - Include loading, empty, no-results, and error states
 - Do not add components, libraries, or animations without a specific need

@@ -926,6 +926,27 @@ select {
   margin-top: 0;
 }
 
+.markdown-item-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.markdown-item-viewer h2 {
+  padding-right: 2.25rem;
+}
+
+.markdown-item-viewer h2 .markdown-viewer-title {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.markdown-item-viewer .markdown-viewer-content {
+  flex: 1 1 auto;
+  min-height: 12rem;
+  overflow-wrap: anywhere;
+}
+
 .tag-management-header {
   display: flex;
   align-items: center;

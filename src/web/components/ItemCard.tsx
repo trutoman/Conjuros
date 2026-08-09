@@ -36,6 +36,7 @@ export function ItemCard({
   tags = [],
   onEdit,
   onDelete,
+  onView,
   isMenuOpen,
   onMenuToggle,
 }: {
@@ -43,6 +44,7 @@ export function ItemCard({
   tags?: Tag[];
   onEdit: (item: CollectionItem) => void;
   onDelete: (item: CollectionItem) => void;
+  onView?: (item: CollectionItem) => void;
   isMenuOpen: boolean;
   onMenuToggle: () => void;
 }) {
@@ -336,6 +338,22 @@ export function ItemCard({
                 label="Open"
                 title="Open"
                 path="M318-120q-82 0-140-58t-58-140q0-40 15-76t43-64l134-133 56 56-134 134q-17 17-25.5 38.5T200-318q0 49 34.5 83.5T318-200q23 0 45-8.5t39-25.5l133-134 57 57-134 133q-28 28-64 43t-76 15Zm79-220-57-57 223-223 57 57-223 223Zm251-28-56-57 134-133q17-17 25-38t8-44q0-50-34-85t-84-35q-23 0-44.5 8.5T558-726L425-592l-57-56 134-134q28-28 64-43t76-15q82 0 139.5 58T839-641q0 39-14.5 75T782-502L648-368Z"
+                viewBox="0 -960 960 960"
+                filled
+              />
+            </button>
+          )}
+          {item.kind === 'markdown' && (
+            <button
+              type="button"
+              className="icon-action"
+              aria-label="View markdown"
+              onClick={() => onView?.(item)}
+            >
+              <Icon
+                label="View"
+                title="View"
+                path="M607.5-372.5Q660-425 660-500t-52.5-127.5Q555-680 480-680t-127.5 52.5Q300-575 300-500t52.5 127.5Q405-320 480-320t127.5-52.5Zm-204-51Q372-455 372-500t31.5-76.5Q435-608 480-608t76.5 31.5Q585-545 585-500t-31.5 76.5Q515-392 480-392t-76.5-31.5ZM214-281.5Q94-363 40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200q-146 0-266-81.5Z"
                 viewBox="0 -960 960 960"
                 filled
               />

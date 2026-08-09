@@ -13,6 +13,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Sidebar } from '../components/Sidebar';
 import { ItemForm } from '../components/ItemForm';
+import { ItemCardViewer } from '../components/ItemCardViewer';
 import { TagForm } from '../components/TagForm';
 import { TagList } from '../components/TagList';
 import { LoadingState } from '../components/LoadingState';
@@ -72,6 +73,7 @@ export function CollectionPage({
   const [deleteItem, setDeleteItem] = useState<CollectionItem | null>(null);
   const [deleteTag, setDeleteTag] = useState<Tag | null>(null);
   const [manageTags, setManageTags] = useState(false);
+  const [viewerItem, setViewerItem] = useState<CollectionItem | null | undefined>(undefined);
   const [actionError, setActionError] = useState('');
   const [tagQuery, setTagQuery] = useState('');
 
@@ -98,7 +100,19 @@ export function CollectionPage({
   function openItemForm(item: CollectionItem | null) {
     setFormTag(undefined);
     setManageTags(false);
+    setViewerItem(undefined);
     setFormItem(item);
+  }
+
+  function openViewer(item: CollectionItem) {
+    setFormItem(undefined);
+    setFormTag(undefined);
+    setManageTags(false);
+    setViewerItem(item);
+  }
+
+  function closeViewer() {
+    setViewerItem(undefined);
   }
 
   function openTagFormInManage(tag: Tag | null) {
@@ -110,6 +124,7 @@ export function CollectionPage({
     setFormItem(undefined);
     setFormTag(undefined);
     setTagQuery('');
+    setViewerItem(undefined);
     setManageTags(true);
   }
 
@@ -210,7 +225,13 @@ export function CollectionPage({
           )}
 
           <div className="main-content-frame">
-            {manageTags ? (
+            {viewerItem !== undefined && viewerItem !== null ? (
+              <ItemCardViewer
+                item={viewerItem}
+                onClose={closeViewer}
+                onEdit={() => openItemForm(viewerItem)}
+              />
+            ) : manageTags ? (
               formTag !== undefined ? (
                 <TagForm
                   tag={formTag ?? undefined}
@@ -371,6 +392,7 @@ export function CollectionPage({
                     }
                     onEdit={openItemForm}
                     onDelete={setDeleteItem}
+                    onView={openViewer}
                   />
                 )}
               </>
