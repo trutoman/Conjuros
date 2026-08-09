@@ -30,7 +30,7 @@ cp .env.example .env     # Create local config (set MONGODB_DATABASE and SESSION
 
 ## Product
 
-Conjuros lets authenticated users manage a private collection of items. An item is either a `spell` with a `command`, a `web-link` with a `url`, or a `markdown` note with `content`; all items have an owner, title, description, tags, order, and relationships.
+Conjuros lets authenticated users manage a private collection of items. An item is either a `spell` with a `command`, a `web-link` with a `url`, or a `markdown` note with `content`; all items have an owner, title, description, tags, order, and relationships. Markdown notes may optionally carry a `filename` (a plain `.md` file name, at most 64 characters, no path separators).
 
 ## Architecture
 
@@ -66,6 +66,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - `spell` requires `command`; store and display exact text, never execute
 - `web-link` requires absolute `https:` or `http:` URL; open only after explicit user action
 - `markdown` requires `content`; render and store the exact text, never execute or transform it
+- `markdown` items may carry an optional `filename`: a plain file name only (no path separators) of at most 64 characters, always ending in `.md`; an empty or absent `filename` is stored and returned as `null`
 - `relatedItemIds` may only refer to items owned by the same user
 - Validate enumerated tags against catalogs; normalize free-form tags
 
@@ -87,7 +88,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - Prioritize search, reading, and quick actions
 - Every `spell` has an accessible action to copy `command` text
 - Every `web-link` has actions to copy URL and open it
-- `markdown` cards render a `content` slug inline and offer a "View markdown" action that opens a read-only sanitized viewer of the full note
+- `markdown` cards render a `content` slug inline and offer a "View markdown" action that opens a read-only sanitized viewer of the full note; the viewer also shows the note's optional `filename`
 - Ordering must work with pointer and keyboard; persist via API
 - Include loading, empty, no-results, and error states
 - Do not add components, libraries, or animations without a specific need

@@ -151,6 +151,7 @@ describe('markdown collection items', () => {
         tags: [],
         relatedItemIds: [],
         content: '# Outage\n\nResolved by restarting.',
+        filename: 'incident.md',
       })
       .expect(201);
     expect(created.body).toMatchObject({
@@ -173,6 +174,7 @@ describe('markdown collection items', () => {
         tags: [],
         relatedItemIds: [],
         content: '# Runbook',
+        filename: 'runbook.md',
       })
       .expect(201);
     expect(withDescription.body).toMatchObject({
@@ -206,5 +208,70 @@ describe('markdown collection items', () => {
       .expect(200);
     expect(kindFilter.body.items).toHaveLength(2);
     expect(kindFilter.body.items[0].kind).toBe('markdown');
+  });
+
+  it('persists, normalizes, and clears the filename, and guards non-markdown kinds', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+
+    const created = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'markdown',
+        title: 'Incident notes',
+        tags: [],
+        relatedItemIds: [],
+        content: '# Outage',
+        filename: 'incident.md',
+      })
+      .expect(201);
+    expect(created.body).toMatchObject({ kind: 'markdown', filename: 'incident.md' });
+
+    const withoutFilename = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({ kind: 'markdown', title: 'Plain note', tags: [], relatedItemIds: [], content: '# Note' })
+      .expect(400);
+    expect(withoutFilename.body).not.toHaveProperty('filename');
+
+    const renamed = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ filename: 'final.md' })
+      .expect(200);
+    expect(renamed.body.filename).toBe('final.md');
+
+    const cleared = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ filename: '  ' })
+      .expect(200);
+    expect(cleared.body.filename).toBeNull();
+
+    await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ filename: 'bad.txt' })
+      .expect(400);
+
+    await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'spell',
+        title: 'Status',
+        tags: [],
+        relatedItemIds: [],
+        command: 'git status',
+        filename: 'status.md',
+      })
+      .expect(400);
+
+    await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ kind: 'web-link', url: 'https://example.com', filename: 'docs.md' })
+      .expect(400);
   });
 });

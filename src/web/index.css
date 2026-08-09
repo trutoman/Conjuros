@@ -941,6 +941,16 @@ select {
   font-weight: 400;
 }
 
+.markdown-item-viewer .markdown-viewer-filename {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.markdown-item-viewer .markdown-viewer-filename span {
+  font-weight: 600;
+}
+
 .markdown-item-viewer .markdown-viewer-content {
   flex: 1 1 auto;
   min-height: 12rem;

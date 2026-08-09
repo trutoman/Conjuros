@@ -17,6 +17,7 @@ describe('messageForInputError', () => {
       tags: [],
       relatedItemIds: [],
       content: 'Body',
+      filename: 'note.md',
     });
     if (!result.success) throw new Error('expected payload to validate');
     expect(messageForInputError(result.data, result)).toBeNull();
@@ -57,6 +58,31 @@ describe('messageForInputError', () => {
     expect(message).toBe(MESSAGES.invalidUrl);
   });
 
+  it('reports an invalid filename as the friendly filename message', () => {
+    const message = messageFor({
+      kind: 'markdown',
+      title: 'Note',
+      content: 'Body',
+      filename: 'note.txt',
+    });
+    expect(message).toBe(MESSAGES.filenameInvalid);
+  });
+
+  it('reports a path inside the filename as the friendly filename message', () => {
+    const message = messageFor({
+      kind: 'markdown',
+      title: 'Note',
+      content: 'Body',
+      filename: 'folder/note.md',
+    });
+    expect(message).toBe(MESSAGES.filenameInvalid);
+  });
+
+  it('reports an empty filename as "Content is required" only when content is missing', () => {
+    const message = messageFor({ kind: 'markdown', title: 'Note', content: '', filename: '' });
+    expect(message).toBe(MESSAGES.contentRequired);
+  });
+
   it('falls back to the generic message for unexpected failures', () => {
     const message = messageFor({ kind: 'spell', title: 'Long', command: 'ok', tags: 'not-an-array' });
     expect(message).toBe(MESSAGES.generic);
@@ -66,6 +92,7 @@ describe('messageForInputError', () => {
     const cases: Array<Record<string, unknown>> = [
       { kind: 'markdown', title: '', content: 'Body' },
       { kind: 'markdown', title: 'Note', content: '   ' },
+      { kind: 'markdown', title: 'Note', content: 'Body', filename: 'bad-name' },
       { kind: 'spell', title: 'Spell', command: '   ' },
       { kind: 'web-link', title: 'Link', url: 'ftp://example.com' },
     ];

@@ -2,6 +2,7 @@ import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { computeTagOverflow, estimateInlineWidth } from './itemCardOverflow';
 import { markdownSlug } from '../lib/itemCardSlug';
+import { downloadMarkdownFile } from '../lib/downloadMarkdown';
 
 function Icon({
   label,
@@ -354,6 +355,22 @@ export function ItemCard({
                 label="View"
                 title="View"
                 path="M607.5-372.5Q660-425 660-500t-52.5-127.5Q555-680 480-680t-127.5 52.5Q300-575 300-500t52.5 127.5Q405-320 480-320t127.5-52.5Zm-204-51Q372-455 372-500t31.5-76.5Q435-608 480-608t76.5 31.5Q585-545 585-500t-31.5 76.5Q515-392 480-392t-76.5-31.5ZM214-281.5Q94-363 40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200q-146 0-266-81.5Z"
+                viewBox="0 -960 960 960"
+                filled
+              />
+            </button>
+          )}
+          {item.kind === 'markdown' && (
+            <button
+              type="button"
+              className="icon-action"
+              aria-label="Download markdown"
+              onClick={() => downloadMarkdownFile(item)}
+            >
+              <Icon
+                label="Download"
+                title="Download"
+                path="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"
                 viewBox="0 -960 960 960"
                 filled
               />

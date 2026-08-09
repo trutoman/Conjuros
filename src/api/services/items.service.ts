@@ -1,6 +1,7 @@
 import {
   collectionItemInputSchema,
   collectionItemUpdateSchema,
+  markdownUpdateCandidateSchema,
   normalizeTagName,
   type CollectionItem,
   type CollectionItemInput,
@@ -43,18 +44,27 @@ export class ItemsService {
   async update(ownerId: string, id: string, update: CollectionItemUpdate) {
     const current = await this.requireOwned(ownerId, id);
     const kind = update.kind ?? current.kind;
-    const candidate = collectionItemInputSchema.parse({
-      kind,
-      title: update.title ?? current.title,
-      description: update.description ?? current.description ?? undefined,
-      tags: update.tags ?? current.tags,
-      relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
-      ...(kind === 'spell'
-        ? { command: update.command ?? current.command }
-        : kind === 'web-link'
-          ? { url: update.url ?? current.url }
-          : { content: update.content ?? current.content }),
-    });
+    const candidate =
+      kind === 'markdown'
+        ? markdownUpdateCandidateSchema.parse({
+            kind,
+            title: update.title ?? current.title,
+            description: update.description ?? current.description ?? undefined,
+            tags: update.tags ?? current.tags,
+            relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
+            content: update.content ?? current.content,
+            filename: update.filename ?? current.filename ?? '',
+          })
+        : collectionItemInputSchema.parse({
+            kind,
+            title: update.title ?? current.title,
+            description: update.description ?? current.description ?? undefined,
+            tags: update.tags ?? current.tags,
+            relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
+            ...(kind === 'spell'
+              ? { command: update.command ?? current.command }
+              : { url: update.url ?? current.url }),
+          });
     await this.assertRelatedItemsOwned(ownerId, candidate.relatedItemIds);
     await this.assertOwnedTags(ownerId, candidate.tags);
     return toPublicItem(await this.repository.replace({
@@ -67,6 +77,7 @@ export class ItemsService {
       command: candidate.kind === 'spell' ? candidate.command : null,
       url: candidate.kind === 'web-link' ? candidate.url : null,
       content: candidate.kind === 'markdown' ? candidate.content : null,
+      filename: candidate.kind === 'markdown' ? candidate.filename || null : null,
       updatedAt: new Date().toISOString(),
     }));
   }

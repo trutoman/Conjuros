@@ -2,6 +2,7 @@ import {
   collectionItemInputSchema,
   collectionItemSchema,
   collectionItemUpdateSchema,
+  markdownUpdateCandidateSchema,
   normalizeTags,
   reorderItemSchema,
   tagInputSchema,
@@ -46,6 +47,7 @@ describe('collection item contracts', () => {
       tags: ['docs'],
       relatedItemIds: [],
       content,
+      filename: 'notes.md',
     });
 
     if (parsed.kind !== 'markdown') throw new Error('Expected a markdown item');
@@ -59,6 +61,7 @@ describe('collection item contracts', () => {
       tags: [],
       relatedItemIds: [],
       content: '# Notes',
+      filename: 'notes.md',
     });
     expect(parsed.success).toBe(true);
   });
@@ -71,6 +74,7 @@ describe('collection item contracts', () => {
       tags: [],
       relatedItemIds: [],
       content: '# Notes',
+      filename: 'notes.md',
     });
     if (parsed.kind !== 'markdown') throw new Error('Expected a markdown item');
     expect(parsed.description).toBe('A short summary');
@@ -88,6 +92,7 @@ describe('collection item contracts', () => {
       command: null,
       url: null,
       content: '# Notes',
+      filename: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
@@ -110,6 +115,7 @@ describe('collection item contracts', () => {
         tags: [],
         relatedItemIds: [],
         content: '',
+        filename: 'notes.md',
       }).success,
     ).toBe(false);
   });
@@ -123,6 +129,7 @@ describe('collection item contracts', () => {
       tags: [],
       relatedItemIds: [],
       content: longContent,
+      filename: 'notes.md',
     });
 
     if (parsed.kind !== 'markdown') throw new Error('Expected a markdown item');
@@ -145,6 +152,148 @@ describe('collection item contracts', () => {
     expect(collectionItemUpdateSchema.safeParse({ kind: 'markdown', content: 'note' }).success).toBe(
       true,
     );
+  });
+
+  it('accepts a filename in the read model', () => {
+    const item = {
+      id: 'markdown-1',
+      kind: 'markdown',
+      title: 'Notes',
+      description: null,
+      tags: [],
+      order: 1,
+      relatedItemIds: [],
+      command: null,
+      url: null,
+      content: '# Notes',
+      filename: 'notes.md',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(collectionItemSchema.safeParse(item).success).toBe(true);
+  });
+
+  it('allows a markdown item with a trimmed valid filename', () => {
+    const parsed = collectionItemInputSchema.parse({
+      kind: 'markdown',
+      title: 'Notes',
+      description: '',
+      tags: ['docs'],
+      relatedItemIds: [],
+      content: '# Notes',
+      filename: ' notes.md ',
+    });
+    if (parsed.kind !== 'markdown') throw new Error('Expected a markdown item');
+    expect(parsed.filename).toBe('notes.md');
+  });
+
+  it('rejects creating a markdown item without a filename', () => {
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'markdown',
+        title: 'Notes',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        content: '# Notes',
+      }).success,
+    ).toBe(false);
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'markdown',
+        title: 'Notes',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        content: '# Notes',
+        filename: '   ',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('allows markdown updates to set or clear the filename', () => {
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'markdown', filename: 'research.md' }).success,
+    ).toBe(true);
+    const cleared = collectionItemUpdateSchema.parse({ kind: 'markdown', filename: '  ' });
+    expect(cleared.filename).toBe('');
+  });
+
+  it('marks the update candidate with a cleared or legacy filename', () => {
+    const set = markdownUpdateCandidateSchema.parse({
+      kind: 'markdown',
+      title: 'Notes',
+      description: '',
+      tags: [],
+      relatedItemIds: [],
+      content: '# Notes',
+      filename: 'research.md',
+    });
+    expect(set.filename).toBe('research.md');
+    const cleared = markdownUpdateCandidateSchema.parse({
+      kind: 'markdown',
+      title: 'Notes',
+      description: '',
+      tags: [],
+      relatedItemIds: [],
+      content: '# Notes',
+      filename: '',
+    });
+    expect(cleared.filename).toBe('');
+  });
+
+  it('rejects markdown filenames that are not plain .md file names', () => {
+    const too = `${'a'.repeat(65)}.md`;
+    for (const invalid of [
+      'folder/notes.md',
+      'folder\\notes.md',
+      'notes.txt',
+      'notes',
+      too,
+    ]) {
+      expect(
+        collectionItemInputSchema.safeParse({
+          kind: 'markdown',
+          title: 'Notes',
+          description: '',
+          tags: [],
+          relatedItemIds: [],
+          content: '# Notes',
+          filename: invalid,
+        }).success,
+      ).toBe(false);
+    }
+  });
+
+  it('rejects a filename on non-markdown items', () => {
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'spell',
+        title: 'Status',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        command: 'git status',
+        filename: 'status.md',
+      }).success,
+    ).toBe(false);
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'web-link',
+        title: 'Docs',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        url: 'https://example.com',
+        filename: 'docs.md',
+      }).success,
+    ).toBe(false);
+    expect(collectionItemUpdateSchema.safeParse({ kind: 'spell', filename: 'spin.md' }).success).toBe(
+      false,
+    );
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'web-link', filename: 'docs.md' }).success,
+    ).toBe(false);
   });
 
   it('normalizes and de-duplicates tags', () => {

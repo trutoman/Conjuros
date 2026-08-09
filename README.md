@@ -1,6 +1,6 @@
 # Conjuros
 
-Conjuros is a private collection for spells, web links, and markdown notes. This repository includes a contributor-owned MongoDB service for local development.
+Conjuros is a private collection for spells, web links, and markdown notes. Markdown notes can optionally carry a `filename` (a plain `.md` file name) shown in the markdown reader and editable in the item form. This repository includes a contributor-owned MongoDB service for local development.
 
 ## Local Development
 
@@ -78,3 +78,5 @@ npm run migrate:backfill-content
 ```
 
 The script is idempotent: it only touches documents that are missing the `content` field.
+
+No migration is required for the optional markdown `filename`: reads normalize a missing `filename` to `null`.

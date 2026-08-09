@@ -13,6 +13,23 @@ describe('ItemCardViewer', () => {
     expect(screen.getByRole('heading', { name: /Research notes/ })).toBeInTheDocument();
   });
 
+  it('shows the item filename with a label when present', () => {
+    render(
+      <ItemCardViewer item={createMarkdownItem({ filename: 'research-notes.md' })} onClose={vi.fn()} onEdit={vi.fn()} />,
+    );
+
+    expect(screen.getByText('Filename')).toBeInTheDocument();
+    expect(screen.getByText('research-notes.md')).toBeInTheDocument();
+  });
+
+  it('omits the filename label when the item has no filename', () => {
+    render(
+      <ItemCardViewer item={createMarkdownItem({ filename: null })} onClose={vi.fn()} onEdit={vi.fn()} />,
+    );
+
+    expect(screen.queryByText('Filename')).not.toBeInTheDocument();
+  });
+
   it('renders the stored markdown content as HTML', () => {
     const { container } = render(
       <ItemCardViewer item={createMarkdownItem()} onClose={vi.fn()} onEdit={vi.fn()} />,

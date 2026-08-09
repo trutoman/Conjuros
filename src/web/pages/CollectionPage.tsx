@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type {
   CollectionItem,
   CollectionItemInput,
+  CollectionItemUpdate,
   ItemKind,
   Tag,
   TagInput,
@@ -77,10 +78,10 @@ export function CollectionPage({
   const [actionError, setActionError] = useState('');
   const [tagQuery, setTagQuery] = useState('');
 
-  async function save(input: CollectionItemInput) {
+  async function save(input: CollectionItemInput | CollectionItemUpdate) {
     try {
       if (formItem) await update({ id: formItem.id, item: input });
-      else await create(input);
+      else await create(input as CollectionItemInput);
       setFormItem(undefined);
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : 'Could not save item');
