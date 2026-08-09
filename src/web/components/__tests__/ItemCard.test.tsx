@@ -3,7 +3,14 @@ import { useState } from 'react';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ItemCard } from '../ItemCard';
-import { createMarkdownItem, createSpellItem, createTag, createWebLinkItem, denseTags } from './itemCard.fixtures';
+import {
+  createFileItem,
+  createMarkdownItem,
+  createSpellItem,
+  createTag,
+  createWebLinkItem,
+  denseTags,
+} from './itemCard.fixtures';
 import { getTopRowParts } from './itemCard.test-utils';
 
 const spell = createSpellItem();
@@ -517,5 +524,183 @@ describe('ItemCard', () => {
     const anchor = append.mock.calls[0][0] as HTMLAnchorElement;
     expect(anchor.getAttribute('download')).toBe('my-ideas.md');
     expect(click).toHaveBeenCalledTimes(1);
+  });
+
+  describe('for a file item', () => {
+    it('renders a file slug inline instead of the full content', () => {
+      const { container } = renderItemCard({ item: createFileItem() });
+
+      expect(screen.getByRole('img', { name: 'File' })).toBeInTheDocument();
+      const { content } = getTopRowParts(container);
+      expect(content).toHaveTextContent('Started at 09:00');
+      expect(content).not.toHaveTextContent('Finished ok');
+    });
+
+    it('strips nothing from the file slug, keeping it plain text', () => {
+      const { container } = renderItemCard({
+        item: createFileItem({ content: 'Line one\n\nLine two' }),
+      });
+
+      const { content } = getTopRowParts(container);
+      expect(content).toHaveTextContent('Line one');
+      expect(content).not.toHaveTextContent('Line two');
+    });
+
+    it('shows the File icon and a Content slug, with no markdown-styled content', () => {
+      const { container } = renderItemCard({ item: createFileItem() });
+      const { content } = getTopRowParts(container);
+
+      expect(screen.getByRole('img', { name: 'File' })).toBeInTheDocument();
+      expect(content).not.toHaveTextContent('*');
+      expect(content).not.toHaveTextContent('#');
+    });
+
+    it('shows a View file action button on file cards only', () => {
+      const onView = vi.fn();
+      const file = createFileItem();
+      const { container } = renderItemCard({ item: file, onView });
+
+      const actions = container.querySelector('.item-actions');
+      expect(actions?.querySelectorAll('button')).toHaveLength(3);
+      const viewButton = screen.getByRole('button', { name: 'View file' });
+      expect(viewButton).toBeInTheDocument();
+
+      fireEvent.click(viewButton);
+
+      expect(onView).toHaveBeenCalledTimes(1);
+      expect(onView).toHaveBeenCalledWith(file);
+
+      expect(screen.queryByRole('button', { name: 'View markdown' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Copy command' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Item menu' })).toBeInTheDocument();
+    });
+
+    it('never shows the View file button on spell, web-link, or markdown cards', () => {
+      renderItemCard({ item: spell });
+      expect(screen.queryByRole('button', { name: 'View file' })).not.toBeInTheDocument();
+
+      renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
+      expect(screen.queryByRole('button', { name: 'View file' })).not.toBeInTheDocument();
+
+      renderItemCard({ item: createMarkdownItem() });
+      expect(screen.queryByRole('button', { name: 'View file' })).not.toBeInTheDocument();
+    });
+
+    it('shows the Download file button on file cards between View and the menu trigger', () => {
+      const { container } = renderItemCard({ item: createFileItem() });
+
+      const viewButton = screen.getByRole('button', { name: 'View file' });
+      const downloadButton = screen.getByRole('button', { name: 'Download file' });
+      const menuWrapper = container.querySelector('.item-menu-wrapper') as HTMLElement;
+
+      expect(downloadButton).toBeInTheDocument();
+      expect(
+        viewButton.compareDocumentPosition(downloadButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        downloadButton.compareDocumentPosition(menuWrapper) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('never shows the Download file button on spell, web-link, or markdown cards', () => {
+      renderItemCard({ item: spell });
+      expect(screen.queryByRole('button', { name: 'Download file' })).not.toBeInTheDocument();
+
+      renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
+      expect(screen.queryByRole('button', { name: 'Download file' })).not.toBeInTheDocument();
+
+      renderItemCard({ item: createMarkdownItem() });
+      expect(screen.queryByRole('button', { name: 'Download file' })).not.toBeInTheDocument();
+    });
+
+    it('downloads the file content as a text/plain file when Download is clicked', () => {
+      const createObjectURL = vi.fn(() => 'blob:mock-url');
+      const revokeObjectURL = vi.fn();
+      vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
+      const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      const item = createFileItem({ filename: 'system-status.txt' });
+      renderItemCard({ item });
+      const append = vi
+        .spyOn(document.body, 'appendChild')
+        .mockImplementation((node: Node) => node);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Download file' }));
+
+      const anchor = append.mock.calls[0][0] as HTMLAnchorElement;
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+      expect(anchor.getAttribute('download')).toBe('system-status.txt');
+      expect(click).toHaveBeenCalledTimes(1);
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    });
+
+    it('falls back to a title-based name for the download when the item has no filename', () => {
+      const createObjectURL = vi.fn(() => 'blob:mock-url');
+      vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
+      const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      renderItemCard({ item: createFileItem({ filename: null, title: 'System Status' }) });
+      const append = vi
+        .spyOn(document.body, 'appendChild')
+        .mockImplementation((node: Node) => node);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Download file' }));
+
+      const anchor = append.mock.calls[0][0] as HTMLAnchorElement;
+      expect(anchor.getAttribute('download')).toBe('system-status');
+      expect(click).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders the file badge with the exact user-provided document glyph', () => {
+      renderItemCard({ item: createFileItem() });
+
+      const badge = screen.getByRole('img', { name: 'File' });
+      expect(badge.getAttribute('viewBox')).toBe('0 -960 960 960');
+      expect(badge.querySelector('path')?.getAttribute('d')).toBe(
+        'M200-200h560v-367L567-760H200v560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h400l240 240v400q0 33-23.5 56.5T760-120H200Zm80-160h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h280v-80H280v80Zm-80 400v-560 560Z',
+      );
+    });
+
+    it('renders the badge with the dedicated glyph, not the markdown glyph', () => {
+      renderItemCard({ item: createFileItem() });
+
+      const fileBadge = screen.getByRole('img', { name: 'File' });
+      const markdownPath =
+        'm640-360 120-120-42-43-48 48v-125h-60v125l-48-48-42 43 120 120ZM140-160q-24 0-42-18t-18-42v-520q0-24 18-42t42-18h680q24 0 42 18t18 42v520q0 24-18 42t-42 18H140Zm0-60h680v-520H140v520Zm0 0v-520 520Zm79-140h50v-190h53v127h50v-127h60v190h50v-200q0-14-13-27t-27-13H259q-14 0-27 13t-13 27v200Z';
+      expect(fileBadge.querySelector('path')?.getAttribute('d')).not.toBe(markdownPath);
+    });
+
+    it('uses the exact same eye icon path as View markdown for View file', () => {
+      renderItemCard({ item: createMarkdownItem() });
+      const markdownIcon = screen
+        .getByRole('button', { name: 'View markdown' })
+        .querySelector('path');
+      renderItemCard({ item: createFileItem() });
+      const fileIcon = screen
+        .getByRole('button', { name: 'View file' })
+        .querySelector('svg');
+
+      const viewBox = fileIcon?.getAttribute('viewBox');
+      const filePath = fileIcon?.querySelector('path')?.getAttribute('d');
+      const markdownPath = markdownIcon?.getAttribute('d');
+      expect(viewBox).toBe('0 -960 960 960');
+      expect(filePath).toBe(markdownPath);
+    });
+
+    it('uses the exact same download icon path as the markdown download for Download file', () => {
+      renderItemCard({ item: createMarkdownItem() });
+      const markdownIcon = screen
+        .getByRole('button', { name: 'Download markdown' })
+        .querySelector('svg');
+      renderItemCard({ item: createFileItem() });
+      const fileIcon = screen
+        .getByRole('button', { name: 'Download file' })
+        .querySelector('svg');
+
+      const viewBoxContainer = fileIcon?.getAttribute('viewBox');
+      const filePath = fileIcon?.querySelector('path')?.getAttribute('d');
+      const markdownPath = markdownIcon?.querySelector('path')?.getAttribute('d');
+      expect(viewBoxContainer).toBe('0 -960 960 960');
+      expect(filePath).toBe(markdownPath);
+    });
   });
 });

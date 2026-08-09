@@ -86,8 +86,8 @@ export class InMemoryItemsRepository implements ItemsRepository {
       order,
       command: input.kind === 'spell' ? input.command : null,
       url: input.kind === 'web-link' ? input.url : null,
-      content: input.kind === 'markdown' ? input.content : null,
-      filename: input.kind === 'markdown' ? input.filename ?? null : null,
+      content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
+      filename: input.kind === 'markdown' || input.kind === 'file' ? input.filename ?? null : null,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -215,8 +215,8 @@ export class MongoItemsRepository implements ItemsRepository {
       tags: input.tags, relatedItemIds: input.relatedItemIds, order,
       command: input.kind === 'spell' ? input.command : null,
       url: input.kind === 'web-link' ? input.url : null,
-      content: input.kind === 'markdown' ? input.content : null,
-      filename: input.kind === 'markdown' ? input.filename ?? null : null,
+      content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
+      filename: input.kind === 'markdown' || input.kind === 'file' ? input.filename ?? null : null,
       createdAt: timestamp, updatedAt: timestamp,
     };
     await this.items.insertOne(item);

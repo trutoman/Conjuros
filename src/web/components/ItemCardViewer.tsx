@@ -12,9 +12,10 @@ export function ItemCardViewer({
   onClose: () => void;
   onEdit: () => void;
 }) {
+  const isMarkdown = item.kind === 'markdown';
   const html = useMemo(
-    () => DOMPurify.sanitize(marked.parse(item.content ?? '') as string),
-    [item.content],
+    () => (isMarkdown ? DOMPurify.sanitize(marked.parse(item.content ?? '') as string) : ''),
+    [isMarkdown, item.content],
   );
 
   return (
@@ -22,24 +23,33 @@ export function ItemCardViewer({
       <button
         type="button"
         className="form-close"
-        aria-label="Close markdown viewer"
+        aria-label={isMarkdown ? 'Close markdown viewer' : 'Close file viewer'}
         onClick={onClose}
       >
         ✕
       </button>
       <h2>
-        View markdown <span className="markdown-viewer-title">{item.title}</span>
+        {isMarkdown ? 'View markdown' : 'View file'} <span className="markdown-viewer-title">{item.title}</span>
       </h2>
       {item.filename && (
         <p className="markdown-viewer-filename">
           <span>Filename</span> {item.filename}
         </p>
       )}
-      <div
-        className="content-pane-preview markdown-viewer-content"
-        aria-label="Markdown content"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      {isMarkdown ? (
+        <div
+          className="content-pane-preview markdown-viewer-content"
+          aria-label="Markdown content"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : (
+        <pre
+          className="content-pane-preview markdown-viewer-content file-viewer-content"
+          aria-label="File content"
+        >
+          {item.content ?? ''}
+        </pre>
+      )}
       <div className="form-actions">
         <button type="button" onClick={onEdit}>
           Edit

@@ -1,8 +1,9 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { computeTagOverflow, estimateInlineWidth } from './itemCardOverflow';
-import { markdownSlug } from '../lib/itemCardSlug';
+import { markdownSlug, plainTextSlug } from '../lib/itemCardSlug';
 import { downloadMarkdownFile } from '../lib/downloadMarkdown';
+import { downloadTextFile } from '../lib/downloadFile';
 
 function Icon({
   label,
@@ -61,8 +62,13 @@ export function ItemCard({
   const tagColors = new Map(tags.map((tag) => [tag.tagName, tag.color]));
   const isSpell = item.kind === 'spell';
   const contentValue = item.command ?? item.url ?? item.content ?? '';
-  const inlineContent = item.kind === 'markdown' ? markdownSlug(item.content ?? '') : contentValue;
-  const kindLabel = isSpell ? 'Spell' : item.kind === 'web-link' ? 'Web link' : 'Markdown';
+  const inlineContent =
+    item.kind === 'markdown'
+      ? markdownSlug(item.content ?? '')
+      : item.kind === 'file'
+        ? plainTextSlug(item.content ?? '')
+        : contentValue;
+  const kindLabel = isSpell ? 'Spell' : item.kind === 'web-link' ? 'Web link' : item.kind === 'file' ? 'File' : 'Markdown';
 
   const supportsHover = useMemo(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -230,6 +236,14 @@ export function ItemCard({
                 path="M320-160q-33 0-56.5-23.5T240-240v-120h120v-90q-35-2-66.5-15.5T236-506v-44h-46L60-680q36-46 89-65t107-19q27 0 52.5 4t51.5 15v-55h480v520q0 50-35 85t-85 35H320Zm120-200h240v80q0 17 11.5 28.5T720-240q17 0 28.5-11.5T760-280v-440H440v24l240 240v56h-56L510-514l-8 8q-14 14-29.5 25T440-464v104ZM224-630h92v86q12 8 25 11t27 3q23 0 41.5-7t36.5-25l8-8-56-56q-29-29-65-43.5T256-684q-20 0-38 3t-36 9l42 42Zm376 350H320v40h286q-3-9-4.5-19t-1.5-21Zm-280 40v-40 40Z"
                 viewBox="0 -960 960 960"
                 filled
+/>
+            ) : item.kind === 'file' ? (
+              <Icon
+                label="File"
+                title="File"
+                path="M200-200h560v-367L567-760H200v560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h400l240 240v400q0 33-23.5 56.5T760-120H200Zm80-160h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h280v-80H280v80Zm-80 400v-560 560Z"
+                viewBox="0 -960 960 960"
+                filled
               />
             ) : (
               <Icon
@@ -367,6 +381,38 @@ export function ItemCard({
               className="icon-action"
               aria-label="Download markdown"
               onClick={() => downloadMarkdownFile(item)}
+            >
+              <Icon
+                label="Download"
+                title="Download"
+                path="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"
+                viewBox="0 -960 960 960"
+                filled
+              />
+            </button>
+          )}
+          {item.kind === 'file' && (
+            <button
+              type="button"
+              className="icon-action"
+              aria-label="View file"
+              onClick={() => onView?.(item)}
+            >
+              <Icon
+                label="View"
+                title="View"
+                path="M607.5-372.5Q660-425 660-500t-52.5-127.5Q555-680 480-680t-127.5 52.5Q300-575 300-500t52.5 127.5Q405-320 480-320t127.5-52.5Zm-204-51Q372-455 372-500t31.5-76.5Q435-608 480-608t76.5 31.5Q585-545 585-500t-31.5 76.5Q515-392 480-392t-76.5-31.5ZM214-281.5Q94-363 40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200q-146 0-266-81.5Z"
+                viewBox="0 -960 960 960"
+                filled
+              />
+            </button>
+          )}
+          {item.kind === 'file' && (
+            <button
+              type="button"
+              className="icon-action"
+              aria-label="Download file"
+              onClick={() => downloadTextFile(item)}
             >
               <Icon
                 label="Download"

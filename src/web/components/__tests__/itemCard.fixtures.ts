@@ -57,6 +57,25 @@ export function createMarkdownItem(overrides: Partial<CollectionItem> = {}): Col
   };
 }
 
+export function createFileItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
+  return {
+    id: 'file-1',
+    kind: 'file',
+    title: 'Deploy log',
+    description: '',
+    tags: ['ops'],
+    order: 4,
+    relatedItemIds: [],
+    command: null,
+    url: null,
+    content: 'Started at 09:00\nFinished ok',
+    filename: 'deploy.log',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
 export function createTag(
   tagName: string,
   color = '#123ABC',

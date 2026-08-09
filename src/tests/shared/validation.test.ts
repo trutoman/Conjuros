@@ -2,6 +2,7 @@ import {
   collectionItemInputSchema,
   collectionItemSchema,
   collectionItemUpdateSchema,
+  fileUpdateCandidateSchema,
   markdownUpdateCandidateSchema,
   normalizeTags,
   reorderItemSchema,
@@ -298,6 +299,183 @@ describe('collection item contracts', () => {
 
   it('normalizes and de-duplicates tags', () => {
     expect(normalizeTags([' Git ', 'git', 'Frontend'])).toEqual(['git', 'frontend']);
+  });
+
+  it('preserves file content exactly as entered', () => {
+    const content = 'line one\n\nline two with `code` and # heading';
+    const parsed = collectionItemInputSchema.parse({
+      kind: 'file',
+      title: 'Logs',
+      description: '',
+      tags: ['ops'],
+      relatedItemIds: [],
+      content,
+      filename: 'app.log',
+    });
+
+    if (parsed.kind !== 'file') throw new Error('Expected a file item');
+    expect(parsed.content).toBe(content);
+  });
+
+  it('requires non-empty content for file items', () => {
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'file',
+        title: 'Logs',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        content: '   ',
+        filename: 'app.log',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires a filename for file items on creation', () => {
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'file',
+        title: 'Logs',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        content: 'hello',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts file filenames without any extension', () => {
+    const parsed = collectionItemInputSchema.parse({
+      kind: 'file',
+      title: 'Logs',
+      description: '',
+      tags: [],
+      relatedItemIds: [],
+      content: 'hello',
+      filename: 'README',
+    });
+    if (parsed.kind !== 'file') throw new Error('Expected a file item');
+    expect(parsed.filename).toBe('README');
+  });
+
+  it('trims file filenames', () => {
+    const parsed = collectionItemInputSchema.parse({
+      kind: 'file',
+      title: 'Logs',
+      description: '',
+      tags: [],
+      relatedItemIds: [],
+      content: 'hello',
+      filename: '  app.log  ',
+    });
+    if (parsed.kind !== 'file') throw new Error('Expected a file item');
+    expect(parsed.filename).toBe('app.log');
+  });
+
+  it('rejects file filenames longer than 128 characters', () => {
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'file',
+        title: 'Logs',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        content: 'hello',
+        filename: `${'a'.repeat(129)}.log`,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a file filename of exactly 128 characters', () => {
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'file',
+        title: 'Logs',
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        content: 'hello',
+        filename: 'a'.repeat(128),
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects file filenames containing path separators', () => {
+    for (const invalid of ['folder/app.log', 'folder\\app.log']) {
+      expect(
+        collectionItemInputSchema.safeParse({
+          kind: 'file',
+          title: 'Logs',
+          description: '',
+          tags: [],
+          relatedItemIds: [],
+          content: 'hello',
+          filename: invalid,
+        }).success,
+      ).toBe(false);
+    }
+  });
+
+  it('allows file updates to set or clear the filename', () => {
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'file', filename: 'plan.txt' }).success,
+    ).toBe(true);
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'file', filename: 'no-extension' }).success,
+    ).toBe(true);
+    const cleared = collectionItemUpdateSchema.parse({ kind: 'file', filename: '  ' });
+    expect(cleared.filename).toBe('');
+  });
+
+  it('rejects cross-kind fields for file updates', () => {
+    expect(collectionItemUpdateSchema.safeParse({ kind: 'file', command: 'echo hi' }).success).toBe(
+      false,
+    );
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'file', url: 'https://example.com' }).success,
+    ).toBe(false);
+  });
+
+  it('marks the file update candidate with a set or cleared filename', () => {
+    const set = fileUpdateCandidateSchema.parse({
+      kind: 'file',
+      title: 'Logs',
+      description: '',
+      tags: [],
+      relatedItemIds: [],
+      content: 'hello',
+      filename: 'app.log',
+    });
+    expect(set.filename).toBe('app.log');
+    const cleared = fileUpdateCandidateSchema.parse({
+      kind: 'file',
+      title: 'Logs',
+      description: '',
+      tags: [],
+      relatedItemIds: [],
+      content: 'hello',
+      filename: '',
+    });
+    expect(cleared.filename).toBe('');
+  });
+
+  it('accepts a file item in the read model', () => {
+    const item = {
+      id: 'file-1',
+      kind: 'file',
+      title: 'Logs',
+      description: null,
+      tags: [],
+      order: 1,
+      relatedItemIds: [],
+      command: null,
+      url: null,
+      content: 'hello',
+      filename: 'app.log',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(collectionItemSchema.safeParse(item).success).toBe(true);
   });
 
   it('only accepts positive integer reorder positions', () => {

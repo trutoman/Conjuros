@@ -52,3 +52,12 @@ export function markdownSlug(content: string): string {
   }
   return slug.replace(/\s+/g, ' ').trim();
 }
+
+export function plainTextSlug(content: string): string {
+  const firstNonEmptyLine = content
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+  if (firstNonEmptyLine === undefined) return '';
+  return firstNonEmptyLine.replace(/\s+/g, ' ').trim();
+}

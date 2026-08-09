@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { normalizeTagName, tagNameSchema } from './tags';
 
-export const itemKinds = ['spell', 'web-link', 'markdown'] as const;
+export const itemKinds = ['spell', 'web-link', 'markdown', 'file'] as const;
 
 export const itemKindSchema = z.enum(itemKinds);
 export const itemIdSchema = z.string().min(1).max(128);
@@ -45,9 +45,25 @@ export const markdownFilenameSchema = z
   .regex(/^[^/\\]+$/, 'Filename must not contain a path separator')
   .regex(/\.md$/i, 'Filename must end with the .md extension');
 
-export const markdownFilenameUpdateSchema = z.preprocess(
-  (value) => (typeof value === 'string' ? value.trim() : value),
-  z.union([markdownFilenameSchema, z.literal('')]),
+export const fileFilenameSchema = z
+  .string()
+  .trim()
+  .max(128, 'Filename must be at most 128 characters')
+  .regex(/^[^/\\]+$/, 'Filename must not contain a path separator');
+
+function stripToEmptyUnion(schema: z.ZodType<string>) {
+  return z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim() : value),
+    z.union([schema, z.literal('')]),
+  );
+}
+
+export const markdownFilenameUpdateSchema = stripToEmptyUnion(markdownFilenameSchema);
+
+export const fileFilenameUpdateSchema = stripToEmptyUnion(fileFilenameSchema);
+
+export const anyFilenameUpdateSchema = stripToEmptyUnion(
+  z.union([markdownFilenameSchema, fileFilenameSchema]),
 );
 
 export const markdownInputSchema = z.object({
@@ -61,10 +77,22 @@ export const markdownUpdateCandidateSchema = markdownInputSchema
   .omit({ filename: true })
   .extend({ filename: markdownFilenameUpdateSchema });
 
+export const fileInputSchema = z.object({
+  kind: z.literal('file'),
+  ...commonItemFields,
+  filename: fileFilenameSchema,
+  content: z.string().trim().min(1),
+});
+
+export const fileUpdateCandidateSchema = fileInputSchema
+  .omit({ filename: true })
+  .extend({ filename: fileFilenameUpdateSchema });
+
 export const collectionItemInputSchema = z.discriminatedUnion('kind', [
   spellInputSchema,
   webLinkInputSchema,
   markdownInputSchema,
+  fileInputSchema,
 ]);
 
 export const collectionItemUpdateSchema = z
@@ -76,7 +104,7 @@ export const collectionItemUpdateSchema = z
     relatedItemIds: commonItemFields.relatedItemIds.optional(),
     command: z.string().min(1).max(10_000).optional(),
     url: webLinkInputSchema.shape.url.optional(),
-    filename: markdownFilenameUpdateSchema.optional(),
+    filename: anyFilenameUpdateSchema.optional(),
     content: markdownInputSchema.shape.content.optional(),
   })
   .superRefine((value, context) => {
@@ -103,6 +131,12 @@ export const collectionItemUpdateSchema = z
     }
     if (value.kind === 'markdown' && value.url !== undefined) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Markdown updates cannot include a URL' });
+    }
+    if (value.kind === 'file' && value.command !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'File updates cannot include a command' });
+    }
+    if (value.kind === 'file' && value.url !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'File updates cannot include a URL' });
     }
   });
 

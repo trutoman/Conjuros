@@ -21,6 +21,7 @@ export function ItemForm({
   const formId = item?.id ?? 'add';
   const markdownSavedContent = item?.content ?? '';
   const [kind, setKind] = useState<ItemKind>(item?.kind ?? 'spell');
+  const textKind = kind === 'markdown' || kind === 'file';
   const [title, setTitle] = useState(item?.title ?? '');
   const [description, setDescription] = useState(item?.description ?? '');
   const [tags, setTags] = useState<string[]>(item?.tags ?? []);
@@ -158,7 +159,7 @@ export function ItemForm({
       title,
       tags,
       relatedItemIds: [],
-      ...(kind === 'markdown' ? {} : { description }),
+      ...(textKind ? {} : { description }),
       ...(kind === 'spell' ? { command: content } : kind === 'web-link' ? { url: content } : { content, filename }),
     };
     const result = item
@@ -182,10 +183,10 @@ export function ItemForm({
       <h2>{item ? 'Edit item' : 'Add item'}</h2>
       <ItemTypeSelector value={kind} onChange={setKind} />
       <FormField label="Title"><input value={title} onChange={(event) => setTitle(event.target.value)} /></FormField>
-      {kind !== 'markdown' && (
+      {!textKind && (
         <FormField label="Description"><textarea value={description} onChange={(event) => setDescription(event.target.value)} /></FormField>
       )}
-      {kind === 'markdown' && (
+      {textKind && (
         <FormField label="Filename"><input value={filename} onChange={(event) => setFilename(event.target.value)} /></FormField>
       )}
       {kind === 'markdown' ? (
@@ -218,6 +219,10 @@ export function ItemForm({
           </div>
           {error && <span className="field-error" role="alert">{error}</span>}
         </div>
+      ) : kind === 'file' ? (
+        <FormField label="Content" error={error}>
+          <textarea value={content} onChange={(event) => setContent(event.target.value)} />
+        </FormField>
       ) : (
         <FormField label={kind === 'spell' ? 'Command' : 'URL'} error={error}>
           <textarea value={content} onChange={(event) => setContent(event.target.value)} />
