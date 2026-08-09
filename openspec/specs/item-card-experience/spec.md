@@ -1,6 +1,6 @@
 # Item Card Experience
 
-## Summary
+## Purpose
 
 This capability covers the visual and interactive experience of individual collection items, including card layout, contextual actions, and the primary interaction affordances.
 

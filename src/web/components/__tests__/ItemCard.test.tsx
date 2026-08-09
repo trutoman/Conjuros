@@ -435,7 +435,7 @@ describe('ItemCard', () => {
     const { container } = renderItemCard({ item: md, onView });
 
     const actions = container.querySelector('.item-actions');
-    expect(actions?.querySelectorAll('button')).toHaveLength(2);
+    expect(actions?.querySelectorAll('button')).toHaveLength(3);
     const viewButton = screen.getByRole('button', { name: 'View markdown' });
     expect(viewButton).toBeInTheDocument();
     expect(actions?.querySelector('.item-menu-wrapper')).not.toBeNull();
@@ -457,5 +457,65 @@ describe('ItemCard', () => {
     renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
     expect(screen.queryByRole('button', { name: 'View markdown' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open link' })).toBeInTheDocument();
+  });
+
+  it('shows the Download markdown button on markdown cards between View and the menu trigger', () => {
+    const { container } = renderItemCard({ item: createMarkdownItem() });
+
+    const viewButton = screen.getByRole('button', { name: 'View markdown' });
+    const downloadButton = screen.getByRole('button', { name: 'Download markdown' });
+    const menuWrapper = container.querySelector('.item-menu-wrapper') as HTMLElement;
+
+    expect(downloadButton).toBeInTheDocument();
+    expect(
+      viewButton.compareDocumentPosition(downloadButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      downloadButton.compareDocumentPosition(menuWrapper) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('never shows the Download markdown button on spell or web-link cards', () => {
+    renderItemCard({ item: spell });
+    expect(screen.queryByRole('button', { name: 'Download markdown' })).not.toBeInTheDocument();
+
+    renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
+    expect(screen.queryByRole('button', { name: 'Download markdown' })).not.toBeInTheDocument();
+  });
+
+  it('downloads the markdown content with the item filename when Download is clicked', () => {
+    const createObjectURL = vi.fn(() => 'blob:mock-url');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const item = createMarkdownItem({ filename: 'notes.md' });
+    renderItemCard({ item });
+    const append = vi
+      .spyOn(document.body, 'appendChild')
+      .mockImplementation((node: Node) => node);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download markdown' }));
+
+    const anchor = append.mock.calls[0][0] as HTMLAnchorElement;
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(anchor.getAttribute('download')).toBe('notes.md');
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+  });
+
+  it('falls back to a title-based name for the download when the item has no filename', () => {
+    const createObjectURL = vi.fn(() => 'blob:mock-url');
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    renderItemCard({ item: createMarkdownItem({ filename: null, title: 'My Ideas' }) });
+    const append = vi
+      .spyOn(document.body, 'appendChild')
+      .mockImplementation((node: Node) => node);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download markdown' }));
+
+    const anchor = append.mock.calls[0][0] as HTMLAnchorElement;
+    expect(anchor.getAttribute('download')).toBe('my-ideas.md');
+    expect(click).toHaveBeenCalledTimes(1);
   });
 });

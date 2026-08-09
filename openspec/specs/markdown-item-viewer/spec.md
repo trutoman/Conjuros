@@ -3,9 +3,7 @@
 ## Purpose
 
 Adds a read-only "View markdown" panel that renders a markdown item's stored `content` as sanitized HTML so users can read the full note from the collection without opening the edit form.
-
 ## Requirements
-
 ### Requirement: Viewer opens inside the collection item area
 
 The markdown viewer SHALL open as a panel inside the collection item area, replacing the collection list in the same way the item form and manage-tags panels do. Opening the viewer SHALL close any other open panel (item form, tag form, or manage tags). Only one such panel SHALL be open at a time.
@@ -66,3 +64,25 @@ The viewer SHALL provide an "Edit" button that opens the same edit form the cont
 
 - **WHEN** a user clicks the "Edit" button on the markdown viewer
 - **THEN** the item form opens in edit mode for the same item
+
+### Requirement: Viewer shows the item filename
+
+When the item has a `filename`, the viewer SHALL display it in the header area under the item title as plain text with a "Filename" label. The viewer SHALL NOT render any path-like prefix or "file" icon for the filename. When the item has no `filename`, the viewer SHALL NOT render the Filename label or any placeholder.
+
+#### Scenario: Viewer shows an existing filename
+
+- **WHEN** the viewer opens for a `markdown` item whose `filename` is "research-notes.md"
+- **THEN** the header area shows the label "Filename"
+- **AND** the header area shows "research-notes.md" as plain text
+
+#### Scenario: Viewer omits a missing filename
+
+- **WHEN** the viewer opens for a `markdown` item whose `filename` is `null`
+- **THEN** the header area does not show a "Filename" label
+- **AND** no filename placeholder is shown
+
+#### Scenario: Filename is independent of the rendered content
+
+- **WHEN** the viewer opens for a `markdown` item that has a `filename`
+- **THEN** the rendered `content` below the header is unaffected by the `filename` value
+

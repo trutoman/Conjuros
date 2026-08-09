@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { ItemForm } from '../ItemForm';
+import { createMarkdownItem } from './itemCard.fixtures';
 
 const availableTags: Tag[] = [
   {
@@ -101,6 +102,7 @@ describe('ItemForm', () => {
 
     fireEvent.click(screen.getByLabelText('Markdown'));
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My note' } });
+    fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'notes.md' } });
     fireEvent.change(screen.getByLabelText('Content - Edit'), {
       target: { value: '# Notes\n\nBody' },
     });
@@ -110,6 +112,114 @@ describe('ItemForm', () => {
       expect.objectContaining({ kind: 'markdown', content: '# Notes\n\nBody' }),
     );
     expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('description');
+  });
+
+  it('shows the Filename input only for the markdown type', () => {
+    render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    expect(screen.queryByLabelText('Filename')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    expect(screen.getByLabelText('Filename')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Spell'));
+    expect(screen.queryByLabelText('Filename')).not.toBeInTheDocument();
+  });
+
+  it('renders the Filename input below Title and above the Content panes', () => {
+    render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+
+    const titleField = screen.getByLabelText('Title');
+    const filenameField = screen.getByLabelText('Filename');
+    const contentPane = screen.getByLabelText('Content - Edit');
+
+    expect(titleField.compareDocumentPosition(filenameField)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(filenameField.compareDocumentPosition(contentPane)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('prefills the Filename input from a markdown item in edit mode', () => {
+    render(
+      <ItemForm
+        item={createMarkdownItem({ id: 'item-1', filename: 'notes.md' })}
+        availableTags={[]}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('notes.md');
+  });
+
+  it('submits the filename with a markdown item', () => {
+    const onSubmit = vi.fn();
+    render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My note' } });
+    fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'notes.md' } });
+    fireEvent.change(screen.getByLabelText('Content - Edit'), {
+      target: { value: '# Notes\n\nBody' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'markdown', filename: 'notes.md' }),
+    );
+  });
+
+  it('shows the friendly filename message for an invalid filename', () => {
+    const onSubmit = vi.fn();
+    render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My note' } });
+    fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'notes.txt' } });
+    fireEvent.change(screen.getByLabelText('Content - Edit'), { target: { value: '# Notes' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+    expect(
+      screen.getByText('Filename must be a name of at most 64 characters ending in .md, with no path separators'),
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('shows a friendly message when a markdown item is created without a filename', () => {
+    const onSubmit = vi.fn();
+    render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Markdown'));
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My note' } });
+    fireEvent.change(screen.getByLabelText('Content - Edit'), { target: { value: '# Notes' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+    expect(screen.getByText('Filename is required for a markdown note')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('submits an empty filename to clear it when editing a markdown item', () => {
+    const onSubmit = vi.fn();
+    render(
+      <ItemForm
+        item={createMarkdownItem({ id: 'item-1', filename: 'notes.md', title: 'My note' })}
+        availableTags={[]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Filename'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Content - Edit'), { target: { value: '# Notes' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'markdown', filename: '' }),
+    );
   });
 
   it('shows inline validation when a markdown item has no content', () => {
@@ -280,6 +390,7 @@ describe('ItemForm', () => {
       command: null,
       url: null,
       content: '# Saved',
+      filename: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
@@ -330,6 +441,7 @@ describe('ItemForm', () => {
     );
     fireEvent.click(screen.getByLabelText('Markdown'));
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My note' } });
+    fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'notes.md' } });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
       await Promise.resolve();

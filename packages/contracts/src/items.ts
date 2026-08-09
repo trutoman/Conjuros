@@ -19,26 +19,47 @@ const commonItemFields = {
   relatedItemIds: z.array(itemIdSchema).max(20).transform((ids) => [...new Set(ids)]),
 };
 
-export const spellInputSchema = z.object({
-  kind: z.literal('spell'),
-  ...commonItemFields,
-  command: z.string().min(1).max(10_000),
-});
+export const spellInputSchema = z
+  .object({
+    kind: z.literal('spell'),
+    ...commonItemFields,
+    command: z.string().min(1).max(10_000),
+  })
+  .strict();
 
-export const webLinkInputSchema = z.object({
-  kind: z.literal('web-link'),
-  ...commonItemFields,
-  url: z
-    .string()
-    .url()
-    .refine((value) => /^https?:\/\//i.test(value), 'URL must use the http or https protocol'),
-});
+export const webLinkInputSchema = z
+  .object({
+    kind: z.literal('web-link'),
+    ...commonItemFields,
+    url: z
+      .string()
+      .url()
+      .refine((value) => /^https?:\/\//i.test(value), 'URL must use the http or https protocol'),
+  })
+  .strict();
+
+export const markdownFilenameSchema = z
+  .string()
+  .trim()
+  .max(64, 'Filename must be at most 64 characters')
+  .regex(/^[^/\\]+$/, 'Filename must not contain a path separator')
+  .regex(/\.md$/i, 'Filename must end with the .md extension');
+
+export const markdownFilenameUpdateSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim() : value),
+  z.union([markdownFilenameSchema, z.literal('')]),
+);
 
 export const markdownInputSchema = z.object({
   kind: z.literal('markdown'),
   ...commonItemFields,
+  filename: markdownFilenameSchema,
   content: z.string().trim().min(1),
 });
+
+export const markdownUpdateCandidateSchema = markdownInputSchema
+  .omit({ filename: true })
+  .extend({ filename: markdownFilenameUpdateSchema });
 
 export const collectionItemInputSchema = z.discriminatedUnion('kind', [
   spellInputSchema,
@@ -55,6 +76,7 @@ export const collectionItemUpdateSchema = z
     relatedItemIds: commonItemFields.relatedItemIds.optional(),
     command: z.string().min(1).max(10_000).optional(),
     url: webLinkInputSchema.shape.url.optional(),
+    filename: markdownFilenameUpdateSchema.optional(),
     content: markdownInputSchema.shape.content.optional(),
   })
   .superRefine((value, context) => {
@@ -64,11 +86,17 @@ export const collectionItemUpdateSchema = z
     if (value.kind === 'spell' && value.content !== undefined) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Spell updates cannot include content' });
     }
+    if (value.kind === 'spell' && value.filename !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Spell updates cannot include a filename' });
+    }
     if (value.kind === 'web-link' && value.command !== undefined) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Web-link updates cannot include a command' });
     }
     if (value.kind === 'web-link' && value.content !== undefined) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Web-link updates cannot include content' });
+    }
+    if (value.kind === 'web-link' && value.filename !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Web-link updates cannot include a filename' });
     }
     if (value.kind === 'markdown' && value.command !== undefined) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Markdown updates cannot include a command' });
@@ -89,6 +117,7 @@ export const collectionItemSchema = z.object({
   command: z.string().nullable(),
   url: z.string().url().nullable(),
   content: z.string().nullable(),
+  filename: z.string().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

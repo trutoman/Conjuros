@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { collectionItemInputSchema, type CollectionItem, type CollectionItemInput, type ItemKind, type Tag } from '@conjuros/contracts';
+import { collectionItemInputSchema, collectionItemUpdateSchema, type CollectionItem, type CollectionItemInput, type CollectionItemUpdate, type ItemKind, type Tag } from '@conjuros/contracts';
 import { clearDraft, dedentSelection, handleAutoClose, handleEnter, indentSelection, loadDraft, saveDraft, type EditResult } from '../lib/markdownEditor';
 import { messageForInputError } from '../lib/itemForm';
 import { FormField } from './FormField';
@@ -15,7 +15,7 @@ export function ItemForm({
 }: {
   item?: CollectionItem;
   availableTags: Tag[];
-  onSubmit: (input: CollectionItemInput) => Promise<unknown> | void;
+  onSubmit: (input: CollectionItemInput | CollectionItemUpdate) => Promise<unknown> | void;
   onCancel: () => void;
 }) {
   const formId = item?.id ?? 'add';
@@ -24,6 +24,7 @@ export function ItemForm({
   const [title, setTitle] = useState(item?.title ?? '');
   const [description, setDescription] = useState(item?.description ?? '');
   const [tags, setTags] = useState<string[]>(item?.tags ?? []);
+  const [filename, setFilename] = useState(item?.filename ?? '');
   const [content, setContent] = useState(() => {
     const base = item?.command ?? item?.url ?? item?.content ?? '';
     return item?.kind === 'markdown' ? loadDraft(formId) ?? base : base;
@@ -158,10 +159,12 @@ export function ItemForm({
       tags,
       relatedItemIds: [],
       ...(kind === 'markdown' ? {} : { description }),
-      ...(kind === 'spell' ? { command: content } : kind === 'web-link' ? { url: content } : { content }),
+      ...(kind === 'spell' ? { command: content } : kind === 'web-link' ? { url: content } : { content, filename }),
     };
-    const result = collectionItemInputSchema.safeParse(payload);
-    const message = messageForInputError(payload, result);
+    const result = item
+      ? collectionItemUpdateSchema.safeParse(payload)
+      : collectionItemInputSchema.safeParse(payload);
+    const message = messageForInputError(payload, result, item === undefined);
     if (message !== null) {
       setError(message);
       return;
@@ -181,6 +184,9 @@ export function ItemForm({
       <FormField label="Title"><input value={title} onChange={(event) => setTitle(event.target.value)} /></FormField>
       {kind !== 'markdown' && (
         <FormField label="Description"><textarea value={description} onChange={(event) => setDescription(event.target.value)} /></FormField>
+      )}
+      {kind === 'markdown' && (
+        <FormField label="Filename"><input value={filename} onChange={(event) => setFilename(event.target.value)} /></FormField>
       )}
       {kind === 'markdown' ? (
         <div className="form-field">

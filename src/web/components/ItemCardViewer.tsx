@@ -30,6 +30,11 @@ export function ItemCardViewer({
       <h2>
         View markdown <span className="markdown-viewer-title">{item.title}</span>
       </h2>
+      {item.filename && (
+        <p className="markdown-viewer-filename">
+          <span>Filename</span> {item.filename}
+        </p>
+      )}
       <div
         className="content-pane-preview markdown-viewer-content"
         aria-label="Markdown content"
