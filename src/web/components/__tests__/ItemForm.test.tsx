@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { ItemForm } from '../ItemForm';
-import { createMarkdownItem } from './itemCard.fixtures';
+import { createFileItem, createMarkdownItem } from './itemCard.fixtures';
 
 const availableTags: Tag[] = [
   {
@@ -535,5 +535,142 @@ describe('ItemForm', () => {
 
     fireEvent.change(editor, { target: { value: '**' } });
     expect(editor.value).toBe('**');
+  });
+
+  describe('for file items', () => {
+    it('submits file content and filename without a description', () => {
+      const onSubmit = vi.fn();
+      render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByLabelText('File'));
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Deploy log' } });
+      fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'deploy.log' } });
+      fireEvent.change(screen.getByLabelText('Content'), { target: { value: 'Started ok' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'file',
+          content: 'Started ok',
+          filename: 'deploy.log',
+        }),
+      );
+      expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('description');
+    });
+
+    it('renders a single Content label and textarea with no panes', () => {
+      render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByLabelText('File'));
+
+      expect(screen.getByLabelText('Content')).toBeInTheDocument();
+      expect(screen.getByText('Content')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Content - Edit')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Content - View')).not.toBeInTheDocument();
+      expect(document.querySelector('.content-panes')).toBeNull();
+    });
+
+    it('hides the Description field and shows the Filename field', () => {
+      render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByLabelText('File'));
+
+      expect(screen.getByLabelText('Filename')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Description')).not.toBeInTheDocument();
+    });
+
+    it('prefills the filename and content from a file item in edit mode', () => {
+      render(
+        <ItemForm item={createFileItem()} availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+
+      expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('deploy.log');
+      expect((screen.getByLabelText('Content') as HTMLTextAreaElement).value).toBe(
+        'Started at 09:00\nFinished ok',
+      );
+    });
+
+    it('shows the friendly message when a file item has no content', () => {
+      const onSubmit = vi.fn();
+      render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByLabelText('File'));
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Deploy log' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+      expect(screen.getByText('Content is required for a file')).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('shows the friendly message when a file item is created without a filename', () => {
+      const onSubmit = vi.fn();
+      render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByLabelText('File'));
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Deploy log' } });
+      fireEvent.change(screen.getByLabelText('Content'), { target: { value: 'Started ok' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+      expect(screen.getByText('Filename is required for a file')).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('shows the friendly message for an invalid file filename', () => {
+      const onSubmit = vi.fn();
+      render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByLabelText('File'));
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Deploy log' } });
+      fireEvent.change(screen.getByLabelText('Filename'), {
+        target: { value: 'folder/deploy.log' },
+      });
+      fireEvent.change(screen.getByLabelText('Content'), { target: { value: 'Started ok' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+      expect(
+        screen.getByText('Filename must be a name of at most 128 characters with no path separators'),
+      ).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('submits a file filename without any extension', () => {
+      const onSubmit = vi.fn();
+      render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByLabelText('File'));
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Read me' } });
+      fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'README' } });
+      fireEvent.change(screen.getByLabelText('Content'), { target: { value: 'hello' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'file', filename: 'README' }),
+      );
+    });
+
+    it('treats Tab as a plain key with no indentation behavior', () => {
+      render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByLabelText('File'));
+      const editor = screen.getByLabelText('Content') as HTMLTextAreaElement;
+      fireEvent.change(editor, { target: { value: 'first' } });
+      editor.focus();
+      editor.setSelectionRange(2, 2);
+      fireEvent.keyDown(editor, { key: 'Tab' });
+
+      expect(editor.value).toBe('first');
+    });
+
+    it('does not autosave or restore file content as a draft', () => {
+      const first = render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+      fireEvent.click(screen.getByLabelText('File'));
+      fireEvent.change(screen.getByLabelText('Content'), { target: { value: '# Draft note' } });
+      first.unmount();
+
+      render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+      fireEvent.click(screen.getByLabelText('File'));
+      expect((screen.getByLabelText('Content') as HTMLTextAreaElement).value).toBe('');
+      expect(screen.queryByRole('button', { name: 'Discard draft' })).not.toBeInTheDocument();
+    });
   });
 });

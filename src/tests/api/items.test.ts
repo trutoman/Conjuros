@@ -275,3 +275,143 @@ describe('markdown collection items', () => {
       .expect(400);
   });
 });
+
+describe('file collection items', () => {
+  it('creates, updates, searches, and filters file items', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+
+    await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({ kind: 'file', title: 'Logs', tags: [], relatedItemIds: [], content: '' , filename: 'app.log'})
+      .expect(400);
+
+    await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({ kind: 'file', title: 'Logs', tags: [], relatedItemIds: [], content: 'boot ok', filename: 'bare-name-without-extension' })
+      .expect(201);
+
+    const created = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'file',
+        title: 'Deploy log',
+        tags: [],
+        relatedItemIds: [],
+        content: 'Started at 09:00\nFinished ok',
+        filename: 'deploy.log',
+      })
+      .expect(201);
+    expect(created.body).toMatchObject({
+      kind: 'file',
+      title: 'Deploy log',
+      content: 'Started at 09:00\nFinished ok',
+      filename: 'deploy.log',
+      description: null,
+      command: null,
+      url: null,
+    });
+    expect(created.body).not.toHaveProperty('ownerId');
+
+    const missingFilename = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({ kind: 'file', title: 'No name', tags: [], relatedItemIds: [], content: 'hello' })
+      .expect(400);
+    expect(missingFilename.body).not.toHaveProperty('filename');
+
+    const updated = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ content: 'Started at 12:00\nRestarted once' })
+      .expect(200);
+    expect(updated.body.content).toBe('Started at 12:00\nRestarted once');
+
+    const renamed = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ filename: 'restart.2' })
+      .expect(200);
+    expect(renamed.body.filename).toBe('restart.2');
+
+    const cleared = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ filename: '  ' })
+      .expect(200);
+    expect(cleared.body.filename).toBeNull();
+
+    await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ kind: 'file', command: 'nope' })
+      .expect(400);
+
+    await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ kind: 'file', url: 'https://example.com' })
+      .expect(400);
+
+    await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ filename: `${'a'.repeat(129)}.log` })
+      .expect(400);
+
+    const search = await request(app)
+      .get('/api/items?search=restarted')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(search.body.total).toBe(1);
+
+    const kindFilter = await request(app)
+      .get('/api/items?kind=file')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(kindFilter.body.items.every((item: { kind: string }) => item.kind === 'file')).toBe(true);
+    expect(kindFilter.body.total).toBe(2);
+
+    await request(app).delete(`/api/items/${created.body.id}`).set('Cookie', cookie).expect(204);
+  });
+
+  it('deletes a file item and blocks cross-user access', async () => {
+    const { app } = createTestApp();
+    const ownerCookie = await registerUser(request, app, 'owner@example.com');
+    const otherCookie = await registerUser(request, app, 'other@example.com');
+
+    const created = await request(app)
+      .post('/api/items')
+      .set('Cookie', ownerCookie)
+      .send({
+        kind: 'file',
+        title: 'Private file',
+        tags: [],
+        relatedItemIds: [],
+        content: 'secret',
+        filename: 'secret.txt',
+      })
+      .expect(201);
+
+    const getResponse = await request(app)
+      .get(`/api/items/${created.body.id}`)
+      .set('Cookie', otherCookie);
+    expect([403, 404]).toContain(getResponse.status);
+
+    const patchResponse = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', otherCookie)
+      .send({ title: 'Hijacked' });
+    expect([403, 404]).toContain(patchResponse.status);
+
+    const deleteResponse = await request(app)
+      .delete(`/api/items/${created.body.id}`)
+      .set('Cookie', otherCookie);
+    expect([403, 404]).toContain(deleteResponse.status);
+
+    await request(app).get(`/api/items/${created.body.id}`).set('Cookie', ownerCookie).expect(200);
+  });
+});

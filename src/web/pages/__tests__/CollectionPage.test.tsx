@@ -271,6 +271,16 @@ describe('CollectionPage', () => {
     expect(options).toContain('Markdown');
   });
 
+  it('exposes a file option in the type filter', () => {
+    render(<CollectionPage />);
+
+    const select = screen.getByLabelText('Type');
+    const options = Array.from(select.querySelectorAll('option')).map(
+      (option) => option.textContent,
+    );
+    expect(options).toContain('Files');
+  });
+
   it('renders markdown items inline with a View markdown action', () => {
     collectionState.items = [
       {

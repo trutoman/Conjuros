@@ -1,6 +1,7 @@
 import {
   collectionItemInputSchema,
   collectionItemUpdateSchema,
+  fileUpdateCandidateSchema,
   markdownUpdateCandidateSchema,
   normalizeTagName,
   type CollectionItem,
@@ -55,18 +56,29 @@ export class ItemsService {
             content: update.content ?? current.content,
             filename: update.filename ?? current.filename ?? '',
           })
-        : collectionItemInputSchema.parse({
-            kind,
-            title: update.title ?? current.title,
-            description: update.description ?? current.description ?? undefined,
-            tags: update.tags ?? current.tags,
-            relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
-            ...(kind === 'spell'
-              ? { command: update.command ?? current.command }
-              : { url: update.url ?? current.url }),
-          });
+        : kind === 'file'
+          ? fileUpdateCandidateSchema.parse({
+              kind,
+              title: update.title ?? current.title,
+              description: update.description ?? current.description ?? undefined,
+              tags: update.tags ?? current.tags,
+              relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
+              content: update.content ?? current.content,
+              filename: update.filename ?? current.filename ?? '',
+            })
+          : collectionItemInputSchema.parse({
+              kind,
+              title: update.title ?? current.title,
+              description: update.description ?? current.description ?? undefined,
+              tags: update.tags ?? current.tags,
+              relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
+              ...(kind === 'spell'
+                ? { command: update.command ?? current.command }
+                : { url: update.url ?? current.url }),
+            });
     await this.assertRelatedItemsOwned(ownerId, candidate.relatedItemIds);
     await this.assertOwnedTags(ownerId, candidate.tags);
+    const textLike = candidate.kind === 'markdown' || candidate.kind === 'file';
     return toPublicItem(await this.repository.replace({
       ...current,
       kind: candidate.kind,
@@ -76,8 +88,8 @@ export class ItemsService {
       relatedItemIds: candidate.relatedItemIds,
       command: candidate.kind === 'spell' ? candidate.command : null,
       url: candidate.kind === 'web-link' ? candidate.url : null,
-      content: candidate.kind === 'markdown' ? candidate.content : null,
-      filename: candidate.kind === 'markdown' ? candidate.filename || null : null,
+      content: textLike ? candidate.content : null,
+      filename: textLike ? candidate.filename || null : null,
       updatedAt: new Date().toISOString(),
     }));
   }

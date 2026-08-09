@@ -83,6 +83,53 @@ describe('messageForInputError', () => {
     expect(message).toBe(MESSAGES.contentRequired);
   });
 
+  it('reports empty content for a file as "Content is required for a file"', () => {
+    const message = messageFor({ kind: 'file', title: 'Log', content: '' });
+    expect(message).toBe(MESSAGES.fileContentRequired);
+  });
+
+  it('reports whitespace-only content for a file as "Content is required for a file"', () => {
+    const message = messageFor({ kind: 'file', title: 'Log', content: '   ' });
+    expect(message).toBe(MESSAGES.fileContentRequired);
+  });
+
+  it('reports a missing filename for a file as "Filename is required for a file"', () => {
+    const message = messageFor({ kind: 'file', title: 'Log', content: 'Body', filename: '' });
+    expect(message).toBe(MESSAGES.fileFilenameRequired);
+  });
+
+  it('accepts a file filename without requiring a markdown extension', () => {
+    const result = collectionItemInputSchema.safeParse({
+      kind: 'file',
+      title: 'Log',
+      tags: [],
+      relatedItemIds: [],
+      content: 'Body',
+      filename: 'server.log',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('reports a too-long file filename as the friendly file filename message', () => {
+    const message = messageFor({
+      kind: 'file',
+      title: 'Log',
+      content: 'Body',
+      filename: `${'a'.repeat(129)}.txt`,
+    });
+    expect(message).toBe(MESSAGES.fileFilenameInvalid);
+  });
+
+  it('reports a path inside a file filename as the friendly file filename message', () => {
+    const message = messageFor({
+      kind: 'file',
+      title: 'Log',
+      content: 'Body',
+      filename: 'folder/server.log',
+    });
+    expect(message).toBe(MESSAGES.fileFilenameInvalid);
+  });
+
   it('falls back to the generic message for unexpected failures', () => {
     const message = messageFor({ kind: 'spell', title: 'Long', command: 'ok', tags: 'not-an-array' });
     expect(message).toBe(MESSAGES.generic);

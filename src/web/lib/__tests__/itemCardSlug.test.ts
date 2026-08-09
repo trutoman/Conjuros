@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { markdownSlug } from '../itemCardSlug';
+import { markdownSlug, plainTextSlug } from '../itemCardSlug';
 
 describe('markdownSlug', () => {
   it('returns an empty string for empty content', () => {
@@ -60,5 +60,29 @@ describe('markdownSlug', () => {
 
   it('handles a mixed markdown line', () => {
     expect(markdownSlug('- **# title** with `code`')).toBe('title with code');
+  });
+});
+
+describe('plainTextSlug', () => {
+  it('returns an empty string for empty content', () => {
+    expect(plainTextSlug('')).toBe('');
+  });
+
+  it('returns an empty string for all-whitespace content', () => {
+    expect(plainTextSlug('   \n  \n ')).toBe('');
+  });
+
+  it('uses the first non-empty line, skipping leading blank lines', () => {
+    expect(plainTextSlug('\n\nfirst line\nsecond')).toBe('first line');
+  });
+
+  it('does not strip markdown markers from plain text', () => {
+    expect(plainTextSlug('# heading')).toBe('# heading');
+    expect(plainTextSlug('- list item')).toBe('- list item');
+    expect(plainTextSlug('> quoted')).toBe('> quoted');
+  });
+
+  it('collapses internal whitespace', () => {
+    expect(plainTextSlug('a    b   c')).toBe('a b c');
   });
 });
