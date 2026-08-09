@@ -9,12 +9,14 @@ export function CollectionList({
   onReorder,
   onEdit,
   onDelete,
+  onView,
 }: {
   items: CollectionItem[];
   tags?: Tag[];
   onReorder: (id: string, order: number) => void;
   onEdit: (item: CollectionItem) => void;
   onDelete: (item: CollectionItem) => void;
+  onView?: (item: CollectionItem) => void;
 }) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
@@ -106,6 +108,7 @@ export function CollectionList({
             tags={tags}
             onEdit={onEdit}
             onDelete={onDelete}
+            onView={onView}
             isMenuOpen={openMenuId === item.id}
             onMenuToggle={() =>
               setOpenMenuId((current) => (current === item.id ? null : item.id))

@@ -269,7 +269,7 @@ describe('CollectionPage', () => {
     expect(options).toContain('Markdown');
   });
 
-  it('renders markdown items inline with no kind-specific actions', () => {
+  it('renders markdown items inline with a View markdown action', () => {
     collectionState.items = [
       {
         id: 'item-md',
@@ -294,9 +294,129 @@ describe('CollectionPage', () => {
     const card = screen.getAllByText('Runbook')[0].closest('.item-card');
     expect(card).toBeTruthy();
     expect(card?.querySelector('.item-inline-content')).toHaveTextContent('Runbook');
+    expect(screen.getByRole('button', { name: 'View markdown' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Copy command' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Copy content' })).not.toBeInTheDocument();
+  });
+
+  it('opens the markdown viewer from a card and replaces the collection list', () => {
+    collectionState.items = [
+      {
+        id: 'item-md',
+        kind: 'markdown',
+        title: 'Runbook',
+        description: null,
+        tags: [],
+        order: 1,
+        relatedItemIds: [],
+        command: null,
+        url: null,
+        content: '# Runbook\n\nSteps here.',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    collectionState.total = 1;
+
+    render(<CollectionPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View markdown' }));
+
+    expect(screen.getByRole('heading', { name: /View markdown/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /View markdown Runbook/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View markdown' })).not.toBeInTheDocument();
+  });
+
+  it('closes the markdown viewer back to the collection list', () => {
+    collectionState.items = [
+      {
+        id: 'item-md',
+        kind: 'markdown',
+        title: 'Runbook',
+        description: null,
+        tags: [],
+        order: 1,
+        relatedItemIds: [],
+        command: null,
+        url: null,
+        content: '# Runbook\n\nSteps here.',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    collectionState.total = 1;
+
+    render(<CollectionPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View markdown' }));
+    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close markdown viewer' }));
+
+    expect(screen.queryByRole('heading', { name: /View markdown/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View markdown' })).toBeInTheDocument();
+  });
+
+  it('opens the item edit form from the markdown viewer Edit button', () => {
+    collectionState.items = [
+      {
+        id: 'item-md',
+        kind: 'markdown',
+        title: 'Runbook',
+        description: null,
+        tags: [],
+        order: 1,
+        relatedItemIds: [],
+        command: null,
+        url: null,
+        content: '# Runbook\n\nSteps here.',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    collectionState.total = 1;
+
+    render(<CollectionPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View markdown' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByRole('heading', { name: 'Edit item' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /View markdown/ })).not.toBeInTheDocument();
+  });
+
+  it('keeps the markdown viewer mutually exclusive with other panels', () => {
+    collectionState.items = [
+      {
+        id: 'item-md',
+        kind: 'markdown',
+        title: 'Runbook',
+        description: null,
+        tags: [],
+        order: 1,
+        relatedItemIds: [],
+        command: null,
+        url: null,
+        content: '# Runbook\n\nSteps here.',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    collectionState.total = 1;
+
+    render(<CollectionPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'View markdown' }));
+
+    expect(screen.getByRole('heading', { name: /View markdown/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Manage tags' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Add item' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Edit item' })).not.toBeInTheDocument();
   });
 
   it('shows only matching markdown items when the type filter and content search are combined', () => {
