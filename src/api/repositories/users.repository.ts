@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Collection, Db } from 'mongodb';
-import type { ThemePreference } from '@conjuros/contracts';
+import type { Role, ThemePreference } from '@conjuros/contracts';
 
 export interface StoredUser {
   id: string;
@@ -8,6 +8,7 @@ export interface StoredUser {
   passwordHash: string;
   createdAt: string;
   theme: ThemePreference;
+  role: Role;
 }
 
 export interface UsersRepository {
@@ -15,6 +16,7 @@ export interface UsersRepository {
   findById(id: string): Promise<StoredUser | null>;
   create(email: string, passwordHash: string): Promise<StoredUser>;
   updateTheme(id: string, theme: ThemePreference): Promise<StoredUser | null>;
+  setRole(id: string, role: Role): Promise<StoredUser | null>;
 }
 
 export class MongoUsersRepository implements UsersRepository {
@@ -26,7 +28,7 @@ export class MongoUsersRepository implements UsersRepository {
 
   private hydrate(user: StoredUser | null): StoredUser | null {
     if (!user) return null;
-    return { ...user, theme: user.theme ?? 'light' };
+    return { ...user, theme: user.theme ?? 'light', role: user.role ?? 'user' };
   }
 
   async findByEmail(email: string): Promise<StoredUser | null> {
@@ -38,7 +40,7 @@ export class MongoUsersRepository implements UsersRepository {
   }
 
   async create(email: string, passwordHash: string): Promise<StoredUser> {
-    const user = { id: randomUUID(), email, passwordHash, createdAt: new Date().toISOString(), theme: 'light' as const };
+    const user = { id: randomUUID(), email, passwordHash, createdAt: new Date().toISOString(), theme: 'light' as const, role: 'user' as const };
     await this.users.insertOne(user);
     return user;
   }
@@ -51,6 +53,15 @@ export class MongoUsersRepository implements UsersRepository {
     );
     return this.hydrate(result);
   }
+
+  async setRole(id: string, role: Role): Promise<StoredUser | null> {
+    const result = await this.users.findOneAndUpdate(
+      { id },
+      { $set: { role } },
+      { returnDocument: 'after' },
+    );
+    return this.hydrate(result);
+  }
 }
 
 export class InMemoryUsersRepository implements UsersRepository {
@@ -58,7 +69,7 @@ export class InMemoryUsersRepository implements UsersRepository {
 
   private hydrate(user: StoredUser | null): StoredUser | null {
     if (!user) return null;
-    return { ...user, theme: user.theme ?? 'light' };
+    return { ...user, theme: user.theme ?? 'light', role: user.role ?? 'user' };
   }
 
   async findByEmail(email: string): Promise<StoredUser | null> {
@@ -70,7 +81,7 @@ export class InMemoryUsersRepository implements UsersRepository {
   }
 
   async create(email: string, passwordHash: string): Promise<StoredUser> {
-    const user = { id: randomUUID(), email, passwordHash, createdAt: new Date().toISOString(), theme: 'light' as const };
+    const user = { id: randomUUID(), email, passwordHash, createdAt: new Date().toISOString(), theme: 'light' as const, role: 'user' as const };
     this.users.set(user.id, user);
     return user;
   }
@@ -79,6 +90,14 @@ export class InMemoryUsersRepository implements UsersRepository {
     const current = this.users.get(id);
     if (!current) return null;
     const updated = { ...current, theme };
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  async setRole(id: string, role: Role): Promise<StoredUser | null> {
+    const current = this.users.get(id);
+    if (!current) return null;
+    const updated = { ...current, role };
     this.users.set(id, updated);
     return updated;
   }

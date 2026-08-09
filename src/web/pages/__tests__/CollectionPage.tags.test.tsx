@@ -35,6 +35,19 @@ vi.mock('../../hooks/useTags', () => ({
   }),
 }));
 
+vi.mock('../../hooks/useThemes', () => ({
+  useThemes: () => ({
+    themes: [],
+    total: 0,
+    isLoading: false,
+    error: null,
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    activate: vi.fn(),
+  }),
+}));
+
 describe('CollectionPage tag filters', () => {
   it('switches between all and any tag filter modes', () => {
     render(<CollectionPage />);

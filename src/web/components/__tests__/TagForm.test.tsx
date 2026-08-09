@@ -91,4 +91,45 @@ describe('TagForm', () => {
 
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it('offers the theme palette colors as selectable swatches', () => {
+    render(<TagForm onSubmit={vi.fn()} onCancel={vi.fn()} palette={['#1A73E8', '#7C3AED']} />);
+
+    expect(screen.getByRole('group', { name: 'Tag color palette' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Select color #1A73E8' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Select color #7C3AED' })).toBeInTheDocument();
+  });
+
+  it('rejects saving a color outside the active theme palette', () => {
+    const onSubmit = vi.fn();
+    render(<TagForm onSubmit={onSubmit} onCancel={vi.fn()} palette={['#1A73E8', '#7C3AED']} />);
+
+    fireEvent.change(screen.getByLabelText('Tag name'), { target: { value: 'work.todo' } });
+    fireEvent.change(screen.getByLabelText('Tag category'), { target: { value: 'Work' } });
+    fireEvent.change(screen.getByLabelText('Tag color'), { target: { value: '#123456' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save tag' }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText('Tag color must be part of the active theme palette')).toBeInTheDocument();
+  });
+
+  it('accepts palette colors with case-insensitive matching', () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<TagForm onSubmit={onSubmit} onCancel={vi.fn()} palette={['#1A73E8', '#7C3AED']} />);
+
+    fireEvent.change(screen.getByLabelText('Tag name'), { target: { value: 'work.todo' } });
+    fireEvent.change(screen.getByLabelText('Tag category'), { target: { value: 'Work' } });
+    fireEvent.change(screen.getByLabelText('Tag color'), { target: { value: '#1a73e8' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save tag' }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('selects a palette swatch by pressing it', () => {
+    render(<TagForm onSubmit={vi.fn()} onCancel={vi.fn()} palette={['#1A73E8', '#7C3AED']} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select color #7C3AED' }));
+
+    expect(screen.getByLabelText('Tag color')).toHaveValue('#7C3AED');
+  });
 });

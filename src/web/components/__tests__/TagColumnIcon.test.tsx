@@ -8,7 +8,7 @@ describe('TagColumnIcon', () => {
     const svg = container.querySelector('svg');
     expect(svg).not.toBeNull();
     expect(svg?.getAttribute('aria-hidden')).toBe('true');
-    expect(svg?.getAttribute('fill')).toBe('currentColor');
+    expect(svg?.getAttribute('fill')).toBe('none');
   });
 
   it('renders with custom aria-label when provided', () => {

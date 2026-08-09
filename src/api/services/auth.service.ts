@@ -25,7 +25,7 @@ export async function readAuthenticatedUserProfile(repository: UsersRepository, 
   if (!stored || stored.email !== user.email) {
     throw new AppError(401, 'AUTH_ERROR', 'Your session is invalid or expired');
   }
-  return { id: stored.id, email: stored.email, theme: stored.theme };
+  return { id: stored.id, email: stored.email, theme: stored.theme, role: stored.role };
 }
 
 export async function updateAuthenticatedUserTheme(repository: UsersRepository, userId: string, theme: ThemePreference): Promise<AuthenticatedUserProfile> {
@@ -33,7 +33,7 @@ export async function updateAuthenticatedUserTheme(repository: UsersRepository, 
   if (!updated) {
     throw new AppError(404, 'NOT_FOUND', 'User not found');
   }
-  return { id: updated.id, email: updated.email, theme: updated.theme };
+  return { id: updated.id, email: updated.email, theme: updated.theme, role: updated.role };
 }
 
 export function createSession(user: AuthenticatedUser, secret: string): string {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ThemeToggle } from '../ThemeToggle';
 import { useThemePreference } from '../../hooks/useThemePreference';
@@ -30,7 +30,10 @@ describe('ThemeToggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dark mode' }));
 
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/me/theme', expect.objectContaining({ method: 'PATCH' }));
-    expect(document.documentElement.dataset.theme).toBe('dark');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Light mode' })).toHaveAttribute('aria-pressed', 'false');
+    });
   });
 
   it('keeps a saved dark preference after reload', () => {

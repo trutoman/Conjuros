@@ -24,6 +24,19 @@ describe('parseApiEnvironment', () => {
       mongoUri: 'mongodb://localhost:27017',
       databaseName: 'conjuros',
       sessionSecret: 'a-32-character-session-secret-value',
+      adminEmail: null,
+      port: 3000,
+    });
+  });
+
+  it('parses an optional admin email', () => {
+    expect(
+      parseApiEnvironment({ ...validEnvironment, ADMIN_EMAIL: 'Admin@Example.com' }),
+    ).toEqual({
+      mongoUri: 'mongodb://localhost:27017',
+      databaseName: 'conjuros',
+      sessionSecret: 'a-32-character-session-secret-value',
+      adminEmail: 'admin@example.com',
       port: 3000,
     });
   });

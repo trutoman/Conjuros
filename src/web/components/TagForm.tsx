@@ -1,25 +1,33 @@
 import { useState } from 'react';
 import { tagInputSchema, type Tag, type TagInput } from '@conjuros/contracts';
+import { normalizedHex } from '../lib/applyTheme';
 import { FormField } from './FormField';
 
 export function TagForm({
   tag,
   onSubmit,
   onCancel,
+  palette = [],
 }: {
   tag?: Tag;
   onSubmit: (input: TagInput) => Promise<unknown> | void;
   onCancel: () => void;
+  palette?: string[] | null;
 }) {
   const [tagName, setTagName] = useState(tag?.tagName.toLowerCase() ?? '');
   const [tagCategory, setTagCategory] = useState(tag?.tagCategory.toLowerCase() ?? '');
   const [description, setDescription] = useState(tag?.description ?? '');
-  const [color, setColor] = useState(tag?.color ?? '#1A73E8');
+  const [color, setColor] = useState(tag?.color ?? palette?.[0] ?? '#1A73E8');
   const [error, setError] = useState('');
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError('');
+
+    if (palette && palette.length > 0 && !palette.some((entry) => normalizedHex(entry) === normalizedHex(color))) {
+      setError('Tag color must be part of the active theme palette');
+      return;
+    }
 
     const result = tagInputSchema.safeParse({ tagName, tagCategory, description, color });
     if (!result.success) {
@@ -53,12 +61,21 @@ export function TagForm({
       </FormField>
       <FormField label="Color" error={error}>
         <div className="color-field">
-          <input
-            type="color"
-            value={color}
-            onChange={(event) => setColor(event.target.value)}
-            aria-label="Tag color picker"
-          />
+          {palette && palette.length > 0 && (
+            <div className="color-swatches" role="group" aria-label="Tag color palette">
+              {palette.map((entry) => (
+                <button
+                  key={entry}
+                  type="button"
+                  className={`color-swatch${normalizedHex(entry) === normalizedHex(color) ? ' selected' : ''}`}
+                  style={{ backgroundColor: entry }}
+                  aria-label={`Select color ${entry}`}
+                  aria-pressed={normalizedHex(entry) === normalizedHex(color)}
+                  onClick={() => setColor(entry)}
+                />
+              ))}
+            </div>
+          )}
           <input
             value={color}
             onChange={(event) => setColor(event.target.value)}

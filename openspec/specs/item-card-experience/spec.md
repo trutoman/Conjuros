@@ -166,12 +166,12 @@ A `markdown` item card SHALL offer a "Download markdown" action button in the ca
 
 ### Requirement: File card uses dedicated action and badge glyphs
 
-A `file` item card SHALL render its three glyphs from explicit, single-path SVGs: the card badge SHALL use exactly the user-provided document page glyph (a file document with folded corner, 24x24 viewBox `0 -960 960 960`); the "View file" action SHALL use exactly the same eye icon SVG path as the "View markdown" action; and the "Download file" action SHALL use exactly the same download icon SVG path as the "Download markdown" action. SHALL NOT combine or merge the markdown glyph into the file badge glyph.
+A `file` item card SHALL render its three glyphs from stroke-based outline SVGs, consistent with the application's outline icon style. The card badge SHALL use a dedicated document page glyph (a file document with folded corner, `0 0 24 24` viewBox); the "View file" action SHALL use exactly the same eye icon SVG path as the "View markdown" action; and the "Download file" action SHALL use exactly the same download icon SVG path as the "Download markdown" action. The file badge SHALL NOT be the markdown glyph or a merged glyph. The `icon-style` capability supersedes the prior filled-path and `0 -960 960 960` viewBox constraints.
 
 #### Scenario: File badge uses the dedicated document glyph
 
 - **WHEN** a collection contains a `file` item
-- **THEN** the card badge renders the dedicated document page glyph
+- **THEN** the card badge renders the dedicated document page outline glyph
 - **AND** the badge glyph is not the markdown glyph or a merged glyph
 
 #### Scenario: View file uses the markdown eye glyph

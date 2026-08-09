@@ -13,7 +13,10 @@ export function TagColumnIcon({
       width={size}
       height={size}
       viewBox="0 0 64 64"
-      fill="currentColor"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linejoin="round"
       className={`tag-column-icon ${className}`.trim()}
       {...(ariaLabel ? { 'aria-label': ariaLabel } : { 'aria-hidden': 'true' })}
     >

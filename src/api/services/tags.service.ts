@@ -13,6 +13,7 @@ import {
 import { AppError } from '../errors';
 import type { ItemsRepository } from '../repositories/items.repository';
 import type { StoredTag, TagsRepository } from '../repositories/tags.repository';
+import type { ThemesService } from './themes.service';
 
 function toPublicTag(tag: StoredTag): Tag {
   const { ownerId, tagNameNormalized, tagCategoryNormalized, ...publicTag } = tag;
@@ -26,6 +27,7 @@ export class TagsService {
   constructor(
     private readonly tags: TagsRepository,
     private readonly items: ItemsRepository,
+    private readonly themes: ThemesService | null = null,
   ) {}
 
   parseQuery(input: unknown): TagQuery {
@@ -58,6 +60,7 @@ export class TagsService {
     const normalizedName = normalizeTagName(input.tagName);
     const normalizedCategory = normalizeTagCategory(input.tagCategory);
     await this.assertUnique(ownerId, normalizedName, normalizedCategory);
+    await this.assertPaletteColor(ownerId, input.color);
     const order = await this.tags.nextOrder(ownerId);
     const created = await this.tags.create(ownerId, { ...input, tagCategory: normalizedCategory }, order);
     return toPublicTag(created);
@@ -75,6 +78,9 @@ export class TagsService {
       nextNormalizedCategory !== current.tagCategoryNormalized
     ) {
       await this.assertUnique(ownerId, nextNormalized, nextNormalizedCategory, id);
+    }
+    if (update.color !== undefined) {
+      await this.assertPaletteColor(ownerId, update.color);
     }
 
     const updated = await this.tags.replace({
@@ -138,5 +144,10 @@ export class TagsService {
     const tag = await this.tags.findOwned(id, ownerId);
     if (!tag) throw new AppError(404, 'NOT_FOUND', 'Tag not found');
     return tag;
+  }
+
+  private async assertPaletteColor(ownerId: string, color: string) {
+    if (!this.themes) return;
+    await this.themes.assertTagColorInPalette(ownerId, color);
   }
 }

@@ -1,16 +1,19 @@
 import { createApp } from '../../api/app';
 import { InMemoryItemsRepository } from '../../api/repositories/items.repository';
 import { InMemoryTagsRepository } from '../../api/repositories/tags.repository';
+import { InMemoryThemesRepository } from '../../api/repositories/themes.repository';
 import { InMemoryUsersRepository } from '../../api/repositories/users.repository';
 
 export function createTestApp() {
   const items = new InMemoryItemsRepository();
   const tags = new InMemoryTagsRepository();
+  const themes = new InMemoryThemesRepository();
   const users = new InMemoryUsersRepository();
   return {
-    app: createApp({ items, tags, users, sessionSecret: 'test-session-secret' }),
+    app: createApp({ items, tags, themes, users, sessionSecret: 'test-session-secret' }),
     items,
     tags,
+    themes,
     users,
   };
 }
