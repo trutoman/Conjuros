@@ -86,9 +86,24 @@ export const iconAssetKeys = [
   'collapse',
   'close',
   'search',
+  'sun',
+  'moon',
+  'add',
 ] as const;
 
 export const iconAssetKeySchema = z.enum(iconAssetKeys);
+
+export const iconAssetDefinitionSchema = z.object({
+  path: z.string().trim().min(1).max(8_000),
+  viewBox: z.string().trim().min(1).max(64),
+});
+
+export const iconAssetsSchema = z
+  .record(iconAssetKeySchema, iconAssetDefinitionSchema)
+  .refine(
+    (record) => Object.keys(record).length > 0,
+    'A theme must define at least one icon asset',
+  );
 
 export const tagColorPaletteSchema = z
   .array(hexColorTokenSchema)
@@ -103,7 +118,7 @@ export const themeSchema = z.object({
   colors: themeColorsSchema,
   fonts: themeFontsSchema,
   fontSizes: themeFontSizesSchema,
-  iconAssets: z.array(iconAssetKeySchema).max(iconAssetKeys.length),
+  iconAssets: iconAssetsSchema,
   kindColors: themeKindColorsSchema,
   tagColorPalette: tagColorPaletteSchema,
   isDefault: z.boolean(),
@@ -147,6 +162,8 @@ export type ThemeFonts = z.infer<typeof themeFontsSchema>;
 export type ThemeFontSizes = z.infer<typeof themeFontSizesSchema>;
 export type ThemeKindColors = z.infer<typeof themeKindColorsSchema>;
 export type IconAssetKey = z.infer<typeof iconAssetKeySchema>;
+export type IconAssetDefinition = z.infer<typeof iconAssetDefinitionSchema>;
+export type IconAssets = z.infer<typeof iconAssetsSchema>;
 export type Theme = z.infer<typeof themeSchema>;
 export type ThemeInput = z.infer<typeof themeInputSchema>;
 export type ThemeUpdate = z.infer<typeof themeUpdateSchema>;

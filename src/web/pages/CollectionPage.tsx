@@ -23,6 +23,7 @@ import { ThemeForm } from '../components/ThemeForm';
 import { ThemeListView } from '../components/ThemeListView';
 import { LoadingState } from '../components/LoadingState';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { ThemeIcon } from '../components/ThemeIcon';
 import { UserWidget } from '../components/UserWidget';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
@@ -312,7 +313,7 @@ export function CollectionPage({
                     aria-label="Close tag management"
                     onClick={closeManageTags}
                   >
-                    ✕
+                    <ThemeIcon name="close" />
                   </button>
                   <div className="tag-management-header">
                     <h2>Manage tags</h2>
@@ -340,7 +341,7 @@ export function CollectionPage({
                             onClick={() => setTagQuery('')}
                             aria-label="Clear search"
                           >
-                            ✕
+                            <ThemeIcon name="close" />
                           </button>
                         )}
                       </div>
@@ -387,7 +388,7 @@ export function CollectionPage({
                       aria-label="Close theme management"
                       onClick={closeManageThemes}
                     >
-                      ✕
+                      <ThemeIcon name="close" />
                     </button>
                     <div className="tag-management-header">
                       <h2>Manage themes</h2>
@@ -428,7 +429,7 @@ export function CollectionPage({
                     aria-label="Add item"
                     title="Add item"
                   >
-                    +
+                    <ThemeIcon name="add" />
                   </button>
                   <div className="search-field">
                     <svg
@@ -453,7 +454,7 @@ export function CollectionPage({
                         onClick={() => setFilters({ ...filters, search: '' })}
                         aria-label="Clear search"
                       >
-                        ✕
+                        <ThemeIcon name="close" />
                       </button>
                     )}
                   </div>

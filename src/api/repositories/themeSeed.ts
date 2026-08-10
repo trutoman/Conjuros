@@ -1,6 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import type { Theme } from '@conjuros/contracts';
+import { ICON_ASSETS } from '../../web/lib/iconAssets';
 import type { StoredTheme } from './themes.repository';
+
+function iconAssetsFromDefaults(): Theme['iconAssets'] {
+  const record: Theme['iconAssets'] = {};
+  for (const [key, value] of Object.entries(ICON_ASSETS)) {
+    record[key as keyof typeof ICON_ASSETS] = { path: value.path, viewBox: value.viewBox };
+  }
+  return record;
+}
 
 const lightTheme: Theme = {
   id: 'theme-light',
@@ -35,24 +44,7 @@ const lightTheme: Theme = {
     body: '1rem',
     mono: '0.75rem',
   },
-  iconAssets: [
-    'spell',
-    'web-link',
-    'markdown',
-    'file',
-    'copy',
-    'open',
-    'view',
-    'download',
-    'menu',
-    'edit',
-    'delete',
-    'confirm',
-    'cancel',
-    'expand',
-    'collapse',
-    'search',
-  ],
+  iconAssets: iconAssetsFromDefaults(),
   kindColors: {
     spell: '#7c3aed',
     webLink: '#2563eb',

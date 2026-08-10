@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import type { CollectionItem } from '@conjuros/contracts';
+import { ThemeIcon } from './ThemeIcon';
 
 export function ItemCardViewer({
   item,
@@ -26,7 +27,7 @@ export function ItemCardViewer({
         aria-label={isMarkdown ? 'Close markdown viewer' : 'Close file viewer'}
         onClick={onClose}
       >
-        ✕
+        <ThemeIcon name="close" />
       </button>
       <h2>
         {isMarkdown ? 'View markdown' : 'View file'} <span className="markdown-viewer-title">{item.title}</span>

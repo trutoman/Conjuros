@@ -2,10 +2,14 @@ import { useState } from 'react';
 import {
   iconAssetKeys,
   themeInputSchema,
+  type IconAssetDefinition,
+  type IconAssetKey,
   type Theme,
   type ThemeInput,
 } from '@conjuros/contracts';
+import { ICON_ASSETS } from '../lib/iconAssets';
 import { FormField } from './FormField';
+import { ThemeIcon } from './ThemeIcon';
 
 const colorFields = [
   'pageBg',
@@ -63,14 +67,24 @@ export function ThemeForm({
   const [headingSize, setHeadingSize] = useState(theme?.fontSizes.heading ?? '');
   const [bodySize, setBodySize] = useState(theme?.fontSizes.body ?? '');
   const [monoSize, setMonoSize] = useState(theme?.fontSizes.mono ?? '');
-  const [iconAssets, setIconAssets] = useState<string[]>(() => [...(theme?.iconAssets ?? [])]);
+  const [iconAssets, setIconAssets] = useState<Record<IconAssetKey, IconAssetDefinition>>(() => {
+    const initial = {} as Record<IconAssetKey, IconAssetDefinition>;
+    for (const key of iconAssetKeys) {
+      const stored = theme?.iconAssets?.[key];
+      const fallback = ICON_ASSETS[key];
+      initial[key] = stored ?? { path: fallback.path, viewBox: fallback.viewBox };
+    }
+    return initial;
+  });
   const [palette, setPalette] = useState<string[]>(() => [...(theme?.tagColorPalette ?? [''])]);
   const [error, setError] = useState('');
 
-  function toggleIcon(key: string) {
-    setIconAssets((prev) =>
-      prev.includes(key) ? prev.filter((candidate) => candidate !== key) : [...prev, key],
-    );
+  function setIconPath(key: IconAssetKey, value: string) {
+    setIconAssets((prev) => ({ ...prev, [key]: { ...prev[key], path: value } }));
+  }
+
+  function setIconViewBox(key: IconAssetKey, value: string) {
+    setIconAssets((prev) => ({ ...prev, [key]: { ...prev[key], viewBox: value } }));
   }
 
   function setPaletteColor(index: number, value: string) {
@@ -111,7 +125,7 @@ export function ThemeForm({
   return (
     <form className="item-form theme-form" onSubmit={submit}>
       <button type="button" className="form-close" aria-label="Close theme form" onClick={onCancel}>
-        ✕
+        <ThemeIcon name="close" />
       </button>
       <h2>{theme ? `Edit ${theme.label}` : 'Add theme'}</h2>
       <FormField label="Name" error={error}>
@@ -179,16 +193,30 @@ export function ThemeForm({
       </div>
 
       <h3 className="theme-form-section">Icon assets</h3>
+      <p className="theme-form-help">
+        Each key below carries the SVG path and viewBox the UI uses to render that icon. Defaults match the
+        bundled outline set; edit to customize.
+      </p>
       <div className="theme-icon-assets" role="group" aria-label="Icon assets">
         {iconAssetKeys.map((key) => (
-          <label key={key} className="theme-icon-asset">
+          <div key={key} className="theme-icon-row">
+            <div className="theme-icon-preview" aria-hidden="true">
+              <ThemeIcon name={key} />
+            </div>
+            <span className="theme-icon-name">{key}</span>
             <input
-              type="checkbox"
-              checked={iconAssets.includes(key)}
-              onChange={() => toggleIcon(key)}
+              value={iconAssets[key].path}
+              onChange={(event) => setIconPath(key, event.target.value)}
+              aria-label={`${key} path`}
+              placeholder="SVG path d"
             />
-            {key}
-          </label>
+            <input
+              value={iconAssets[key].viewBox}
+              onChange={(event) => setIconViewBox(key, event.target.value)}
+              aria-label={`${key} viewBox`}
+              placeholder="0 0 24 24"
+            />
+          </div>
         ))}
       </div>
 
@@ -214,7 +242,7 @@ export function ThemeForm({
               onClick={() => removePaletteColor(index)}
               aria-label={`Remove palette color ${index + 1}`}
             >
-              ✕
+              <ThemeIcon name="close" />
             </button>
           </div>
         ))}

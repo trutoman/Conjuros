@@ -3,6 +3,7 @@ import type { Tag } from '@conjuros/contracts';
 import type { CollectionFilters } from '../hooks/useCollectionFilters';
 import { TagMatchToggle } from './TagMatchToggle';
 import { TagColumnIcon } from './TagColumnIcon';
+import { ThemeIcon } from './ThemeIcon';
 
 export function Sidebar({
   tags,
@@ -75,7 +76,7 @@ export function Sidebar({
             />
             {onClose && (
               <button className="sidebar-close quiet" onClick={onClose} aria-label="Close sidebar">
-                ✕
+                <ThemeIcon name="close" />
               </button>
             )}
           </div>

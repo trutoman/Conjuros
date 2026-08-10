@@ -1,40 +1,40 @@
 ## Context
 
-Text glyphs remain in five places: `ThemeToggle` (`☀`/`☾`), the add-item button (`+`), and `✕` in close buttons (`ItemForm`, `ItemCardViewer`, `TagForm`, `ThemeForm`, `Sidebar`, `TagsPage`, `CollectionPage`). Item-card action icons already render inline SVGs from `src/web/lib/iconAssets.ts` (`ICON_ASSETS`), keyed by `IconAssetKey`. The theme's `iconAssets` in the DB is currently only `string[]` of keys, and `applyTheme`/`useSiteTheme` expose colors/fonts/palette but not icons to the UI. The reported bug motivation: the `+` glyph inherits the body font (`Cormorant Garamond`) and appears off-center; an SVG with a stable viewBox avoids font-metric alignment entirely.
+The theme's `iconAssets` in the database is currently only `string[]` of keys, while the actual icon definitions live hardcoded in `src/web/lib/iconAssets.ts`. `applyTheme`/`useSiteTheme` expose colors, fonts, and the tag palette to the UI but not icons. The `outline-icons-only` change (archived) has just unified every icon onto a single outline/Lucide-style line vocabulary with viewBox `0 0 24 24`; this change is the storage half — it moves the artwork into the theme documents so the theme owns the icons it declares.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Replace all glyph characters with inline SVGs rendered from theme-driven definitions.
-- Store real icon definitions (path + viewBox) in themes so the theme controls rendering.
-- Keep existing icon assets/keys working, adding `sun`, `moon`, `add`.
-- Preserve the current visual size of every replaced icon.
+- Make every theme document carry the icon definitions (SVG `path` + `viewBox`) for the keys it uses.
+- Render every interactive icon from the active theme, with per-key fallback to the bundled `ICON_ASSETS` for keys the theme omits.
+- Keep the contract invariants (valid keys, non-empty path/viewBox) at the boundary; let the rendering layer deal with size/centering.
+- Stay compatible with the outline artwork from the archived `outline-icons-only` change.
 
 **Non-Goals:**
-- No new icon *rendering* library or `<symbol>`/sprite system — single-path inline SVGs, consistent with `ICON_ASSETS`.
-- No redesign of icon artwork beyond hand-editing the three new keys and reusing existing paths where sensible.
+- No new icon *rendering* library, sprite, or `<symbol>` system — single-path inline SVGs, consistent with `ICON_ASSETS`.
+- No new icon keys beyond the three the user requested (`sun`, `moon`, `add`).
 - No backend auth/role changes.
 
 ## Decisions
 
 **Represent icon definitions as a keyed map in the theme, keeping it in contracts.**
-Change `iconAssets` in `themeSchema` from `z.array(iconAssetKeySchema)` to `z.record(iconAssetKeySchema, z.object({ path: z.string(), viewBox: z.string() }))` (or a `Record<IconAssetKey, IconDefinition>`). This keeps the invariants (valid keys only, path+viewBox present) at the boundary like the rest of the theme shape.
+Change `iconAssets` in `themeSchema` from `z.array(iconAssetKeySchema)` to `z.record(iconAssetKeySchema, iconAssetDefinitionSchema)`, where `iconAssetDefinitionSchema = z.object({ path: z.string(), viewBox: z.string() })`. The record shape is the natural extension of the existing object-valued theme fields (colors, fonts, kindColors) and keeps validation uniform.
 - Alternative: separate `icons` collection/table. Rejected — icons belong to the theme identity and change atomically with it; the theme already owns kind colors, fonts, and sizes.
 
-**Make `ICON_ASSETS` the canonical seed and fallback, and reuse it to seed themes.**
-`ICON_ASSETS` in `src/web/lib/iconAssets.ts` already holds `path`+`viewBox` per key. Keep it as: (1) the fallback map the renderer uses when a theme omits a key, and (2) the source for seeding `themeSeed.ts` icon definitions (light/dark). This avoids duplicating path data in two files.
+**Make `ICON_ASSETS` the canonical seed and fallback; reuse it to seed themes.**
+`ICON_ASSETS` in `src/web/lib/iconAssets.ts` already holds `path`+`viewBox` per key. Keep it as: (1) the fallback the renderer uses when a theme omits a key, and (2) the source for seeding `themeSeed.ts` icon definitions (light/dark). This avoids duplicating path data in two files and means the existing outline artwork (from `outline-icons-only`) automatically becomes the per-key fallback.
 - Alternative: move paths into a shared JSON consumed by both server seed and client. Rejected — introduces a new module boundary for little gain; one TS module imported by both is sufficient, and `iconAssets.ts` is already isomorphic (pure data).
 
 **Expose the active theme's icons through `useSiteTheme` and a small `ThemeIcon` component.**
-`useSiteTheme` already resolves the active `Theme`; add `icons` to its return (the theme's icon record, or `{}` when none). Introduce `ThemeIcon({ name, size?, label? })` that looks up the active theme's definition, falls back to `ICON_ASSETS[name]`, and renders an `<svg class="icon">` with `<title>`/`aria-label`. Components replace literal glyphs with `<ThemeIcon>`.
+`useSiteTheme` already resolves the active `Theme`; add `icons` to its return: a `Record<IconAssetKey, IconDefinition>` merged with the fallback `ICON_ASSETS` so the UI never sees a missing key. Introduce `ThemeIcon({ name, label?, size? })` that reads the resolved icon and renders an `<svg class="icon">` with `<title>` and `aria-label`. Components replace literal glyphs with `<ThemeIcon>`.
 - Alternative: thread icons via React context. Rejected — `useSiteTheme` already provides the resolved theme at the top level; a single hook + component keeps the change small.
 
-**Store viewBox per icon and keep a 1:1 "size preserved" rule via current CSS.**
-The `.icon` class already sizes SVGs (`.icon-filled`, `icon`) and buttons define their box (`font-size: 2rem` replaced by explicit width/height on the add button). Keep the existing CSS classes; for the add button, remove reliance on `font-size` and set explicit `width`/`height` so the SVG scales to the previous `+` size.
+**Single-viewBox icon system via the `.icon` class.**
+All icons share viewBox `0 0 24 24` and the existing `.icon` CSS (stroke-based, `fill: none`, `stroke: currentColor`, `stroke-width: 1.8`), so `width`/`height` of the rendered SVG defines the visual size. The `add-item-button` keeps its 1:1 aspect ratio via `aspect-ratio: 1 / 1` plus an explicit `width`/`height`; the `font-family: var(--font-display, 'Cinzel', serif)` pin added in the `outline-icons-only` stopgap can be removed once the `+` is an SVG.
 - Alternative: CSS `mask-image`. Rejected — breaks the "inline SVG" accessibility requirement (aria-label/title) and the existing `<path>` model.
 
 ## Risks / Trade-offs
 
-- **Existing stored themes lack icon definitions** → Normalize at load/resolve time: `useSiteTheme` merges `ICON_ASSETS` as fallback per key; optionally a migration backfills `iconAssets` on read of each theme. Low risk since the shape read by the UI is always defensively merged.
-- **Contract change breaks API tests / theme form** → Update `themeValidation.test.ts`, `themes.test.ts`, and `ThemeForm` icon section in the same change; `npm run check` is the gate.
-- **ViewBox mismatch changes apparent size** → All new icons reuse the `0 -960 960 960` viewBox where paths are Material-style, and the add/`+` icon uses the same viewBox, preserving scale.
+- **Existing stored themes lack icon definitions (still a `string[]` of keys)** → Normalize at load/resolve time: `useSiteTheme` merges the active theme's `iconAssets` over the bundled `ICON_ASSETS` fallback, so older themes render correctly without a forced migration. Newly seeded themes carry the full record.
+- **Contract change breaks API tests / theme form** → Update `themeValidation.test.ts`, `themes.test.ts`, and the `ThemeForm` icon section in the same change; `npm run check` is the gate.
+- **Edit form for per-key `path` textareas** is verbose (the user pastes SVG path data) — acceptable for now, since theme management is admin-only and the current form is already detail-oriented.

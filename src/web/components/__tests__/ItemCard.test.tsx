@@ -3,6 +3,8 @@ import { useState } from 'react';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ItemCard } from '../ItemCard';
+import { ThemeIconsContext, type ThemeIcons } from '../ThemeIconsContext';
+import { ICON_ASSETS } from '../../lib/iconAssets';
 import {
   createFileItem,
   createMarkdownItem,
@@ -12,6 +14,8 @@ import {
   denseTags,
 } from './itemCard.fixtures';
 import { getTopRowParts } from './itemCard.test-utils';
+
+const defaultIcons: ThemeIcons = { ...ICON_ASSETS } as ThemeIcons;
 
 const spell = createSpellItem();
 
@@ -724,6 +728,49 @@ describe('ItemCard', () => {
         expect(svg.classList.contains('icon-filled')).toBe(false);
         expect(svg.getAttribute('viewBox')).toBe('0 0 24 24');
       });
+    });
+  });
+
+  describe('theme-driven icon rendering', () => {
+    it('renders the copy icon with the path provided by the theme context', () => {
+      const customPath = 'M1 1 H10 V10 H1 Z';
+      const { container } = render(
+        <ThemeIconsContext.Provider
+          value={{ ...defaultIcons, copy: { path: customPath, viewBox: '0 0 12 12' } }}
+        >
+          <ItemCard
+            item={createSpellItem()}
+            tags={[]}
+            onEdit={() => undefined}
+            onDelete={() => undefined}
+            isMenuOpen={false}
+            onMenuToggle={() => undefined}
+          />
+        </ThemeIconsContext.Provider>,
+      );
+
+      const copyIcon = container.querySelector('button[aria-label="Copy command"] svg');
+      expect(copyIcon?.querySelector('path')?.getAttribute('d')).toBe(customPath);
+      expect(copyIcon?.getAttribute('viewBox')).toBe('0 0 12 12');
+    });
+
+    it('falls back to the bundled icon when the theme omits a key', () => {
+      const partialIcons = { spell: defaultIcons.spell, view: defaultIcons.view } as ThemeIcons;
+      const { container } = render(
+        <ThemeIconsContext.Provider value={partialIcons}>
+          <ItemCard
+            item={createSpellItem()}
+            tags={[]}
+            onEdit={() => undefined}
+            onDelete={() => undefined}
+            isMenuOpen={false}
+            onMenuToggle={() => undefined}
+          />
+        </ThemeIconsContext.Provider>,
+      );
+
+      const copyIcon = container.querySelector('button[aria-label="Copy command"] svg');
+      expect(copyIcon?.querySelector('path')?.getAttribute('d')).toBe(defaultIcons.copy.path);
     });
   });
 });

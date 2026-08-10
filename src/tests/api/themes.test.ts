@@ -109,7 +109,10 @@ describe('theme endpoints', () => {
         colors: buildSeedThemes()[0].colors,
         fonts: buildSeedThemes()[0].fonts,
         fontSizes: buildSeedThemes()[0].fontSizes,
-        iconAssets: ['spell', 'copy'],
+        iconAssets: {
+          spell: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
+          copy: { path: 'M10 8 H20 A2 2 0 0 1 22 10 V20', viewBox: '0 0 24 24' },
+        },
         kindColors: buildSeedThemes()[0].kindColors,
         tagColorPalette: ['#8B5A2B', '#A0522D', '#D2B48C', '#CD853F', '#F5DEB3'],
         isDefault: false,
@@ -172,7 +175,9 @@ describe('theme endpoints', () => {
         colors: buildSeedThemes()[0].colors,
         fonts: buildSeedThemes()[0].fonts,
         fontSizes: buildSeedThemes()[0].fontSizes,
-        iconAssets: ['spell'],
+        iconAssets: {
+          spell: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
+        },
         kindColors: buildSeedThemes()[0].kindColors,
         tagColorPalette: ['#1A73E8', '#7C3AED', '#2563EB', '#B45309', '#0D9488'],
       })
@@ -187,7 +192,76 @@ describe('theme endpoints', () => {
     await request(context.app)
       .post('/api/themes')
       .set('Cookie', cookie)
-      .send({ name: 'bad', label: 'Bad', colors: {}, fonts: {}, fontSizes: {}, iconAssets: [], kindColors: {}, tagColorPalette: [] })
+      .send({ name: 'bad', label: 'Bad', colors: {}, fonts: {}, fontSizes: {}, iconAssets: {}, kindColors: {}, tagColorPalette: [] })
       .expect(400);
+  });
+
+  describe('legacy iconAssets shape', () => {
+    async function seedLegacyTheme(context: ReturnType<typeof createSeededTestApp>) {
+      const now = new Date().toISOString();
+      const legacy = {
+        id: 'theme-light-legacy',
+        name: 'light',
+        label: 'Light',
+        colors: {
+          pageBg: '#f7faf8',
+          pageBgAccent: 'rgba(15, 23, 42, 0.04)',
+          surface: '#ffffff',
+          surfaceElevated: '#fffdfa',
+          surfaceMuted: '#edf2ef',
+          surfaceAlt: '#f4f8f6',
+          text: '#0f172a',
+          textMuted: '#475569',
+          border: '#cbd5e1',
+          borderStrong: '#a5b4c3',
+          primary: '#4f46e5',
+          primaryStrong: '#4338ca',
+          accentSoft: '#e0e7ff',
+          danger: '#dc2626',
+          success: '#15803d',
+          warning: '#b45309',
+          shadow: '0 14px 32px rgba(15, 23, 42, 0.08)',
+        },
+        fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
+        fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
+        iconAssets: ['spell', 'copy'],
+        kindColors: { spell: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+        tagColorPalette: ['#1A73E8', '#7C3AED'],
+        isDefault: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await context.themes.create(legacy as unknown as Parameters<typeof context.themes.create>[0]);
+    }
+
+    it('GET /api/themes/active returns HTTP 200 for a stored legacy-shape theme', async () => {
+      const context = createSeededTestApp();
+      await seedLegacyTheme(context);
+      const cookie = await registerUser(request, context.app, 'legacy@example.com');
+
+      const active = await request(context.app)
+        .get('/api/themes/active')
+        .set('Cookie', cookie)
+        .expect(200);
+      expect(active.body.theme.name).toBe('light');
+      expect(Array.isArray(active.body.theme.iconAssets)).toBe(false);
+      expect(active.body.theme.iconAssets).toMatchObject({
+        spell: { path: expect.any(String), viewBox: expect.any(String) },
+        copy: { path: expect.any(String), viewBox: expect.any(String) },
+      });
+    });
+
+    it('GET /api/themes returns HTTP 200 and normalizes the legacy shape', async () => {
+      const context = createSeededTestApp();
+      await seedLegacyTheme(context);
+      const cookie = await registerUser(request, context.app, 'legacy@example.com');
+
+      const list = await request(context.app).get('/api/themes').set('Cookie', cookie).expect(200);
+      expect(list.body.total).toBe(1);
+      expect(list.body.items[0].iconAssets).toMatchObject({
+        spell: { path: expect.any(String), viewBox: expect.any(String) },
+        copy: { path: expect.any(String), viewBox: expect.any(String) },
+      });
+    });
   });
 });

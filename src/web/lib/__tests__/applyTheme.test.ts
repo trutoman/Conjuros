@@ -35,7 +35,10 @@ const theme: Theme = {
     body: '1rem',
     mono: '0.75rem',
   },
-  iconAssets: ['spell', 'copy'],
+  iconAssets: {
+    spell: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
+    copy: { path: 'M10 8 H20 A2 2 0 0 1 22 10 V20', viewBox: '0 0 24 24' },
+  },
   kindColors: {
     spell: '#7c3aed',
     webLink: '#2563eb',

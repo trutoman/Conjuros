@@ -69,6 +69,18 @@ export const ICON_ASSETS: Record<IconAssetKey, { path: string; viewBox: string }
     path: 'M11 3a8 8 0 1 0 0 16 8 8 0 1 0 0-16Z M21 21l-4.3-4.3',
     viewBox: '0 0 24 24',
   },
+  sun: {
+    path: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z M12 1v2 M12 21v2 M4.2 4.2l1.4 1.4 M18.4 18.4l1.4 1.4 M1 12h2 M21 12h2 M4.2 19.8l1.4-1.4 M18.4 5.6l1.4-1.4',
+    viewBox: '0 0 24 24',
+  },
+  moon: {
+    path: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z',
+    viewBox: '0 0 24 24',
+  },
+  add: {
+    path: 'M12 5v14 M5 12h14',
+    viewBox: '0 0 24 24',
+  },
 };
 
 export const THEME_MANAGEMENT_ICONS: Record<string, { path: string; viewBox: string }> = {

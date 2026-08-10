@@ -1,35 +1,10 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
-import type { CollectionItem, IconAssetKey, Tag } from '@conjuros/contracts';
+import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { computeTagOverflow, estimateInlineWidth } from './itemCardOverflow';
 import { markdownSlug, plainTextSlug } from '../lib/itemCardSlug';
 import { downloadMarkdownFile } from '../lib/downloadMarkdown';
 import { downloadTextFile } from '../lib/downloadFile';
-import { ICON_ASSETS } from '../lib/iconAssets';
-
-function Icon({
-  label,
-  asset,
-  title,
-}: {
-  label: string;
-  asset: IconAssetKey;
-  title: string;
-}) {
-  const { path, viewBox } = ICON_ASSETS[asset];
-  return (
-    <svg
-      className="icon"
-      role="img"
-      aria-label={label}
-      viewBox={viewBox}
-      focusable="false"
-      aria-hidden={false}
-    >
-      <title>{title}</title>
-      <path d={path} />
-    </svg>
-  );
-}
+import { ThemeIcon } from './ThemeIcon';
 
 export function ItemCard({
   item,
@@ -220,28 +195,28 @@ export function ItemCard({
             aria-label={kindLabel}
           >
             {item.kind === 'spell' ? (
-              <Icon
+              <ThemeIcon
                 label="Spell"
                 title="Spell"
-                asset="spell"
+                name="spell"
               />
             ) : item.kind === 'web-link' ? (
-              <Icon
+              <ThemeIcon
                 label="Web link"
                 title="Web link"
-                asset="web-link"
+                name="web-link"
               />
             ) : item.kind === 'file' ? (
-              <Icon
+              <ThemeIcon
                 label="File"
                 title="File"
-                asset="file"
+                name="file"
               />
             ) : (
-              <Icon
+              <ThemeIcon
                 label="Markdown"
                 title="Markdown"
-                asset="markdown"
+                name="markdown"
               />
             )}
           </div>
@@ -260,10 +235,10 @@ export function ItemCard({
                     aria-expanded={expanded}
                     onClick={() => setExpanded((v) => !v)}
                   >
-                    <Icon
+                    <ThemeIcon
                       label={expanded ? 'Collapse' : 'Expand'}
                       title={expanded ? 'Collapse' : 'Expand'}
-                      asset={expanded ? 'collapse' : 'expand'}
+                      name={expanded ? 'collapse' : 'expand'}
                     />
                   </button>
                 )}
@@ -324,10 +299,10 @@ export function ItemCard({
               aria-label="Copy command"
               onClick={() => copy(item.command ?? '', 'Command')}
             >
-              <Icon
+              <ThemeIcon
                 label="Copy"
                 title="Copy"
-                asset="copy"
+                name="copy"
               />
             </button>
           )}
@@ -338,10 +313,10 @@ export function ItemCard({
               aria-label="Open link"
               onClick={() => window.open(openUrl, '_blank', 'noopener,noreferrer')}
             >
-              <Icon
+              <ThemeIcon
                 label="Open"
                 title="Open"
-                asset="open"
+                name="open"
               />
             </button>
           )}
@@ -352,10 +327,10 @@ export function ItemCard({
               aria-label="View markdown"
               onClick={() => onView?.(item)}
             >
-              <Icon
+              <ThemeIcon
                 label="View"
                 title="View"
-                asset="view"
+                name="view"
               />
             </button>
           )}
@@ -366,10 +341,10 @@ export function ItemCard({
               aria-label="Download markdown"
               onClick={() => downloadMarkdownFile(item)}
             >
-              <Icon
+              <ThemeIcon
                 label="Download"
                 title="Download"
-                asset="download"
+                name="download"
               />
             </button>
           )}
@@ -380,10 +355,10 @@ export function ItemCard({
               aria-label="View file"
               onClick={() => onView?.(item)}
             >
-              <Icon
+              <ThemeIcon
                 label="View"
                 title="View"
-                asset="view"
+                name="view"
               />
             </button>
           )}
@@ -394,10 +369,10 @@ export function ItemCard({
               aria-label="Download file"
               onClick={() => downloadTextFile(item)}
             >
-              <Icon
+              <ThemeIcon
                 label="Download"
                 title="Download"
-                asset="download"
+                name="download"
               />
             </button>
           )}
@@ -412,10 +387,10 @@ export function ItemCard({
               ref={triggerRef}
               onClick={onMenuToggle}
             >
-              <Icon
+              <ThemeIcon
                 label="Menu"
                 title="Menu"
-                asset="menu"
+                name="menu"
               />
             </button>
             {isMenuOpen && menuView === 'menu' && (
@@ -435,10 +410,10 @@ export function ItemCard({
                   tabIndex={-1}
                   onClick={handleEdit}
                 >
-                  <Icon
+                  <ThemeIcon
                     label="Edit"
                     title="Edit"
-                    asset="edit"
+                    name="edit"
                   />
                 </button>
                 <button
@@ -449,10 +424,10 @@ export function ItemCard({
                   tabIndex={-1}
                   onClick={handleDeleteStart}
                 >
-                  <Icon
+                  <ThemeIcon
                     label="Delete"
                     title="Delete"
-                    asset="delete"
+                    name="delete"
                   />
                 </button>
               </div>
@@ -474,10 +449,10 @@ export function ItemCard({
                   tabIndex={-1}
                   onClick={handleDeleteConfirm}
                 >
-                  <Icon
+                  <ThemeIcon
                     label="Confirm"
                     title="Confirm"
-                    asset="confirm"
+                    name="confirm"
                   />
                 </button>
                 <button
@@ -491,10 +466,10 @@ export function ItemCard({
                     triggerRef.current?.focus();
                   }}
                 >
-                  <Icon
+                  <ThemeIcon
                     label="Cancel"
                     title="Cancel"
-                    asset="cancel"
+                    name="cancel"
                   />
                 </button>
               </div>

@@ -89,7 +89,7 @@ describe('ItemForm', () => {
     render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={onCancel} />);
 
     const closeButton = screen.getByRole('button', { name: 'Close item form' });
-    expect(closeButton).toHaveTextContent('✕');
+    expect(closeButton.querySelector('svg.icon')).not.toBeNull();
     expect(closeButton.className).toBe('form-close');
     fireEvent.click(closeButton);
 

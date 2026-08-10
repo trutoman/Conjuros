@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  iconAssetKeySchema,
   normalizeTagColor,
   themeInputSchema,
   themeQuerySchema,
@@ -11,13 +12,32 @@ import {
   type ThemeQuery,
   type ThemeUpdate,
 } from '@conjuros/contracts';
+import { ICON_ASSETS } from '../../web/lib/iconAssets';
 import { AppError } from '../errors';
 import type { StoredTheme, ThemesRepository } from '../repositories/themes.repository';
 import { buildSeedThemes } from '../repositories/themeSeed';
 import type { UsersRepository } from '../repositories/users.repository';
 
+function normalizeStoredTheme(theme: StoredTheme): StoredTheme {
+  if (!Array.isArray(theme.iconAssets)) {
+    return theme;
+  }
+  const record: StoredTheme['iconAssets'] = {} as StoredTheme['iconAssets'];
+  for (const candidate of theme.iconAssets) {
+    const parsed = iconAssetKeySchema.safeParse(candidate);
+    if (!parsed.success) continue;
+    const fallback = ICON_ASSETS[parsed.data];
+    if (!fallback) continue;
+    (record as Record<string, { path: string; viewBox: string }>)[parsed.data] = {
+      path: fallback.path,
+      viewBox: fallback.viewBox,
+    };
+  }
+  return { ...theme, iconAssets: record };
+}
+
 function publicTheme(theme: StoredTheme): Theme {
-  return themeSchema.parse(theme);
+  return themeSchema.parse(normalizeStoredTheme(theme));
 }
 
 export class ThemesService {

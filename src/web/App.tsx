@@ -4,6 +4,7 @@ import type { AuthenticatedUserProfile } from '@conjuros/contracts';
 import { CollectionPage } from './pages/CollectionPage';
 import { useThemePreference } from './hooks/useThemePreference';
 import { useSiteTheme } from './hooks/useSiteTheme';
+import { ThemeIconsContext } from './components/ThemeIconsContext';
 
 const queryClient = new QueryClient();
 
@@ -112,14 +113,16 @@ function Application() {
   if (authenticated === undefined) return <main className="auth-shell">Loading...</main>;
   if (!authenticated) return <AuthScreen onAuthenticated={setAuthenticated} />;
   return (
-    <CollectionPage
-      currentUserLabel={currentUserLabel}
-      theme={themePreference.theme}
-      onThemeChange={themePreference.setTheme}
-      role={authenticated.role}
-      tagPalette={siteTheme.palette}
-      onSignOut={() => void signOut()}
-    />
+    <ThemeIconsContext.Provider value={siteTheme.icons}>
+      <CollectionPage
+        currentUserLabel={currentUserLabel}
+        theme={themePreference.theme}
+        onThemeChange={themePreference.setTheme}
+        role={authenticated.role}
+        tagPalette={siteTheme.palette}
+        onSignOut={() => void signOut()}
+      />
+    </ThemeIconsContext.Provider>
   );
 }
 

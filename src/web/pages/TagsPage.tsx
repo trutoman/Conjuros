@@ -4,6 +4,7 @@ import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { TagForm } from '../components/TagForm';
 import { TagList } from '../components/TagList';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { ThemeIcon } from '../components/ThemeIcon';
 import { UserWidget } from '../components/UserWidget';
 import { useTags } from '../hooks/useTags';
 
@@ -85,7 +86,7 @@ export function TagsPage({
                 onClick={() => setTagQuery('')}
                 aria-label="Clear search"
               >
-                ✕
+                <ThemeIcon name="close" />
               </button>
             )}
           </div>

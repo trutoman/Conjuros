@@ -39,7 +39,11 @@ export const validThemeDraft = {
     body: '1rem',
     mono: '0.75rem',
   },
-  iconAssets: ['spell', 'copy', 'view'],
+  iconAssets: {
+    spell: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
+    copy: { path: 'M10 8 H20 A2 2 0 0 1 22 10 V20 A2 2 0 0 1 20 22 H10 A2 2 0 0 1 8 20 V10 A2 2 0 0 1 10 8 Z', viewBox: '0 0 24 24' },
+    view: { path: 'M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z M9 12a3 3 0 1 0 6 0 3 3 0 1 0-6 0Z', viewBox: '0 0 24 24' },
+  },
   kindColors: {
     spell: '#7c3aed',
     webLink: '#2563eb',
@@ -79,7 +83,34 @@ describe('theme contracts', () => {
   });
 
   it('rejects an unknown icon asset key', () => {
-    const draft = { ...validThemeDraft, iconAssets: ['spell', 'not-an-icon'] };
+    const draft = {
+      ...validThemeDraft,
+      iconAssets: {
+        spell: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
+        'not-an-icon': { path: 'M0 0', viewBox: '0 0 24 24' },
+      },
+    };
+    expect(themeInputSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it('rejects an icon asset definition missing a path', () => {
+    const draft = {
+      ...validThemeDraft,
+      iconAssets: { spell: { path: '', viewBox: '0 0 24 24' } },
+    };
+    expect(themeInputSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it('rejects an icon asset definition missing a viewBox', () => {
+    const draft = {
+      ...validThemeDraft,
+      iconAssets: { spell: { path: 'M0 0', viewBox: '' } },
+    };
+    expect(themeInputSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it('rejects an empty icon assets record', () => {
+    const draft = { ...validThemeDraft, iconAssets: {} };
     expect(themeInputSchema.safeParse(draft).success).toBe(false);
   });
 

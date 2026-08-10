@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { tagInputSchema, type Tag, type TagInput } from '@conjuros/contracts';
 import { normalizedHex } from '../lib/applyTheme';
 import { FormField } from './FormField';
+import { ThemeIcon } from './ThemeIcon';
 
 export function TagForm({
   tag,
@@ -41,7 +42,7 @@ export function TagForm({
   return (
     <form className="item-form" onSubmit={submit}>
       <button type="button" className="form-close" aria-label="Close tag form" onClick={onCancel}>
-        ✕
+        <ThemeIcon name="close" />
       </button>
       <h2>{tag ? 'Edit tag' : 'Add tag'}</h2>
       <FormField label="Tag name">

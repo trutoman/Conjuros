@@ -29,7 +29,7 @@ const lightTheme: Theme = {
   },
   fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
   fontSizes: { heading: '2rem', body: '1rem', mono: '0.75rem' },
-  iconAssets: ['spell'],
+  iconAssets: { spell: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' } },
   kindColors: { spell: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
   tagColorPalette: ['#1A73E8'],
   isDefault: true,

@@ -85,7 +85,7 @@ describe('TagForm', () => {
     render(<TagForm onSubmit={vi.fn()} onCancel={onCancel} />);
 
     const closeButton = screen.getByRole('button', { name: 'Close tag form' });
-    expect(closeButton).toHaveTextContent('✕');
+    expect(closeButton.querySelector('svg.icon')).not.toBeNull();
     expect(closeButton.className).toBe('form-close');
     fireEvent.click(closeButton);
 
