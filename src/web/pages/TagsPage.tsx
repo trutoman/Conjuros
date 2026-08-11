@@ -4,6 +4,7 @@ import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { TagForm } from '../components/TagForm';
 import { TagList } from '../components/TagList';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { ThemeIcon } from '../components/ThemeIcon';
 import { UserWidget } from '../components/UserWidget';
 import { useTags } from '../hooks/useTags';
 
@@ -64,13 +65,13 @@ export function TagsPage({
         <div className="topbar-actions">
           <div className="search-field">
             <svg
-              className="icon icon-filled search-icon"
+              className="icon search-icon"
               role="img"
               aria-hidden="true"
-              viewBox="0 -960 960 960"
+              viewBox="0 0 24 24"
               focusable="false"
             >
-              <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
+              <path d="M11 3a8 8 0 1 0 0 16 8 8 0 1 0 0-16Z M21 21l-4.3-4.3" />
             </svg>
             <input
               aria-label="Search tags"
@@ -85,7 +86,7 @@ export function TagsPage({
                 onClick={() => setTagQuery('')}
                 aria-label="Clear search"
               >
-                ✕
+                <ThemeIcon name="close" />
               </button>
             )}
           </div>

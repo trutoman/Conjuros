@@ -4,8 +4,10 @@ import type {
   CollectionItemInput,
   CollectionItemUpdate,
   ItemKind,
+  Role,
   Tag,
   TagInput,
+  Theme,
   ThemePreference,
 } from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
@@ -17,12 +19,16 @@ import { ItemForm } from '../components/ItemForm';
 import { ItemCardViewer } from '../components/ItemCardViewer';
 import { TagForm } from '../components/TagForm';
 import { TagList } from '../components/TagList';
+import { ThemeForm } from '../components/ThemeForm';
+import { ThemeListView } from '../components/ThemeListView';
 import { LoadingState } from '../components/LoadingState';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { ThemeIcon } from '../components/ThemeIcon';
 import { UserWidget } from '../components/UserWidget';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
 import { useTags } from '../hooks/useTags';
+import { useThemes } from '../hooks/useThemes';
 
 const MOBILE_BREAKPOINT_PX = 768;
 
@@ -31,15 +37,20 @@ export function CollectionPage({
   currentUserLabel,
   theme = 'light',
   onThemeChange,
+  role = 'user',
+  tagPalette = null,
 }: {
   onSignOut?: () => void;
   currentUserLabel?: string;
   theme?: ThemePreference;
   onThemeChange?: (theme: ThemePreference) => void | Promise<void>;
+  role?: Role;
+  tagPalette?: string[] | null;
 }) {
   const { filters, setFilters, query } = useCollectionFilters();
   const { items, isLoading, error, create, update, remove, reorder } = useCollection(query);
   const tagsState = useTags();
+  const themesState = useThemes();
   const [isNarrowViewport, setIsNarrowViewport] = useState(
     () => window.innerWidth <= MOBILE_BREAKPOINT_PX,
   );
@@ -77,6 +88,9 @@ export function CollectionPage({
   const [viewerItem, setViewerItem] = useState<CollectionItem | null | undefined>(undefined);
   const [actionError, setActionError] = useState('');
   const [tagQuery, setTagQuery] = useState('');
+  const [manageThemes, setManageThemes] = useState(false);
+  const [formTheme, setFormTheme] = useState<Theme | null | undefined>(undefined);
+  const [deleteTheme, setDeleteTheme] = useState<Theme | null>(null);
 
   async function save(input: CollectionItemInput | CollectionItemUpdate) {
     try {
@@ -95,6 +109,56 @@ export function CollectionPage({
       setFormTag(undefined);
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : 'Could not save tag');
+    }
+  }
+
+  async function saveTheme(input: Parameters<typeof themesState.create>[0]) {
+    try {
+      if (formTheme) await themesState.update({ id: formTheme.id, theme: input });
+      else await themesState.create(input);
+      setFormTheme(undefined);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Could not save theme');
+    }
+  }
+
+  function openThemeForm(theme: Theme | null) {
+    setFormItem(undefined);
+    setFormTag(undefined);
+    setManageTags(false);
+    setViewerItem(undefined);
+    setFormTheme(theme);
+  }
+
+  function openManageThemes() {
+    setFormItem(undefined);
+    setFormTag(undefined);
+    setViewerItem(undefined);
+    setManageTags(false);
+    setFormTheme(undefined);
+    setManageThemes(true);
+  }
+
+  function closeManageThemes() {
+    setFormTheme(undefined);
+    setManageThemes(false);
+  }
+
+  async function confirmThemeActivate(theme: Theme) {
+    try {
+      await themesState.activate(theme.id);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Could not activate theme');
+    }
+  }
+
+  async function confirmThemeDelete() {
+    if (!deleteTheme) return;
+    try {
+      await themesState.remove(deleteTheme.id);
+      setDeleteTheme(null);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Could not delete theme');
     }
   }
 
@@ -211,6 +275,7 @@ export function CollectionPage({
               onToggleOpen={handleToggleSidebar}
               onChange={setFilters}
               onManageTags={openManageTags}
+              onManageThemes={role === 'admin' ? openManageThemes : undefined}
               onClose={
                 shouldForceExpandedSidebar
                   ? undefined
@@ -238,6 +303,7 @@ export function CollectionPage({
                   tag={formTag ?? undefined}
                   onSubmit={saveTag}
                   onCancel={() => setFormTag(undefined)}
+                  palette={tagPalette}
                 />
               ) : (
                 <div className="item-form tag-management-view">
@@ -247,20 +313,20 @@ export function CollectionPage({
                     aria-label="Close tag management"
                     onClick={closeManageTags}
                   >
-                    ✕
+                    <ThemeIcon name="close" />
                   </button>
                   <div className="tag-management-header">
                     <h2>Manage tags</h2>
                     <div className="tag-management-actions">
                       <div className="search-field">
                         <svg
-                          className="icon icon-filled search-icon"
+                          className="icon search-icon"
                           role="img"
                           aria-hidden="true"
-                          viewBox="0 -960 960 960"
+                          viewBox="0 0 24 24"
                           focusable="false"
                         >
-                          <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
+                          <path d="M11 3a8 8 0 1 0 0 16 8 8 0 1 0 0-16Z M21 21l-4.3-4.3" />
                         </svg>
                         <input
                           aria-label="Search tags"
@@ -275,7 +341,7 @@ export function CollectionPage({
                             onClick={() => setTagQuery('')}
                             aria-label="Clear search"
                           >
-                            ✕
+                            <ThemeIcon name="close" />
                           </button>
                         )}
                       </div>
@@ -307,7 +373,46 @@ export function CollectionPage({
                   )}
                 </div>
               )
-            ) : formItem !== undefined ? (
+              ) : manageThemes ? (
+                formTheme !== undefined ? (
+                  <ThemeForm
+                    theme={formTheme ?? undefined}
+                    onSubmit={saveTheme}
+                    onCancel={() => setFormTheme(undefined)}
+                  />
+                ) : (
+                  <div className="item-form tag-management-view">
+                    <button
+                      type="button"
+                      className="form-close"
+                      aria-label="Close theme management"
+                      onClick={closeManageThemes}
+                    >
+                      <ThemeIcon name="close" />
+                    </button>
+                    <div className="tag-management-header">
+                      <h2>Manage themes</h2>
+                      <button type="button" onClick={() => openThemeForm(null)}>
+                        Add theme
+                      </button>
+                    </div>
+                    {actionError && <ErrorState message={actionError} />}
+                    {themesState.isLoading ? (
+                      <LoadingState />
+                    ) : themesState.error ? (
+                      <ErrorState message={themesState.error.message} />
+                    ) : (
+                      <ThemeListView
+                        themes={themesState.themes}
+                        onEdit={openThemeForm}
+                        onAdd={() => openThemeForm(null)}
+                        onActivate={(theme) => void confirmThemeActivate(theme)}
+                        onDelete={setDeleteTheme}
+                      />
+                    )}
+                  </div>
+                )
+              ) : formItem !== undefined ? (
               <ItemForm
                 item={formItem ?? undefined}
                 availableTags={tagsState.tags}
@@ -324,17 +429,17 @@ export function CollectionPage({
                     aria-label="Add item"
                     title="Add item"
                   >
-                    +
+                    <ThemeIcon name="add" />
                   </button>
                   <div className="search-field">
                     <svg
-                      className="icon icon-filled search-icon"
+                      className="icon search-icon"
                       role="img"
                       aria-hidden="true"
-                      viewBox="0 -960 960 960"
+                      viewBox="0 0 24 24"
                       focusable="false"
                     >
-                      <path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" />
+                      <path d="M11 3a8 8 0 1 0 0 16 8 8 0 1 0 0-16Z M21 21l-4.3-4.3" />
                     </svg>
                     <input
                       aria-label="Search collection"
@@ -349,7 +454,7 @@ export function CollectionPage({
                         onClick={() => setFilters({ ...filters, search: '' })}
                         aria-label="Clear search"
                       >
-                        ✕
+                        <ThemeIcon name="close" />
                       </button>
                     )}
                   </div>
@@ -413,6 +518,13 @@ export function CollectionPage({
             title={deleteTag.tagName}
             onConfirm={() => void confirmTagDelete()}
             onCancel={() => setDeleteTag(null)}
+          />
+        )}
+        {deleteTheme && (
+          <DeleteConfirmDialog
+            title={`${deleteTheme.label} theme`}
+            onConfirm={() => void confirmThemeDelete()}
+            onCancel={() => setDeleteTheme(null)}
           />
         )}
       </main>

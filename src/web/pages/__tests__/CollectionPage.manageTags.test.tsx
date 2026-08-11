@@ -72,6 +72,19 @@ vi.mock('../../hooks/useTags', () => ({
   useTags: () => tagsState,
 }));
 
+vi.mock('../../hooks/useThemes', () => ({
+  useThemes: () => ({
+    themes: [],
+    total: 0,
+    isLoading: false,
+    error: null as Error | null,
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    activate: vi.fn(),
+  }),
+}));
+
 function manageFrame() {
   const frame = document.querySelector('.tag-management-view');
   if (!frame) throw new Error('management view not rendered');

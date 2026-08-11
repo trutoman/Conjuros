@@ -3,6 +3,8 @@ import { useState } from 'react';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ItemCard } from '../ItemCard';
+import { ThemeIconsContext, type ThemeIcons } from '../ThemeIconsContext';
+import { ICON_ASSETS } from '../../lib/iconAssets';
 import {
   createFileItem,
   createMarkdownItem,
@@ -12,6 +14,8 @@ import {
   denseTags,
 } from './itemCard.fixtures';
 import { getTopRowParts } from './itemCard.test-utils';
+
+const defaultIcons: ThemeIcons = { ...ICON_ASSETS } as ThemeIcons;
 
 const spell = createSpellItem();
 
@@ -650,13 +654,13 @@ describe('ItemCard', () => {
       expect(click).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the file badge with the exact user-provided document glyph', () => {
+    it('renders the file badge with the dedicated document outline glyph', () => {
       renderItemCard({ item: createFileItem() });
 
       const badge = screen.getByRole('img', { name: 'File' });
-      expect(badge.getAttribute('viewBox')).toBe('0 -960 960 960');
+      expect(badge.getAttribute('viewBox')).toBe('0 0 24 24');
       expect(badge.querySelector('path')?.getAttribute('d')).toBe(
-        'M200-200h560v-367L567-760H200v560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h400l240 240v400q0 33-23.5 56.5T760-120H200Zm80-160h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h280v-80H280v80Zm-80 400v-560 560Z',
+        'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6',
       );
     });
 
@@ -664,43 +668,113 @@ describe('ItemCard', () => {
       renderItemCard({ item: createFileItem() });
 
       const fileBadge = screen.getByRole('img', { name: 'File' });
+      const filePath =
+        'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6';
       const markdownPath =
-        'm640-360 120-120-42-43-48 48v-125h-60v125l-48-48-42 43 120 120ZM140-160q-24 0-42-18t-18-42v-520q0-24 18-42t42-18h680q24 0 42 18t18 42v520q0 24-18 42t-42 18H140Zm0-60h680v-520H140v520Zm0 0v-520 520Zm79-140h50v-190h53v127h50v-127h60v190h50v-200q0-14-13-27t-27-13H259q-14 0-27 13t-13 27v200Z';
+        'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8';
+      expect(fileBadge.querySelector('path')?.getAttribute('d')).toBe(filePath);
       expect(fileBadge.querySelector('path')?.getAttribute('d')).not.toBe(markdownPath);
     });
 
-    it('uses the exact same eye icon path as View markdown for View file', () => {
+    it('uses the exact same icon path as View markdown for View file', () => {
       renderItemCard({ item: createMarkdownItem() });
-      const markdownIcon = screen
+      const markdownPath = screen
         .getByRole('button', { name: 'View markdown' })
-        .querySelector('path');
+        .querySelector('path')
+        ?.getAttribute('d');
       renderItemCard({ item: createFileItem() });
-      const fileIcon = screen
+      const filePath = screen
         .getByRole('button', { name: 'View file' })
-        .querySelector('svg');
+        .querySelector('path')
+        ?.getAttribute('d');
 
-      const viewBox = fileIcon?.getAttribute('viewBox');
-      const filePath = fileIcon?.querySelector('path')?.getAttribute('d');
-      const markdownPath = markdownIcon?.getAttribute('d');
-      expect(viewBox).toBe('0 -960 960 960');
       expect(filePath).toBe(markdownPath);
+      expect(filePath?.startsWith('M2 12s3-7')).toBe(true);
     });
 
-    it('uses the exact same download icon path as the markdown download for Download file', () => {
+    it('uses the exact same icon path as the markdown download for Download file', () => {
       renderItemCard({ item: createMarkdownItem() });
-      const markdownIcon = screen
+      const markdownPath = screen
         .getByRole('button', { name: 'Download markdown' })
-        .querySelector('svg');
+        .querySelector('path')
+        ?.getAttribute('d');
       renderItemCard({ item: createFileItem() });
-      const fileIcon = screen
+      const filePath = screen
         .getByRole('button', { name: 'Download file' })
-        .querySelector('svg');
+        .querySelector('path')
+        ?.getAttribute('d');
 
-      const viewBoxContainer = fileIcon?.getAttribute('viewBox');
-      const filePath = fileIcon?.querySelector('path')?.getAttribute('d');
-      const markdownPath = markdownIcon?.querySelector('path')?.getAttribute('d');
-      expect(viewBoxContainer).toBe('0 -960 960 960');
       expect(filePath).toBe(markdownPath);
+      expect(filePath?.startsWith('M21 15v4a2 2 0 0 1-2 2H5')).toBe(true);
+    });
+  });
+
+  describe('outline icon style', () => {
+    it('renders every icon with the outline .icon class and no filled variant', () => {
+      const { container } = render(
+        <ItemCard
+          item={createFileItem()}
+          tags={[]}
+          onEdit={() => undefined}
+          onDelete={() => undefined}
+          isMenuOpen={false}
+          onMenuToggle={() => undefined}
+        />,
+      );
+
+      const icons = container.querySelectorAll('svg');
+      expect(icons.length).toBeGreaterThan(0);
+      icons.forEach((svg) => {
+        expect(svg.classList.contains('icon')).toBe(true);
+        expect(svg.classList.contains('icon-filled')).toBe(false);
+        expect(svg.getAttribute('viewBox')).toBe('0 0 24 24');
+      });
+    });
+  });
+
+  describe('theme-driven icon rendering', () => {
+    function renderWithIcons(ui: React.ReactNode, icons: ThemeIcons = defaultIcons) {
+      return render(<ThemeIconsContext.Provider value={icons}>{ui}</ThemeIconsContext.Provider>);
+    }
+
+    it('renders the copy icon with the path provided by the theme context', () => {
+      const customPath = 'M1 1 H10 V10 H1 Z';
+      const { container } = renderWithIcons(
+        <ItemCard
+          item={createSpellItem()}
+          tags={[]}
+          onEdit={() => undefined}
+          onDelete={() => undefined}
+          isMenuOpen={false}
+          onMenuToggle={() => undefined}
+        />,
+        {
+          ...defaultIcons,
+          copy: { path: customPath, viewBox: '0 0 12 12' },
+        },
+      );
+
+      const copyIcon = container.querySelector('button[aria-label="Copy command"] svg');
+      expect(copyIcon?.querySelector('path')?.getAttribute('d')).toBe(customPath);
+      expect(copyIcon?.getAttribute('viewBox')).toBe('0 0 12 12');
+    });
+
+    it('falls back to the bundled icon when the theme omits a key', () => {
+      const partial = { spell: defaultIcons.spell, view: defaultIcons.view } as ThemeIcons;
+      const { container } = renderWithIcons(
+        <ItemCard
+          item={createSpellItem()}
+          tags={[]}
+          onEdit={() => undefined}
+          onDelete={() => undefined}
+          isMenuOpen={false}
+          onMenuToggle={() => undefined}
+        />,
+        partial,
+      );
+
+      const copyIcon = container.querySelector('button[aria-label="Copy command"] svg');
+      expect(copyIcon?.querySelector('path')?.getAttribute('d')).toBe(defaultIcons.copy.path);
     });
   });
 });

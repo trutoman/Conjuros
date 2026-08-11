@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { emailSchema } from '@conjuros/contracts';
 
 const nonBlankString = z.string().trim().min(1);
 
@@ -18,6 +19,7 @@ const apiEnvironmentSchema = z.object({
   MONGODB_URI: mongoUriSchema,
   MONGODB_DATABASE: nonBlankString,
   SESSION_SECRET: nonBlankString.min(32),
+  ADMIN_EMAIL: emailSchema.optional(),
   PORT: z.preprocess(
     (value) => (value === undefined || value === '' ? undefined : value),
     z.coerce.number().int().min(1).max(65_535).optional(),
@@ -28,6 +30,7 @@ export interface ApiEnvironment {
   mongoUri: string;
   databaseName: string;
   sessionSecret: string;
+  adminEmail: string | null;
   port: number;
 }
 
@@ -42,6 +45,7 @@ export function parseApiEnvironment(environment: Record<string, string | undefin
     mongoUri: parsed.data.MONGODB_URI,
     databaseName: parsed.data.MONGODB_DATABASE,
     sessionSecret: parsed.data.SESSION_SECRET,
+    adminEmail: parsed.data.ADMIN_EMAIL ?? null,
     port: parsed.data.PORT ?? 3000,
   };
 }

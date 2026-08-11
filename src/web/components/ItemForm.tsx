@@ -6,6 +6,7 @@ import { clearDraft, dedentSelection, handleAutoClose, handleEnter, indentSelect
 import { messageForInputError } from '../lib/itemForm';
 import { FormField } from './FormField';
 import { ItemTypeSelector } from './ItemTypeSelector';
+import { ThemeIcon } from './ThemeIcon';
 
 export function ItemForm({
   item,
@@ -179,7 +180,9 @@ export function ItemForm({
 
   return (
     <form className={`item-form${kind === 'markdown' ? ' item-form--markdown' : ''}`} onSubmit={submit}>
-      <button type="button" className="form-close" aria-label="Close item form" onClick={onCancel}>✕</button>
+      <button type="button" className="form-close" aria-label="Close item form" onClick={onCancel}>
+        <ThemeIcon name="close" />
+      </button>
       <h2>{item ? 'Edit item' : 'Add item'}</h2>
       <ItemTypeSelector value={kind} onChange={setKind} />
       <FormField label="Title"><input value={title} onChange={(event) => setTitle(event.target.value)} /></FormField>

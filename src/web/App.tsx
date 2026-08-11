@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AuthenticatedUserProfile } from '@conjuros/contracts';
 import { CollectionPage } from './pages/CollectionPage';
 import { useThemePreference } from './hooks/useThemePreference';
+import { useSiteTheme } from './hooks/useSiteTheme';
+import { ThemeIconsContext } from './components/ThemeIconsContext';
 
 const queryClient = new QueryClient();
 
@@ -85,10 +87,9 @@ function Application() {
   const [authenticated, setAuthenticated] = useState<AuthenticatedUserProfile | null | undefined>(
     undefined,
   );
-  const themePreference = useThemePreference(
-    authenticated?.theme ?? 'light',
-    authenticated !== null && authenticated !== undefined,
-  );
+  const ready = authenticated !== null && authenticated !== undefined;
+  const themePreference = useThemePreference(authenticated?.theme ?? 'light', ready);
+  const siteTheme = useSiteTheme(ready, themePreference.settledTheme);
   const currentUserLabel = authenticated?.email.split('@')[0] ?? '';
   useEffect(() => {
     void fetch('/api/auth/me', { credentials: 'include' })
@@ -112,12 +113,16 @@ function Application() {
   if (authenticated === undefined) return <main className="auth-shell">Loading...</main>;
   if (!authenticated) return <AuthScreen onAuthenticated={setAuthenticated} />;
   return (
-    <CollectionPage
-      currentUserLabel={currentUserLabel}
-      theme={themePreference.theme}
-      onThemeChange={themePreference.setTheme}
-      onSignOut={() => void signOut()}
-    />
+    <ThemeIconsContext.Provider value={siteTheme.icons}>
+      <CollectionPage
+        currentUserLabel={currentUserLabel}
+        theme={themePreference.theme}
+        onThemeChange={themePreference.setTheme}
+        role={authenticated.role}
+        tagPalette={siteTheme.palette}
+        onSignOut={() => void signOut()}
+      />
+    </ThemeIconsContext.Provider>
   );
 }
 

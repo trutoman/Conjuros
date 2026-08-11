@@ -9,6 +9,8 @@ export const credentialsSchema = z.object({
   password: passwordSchema,
 });
 
+export const roleSchema = z.enum(['user', 'admin']);
+
 export const authenticatedUserSchema = z.object({
   id: z.string().min(1),
   email: emailSchema,
@@ -16,6 +18,7 @@ export const authenticatedUserSchema = z.object({
 
 export const authenticatedUserProfileSchema = authenticatedUserSchema.extend({
   theme: themePreferenceSchema,
+  role: roleSchema,
 });
 
 export const themePreferenceUpdateSchema = z.object({
@@ -25,5 +28,6 @@ export const themePreferenceUpdateSchema = z.object({
 export type Credentials = z.infer<typeof credentialsSchema>;
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 export type ThemePreference = z.infer<typeof themePreferenceSchema>;
+export type Role = z.infer<typeof roleSchema>;
 export type AuthenticatedUserProfile = z.infer<typeof authenticatedUserProfileSchema>;
 export type ThemePreferenceUpdate = z.infer<typeof themePreferenceUpdateSchema>;

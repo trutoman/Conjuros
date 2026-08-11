@@ -26,26 +26,26 @@ async function updateThemePreference(theme: ThemePreference) {
 
 export function useThemePreference(initialTheme: ThemePreference, enabled: boolean) {
   const [theme, setTheme] = useState<ThemePreference>(initialTheme);
+  const [settledTheme, setSettledTheme] = useState<ThemePreference>(initialTheme);
 
   useEffect(() => {
     setTheme(initialTheme);
+    setSettledTheme(initialTheme);
   }, [enabled, initialTheme]);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
 
   async function changeTheme(nextTheme: ThemePreference) {
     if (!enabled) {
       setTheme(nextTheme);
+      setSettledTheme(nextTheme);
       return;
     }
 
-    const previousTheme = theme;
+    const previousTheme = settledTheme;
     setTheme(nextTheme);
 
     try {
       const persistedTheme = await updateThemePreference(nextTheme);
+      setSettledTheme(persistedTheme);
       setTheme(persistedTheme);
     } catch (error) {
       setTheme(previousTheme);
@@ -53,5 +53,5 @@ export function useThemePreference(initialTheme: ThemePreference, enabled: boole
     }
   }
 
-  return { theme, setTheme: changeTheme };
+  return { theme, settledTheme, setTheme: changeTheme };
 }

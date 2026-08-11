@@ -7,17 +7,15 @@ function Icon({
   path,
   title,
   viewBox = '0 0 24 24',
-  filled = false,
 }: {
   label: string;
   path: string;
   title: string;
   viewBox?: string;
-  filled?: boolean;
 }) {
   return (
     <svg
-      className={filled ? 'icon icon-filled' : 'icon'}
+      className="icon"
       role="img"
       aria-label={label}
       viewBox={viewBox}
@@ -153,9 +151,8 @@ export function TagList({
                 <Icon
                   label="Menu"
                   title="Menu"
-                  path="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"
-                  viewBox="0 -960 960 960"
-                  filled
+                  path="M12 5a1 1 0 1 0 0 2 1 1 0 1 0 0-2Z M12 11a1 1 0 1 0 0 2 1 1 0 1 0 0-2Z M12 17a1 1 0 1 0 0 2 1 1 0 1 0 0-2Z"
+                  viewBox="0 0 24 24"
                 />
               </button>
               {openMenuId === tag.id && (
@@ -191,9 +188,8 @@ export function TagList({
                     <Icon
                       label="Delete"
                       title="Delete"
-                      path="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"
-                      viewBox="0 -960 960 960"
-                      filled
+                      path="M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6"
+                      viewBox="0 0 24 24"
                     />
                   </button>
                 </div>

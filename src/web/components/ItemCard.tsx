@@ -4,34 +4,7 @@ import { computeTagOverflow, estimateInlineWidth } from './itemCardOverflow';
 import { markdownSlug, plainTextSlug } from '../lib/itemCardSlug';
 import { downloadMarkdownFile } from '../lib/downloadMarkdown';
 import { downloadTextFile } from '../lib/downloadFile';
-
-function Icon({
-  label,
-  path,
-  title,
-  viewBox = '0 0 24 24',
-  filled = false,
-}: {
-  label: string;
-  path: string;
-  title: string;
-  viewBox?: string;
-  filled?: boolean;
-}) {
-  return (
-    <svg
-      className={filled ? 'icon icon-filled' : 'icon'}
-      role="img"
-      aria-label={label}
-      viewBox={viewBox}
-      focusable="false"
-      aria-hidden={false}
-    >
-      <title>{title}</title>
-      <path d={path} />
-    </svg>
-  );
-}
+import { ThemeIcon } from './ThemeIcon';
 
 export function ItemCard({
   item,
@@ -222,36 +195,28 @@ export function ItemCard({
             aria-label={kindLabel}
           >
             {item.kind === 'spell' ? (
-              <Icon
+              <ThemeIcon
                 label="Spell"
                 title="Spell"
-                path="m176-120-56-56 301-302-181-45 198-123-17-234 179 151 216-88-87 217 151 178-234-16-124 198-45-181-301 301Zm24-520-80-80 80-80 80 80-80 80Zm355 197 48-79 93 7-60-71 35-86-86 35-71-59 7 92-79 49 90 22 23 90Zm165 323-80-80 80-80 80 80-80 80ZM569-570Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="spell"
               />
             ) : item.kind === 'web-link' ? (
-              <Icon
+              <ThemeIcon
                 label="Web link"
                 title="Web link"
-                path="M320-160q-33 0-56.5-23.5T240-240v-120h120v-90q-35-2-66.5-15.5T236-506v-44h-46L60-680q36-46 89-65t107-19q27 0 52.5 4t51.5 15v-55h480v520q0 50-35 85t-85 35H320Zm120-200h240v80q0 17 11.5 28.5T720-240q17 0 28.5-11.5T760-280v-440H440v24l240 240v56h-56L510-514l-8 8q-14 14-29.5 25T440-464v104ZM224-630h92v86q12 8 25 11t27 3q23 0 41.5-7t36.5-25l8-8-56-56q-29-29-65-43.5T256-684q-20 0-38 3t-36 9l42 42Zm376 350H320v40h286q-3-9-4.5-19t-1.5-21Zm-280 40v-40 40Z"
-                viewBox="0 -960 960 960"
-                filled
-/>
+                name="web-link"
+              />
             ) : item.kind === 'file' ? (
-              <Icon
+              <ThemeIcon
                 label="File"
                 title="File"
-                path="M200-200h560v-367L567-760H200v560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h400l240 240v400q0 33-23.5 56.5T760-120H200Zm80-160h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h280v-80H280v80Zm-80 400v-560 560Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="file"
               />
             ) : (
-              <Icon
+              <ThemeIcon
                 label="Markdown"
                 title="Markdown"
-                path="m640-360 120-120-42-43-48 48v-125h-60v125l-48-48-42 43 120 120ZM140-160q-24 0-42-18t-18-42v-520q0-24 18-42t42-18h680q24 0 42 18t18 42v520q0 24-18 42t-42 18H140Zm0-60h680v-520H140v520Zm0 0v-520 520Zm79-140h50v-190h53v127h50v-127h60v190h50v-200q0-14-13-27t-27-13H259q-14 0-27 13t-13 27v200Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="markdown"
               />
             )}
           </div>
@@ -270,10 +235,10 @@ export function ItemCard({
                     aria-expanded={expanded}
                     onClick={() => setExpanded((v) => !v)}
                   >
-                    <Icon
+                    <ThemeIcon
                       label={expanded ? 'Collapse' : 'Expand'}
                       title={expanded ? 'Collapse' : 'Expand'}
-                      path={expanded ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'}
+                      name={expanded ? 'collapse' : 'expand'}
                     />
                   </button>
                 )}
@@ -334,12 +299,10 @@ export function ItemCard({
               aria-label="Copy command"
               onClick={() => copy(item.command ?? '', 'Command')}
             >
-              <Icon
+              <ThemeIcon
                 label="Copy"
                 title="Copy"
-                path="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="copy"
               />
             </button>
           )}
@@ -350,12 +313,10 @@ export function ItemCard({
               aria-label="Open link"
               onClick={() => window.open(openUrl, '_blank', 'noopener,noreferrer')}
             >
-              <Icon
+              <ThemeIcon
                 label="Open"
                 title="Open"
-                path="M318-120q-82 0-140-58t-58-140q0-40 15-76t43-64l134-133 56 56-134 134q-17 17-25.5 38.5T200-318q0 49 34.5 83.5T318-200q23 0 45-8.5t39-25.5l133-134 57 57-134 133q-28 28-64 43t-76 15Zm79-220-57-57 223-223 57 57-223 223Zm251-28-56-57 134-133q17-17 25-38t8-44q0-50-34-85t-84-35q-23 0-44.5 8.5T558-726L425-592l-57-56 134-134q28-28 64-43t76-15q82 0 139.5 58T839-641q0 39-14.5 75T782-502L648-368Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="open"
               />
             </button>
           )}
@@ -366,12 +327,10 @@ export function ItemCard({
               aria-label="View markdown"
               onClick={() => onView?.(item)}
             >
-              <Icon
+              <ThemeIcon
                 label="View"
                 title="View"
-                path="M607.5-372.5Q660-425 660-500t-52.5-127.5Q555-680 480-680t-127.5 52.5Q300-575 300-500t52.5 127.5Q405-320 480-320t127.5-52.5Zm-204-51Q372-455 372-500t31.5-76.5Q435-608 480-608t76.5 31.5Q585-545 585-500t-31.5 76.5Q515-392 480-392t-76.5-31.5ZM214-281.5Q94-363 40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200q-146 0-266-81.5Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="view"
               />
             </button>
           )}
@@ -382,12 +341,10 @@ export function ItemCard({
               aria-label="Download markdown"
               onClick={() => downloadMarkdownFile(item)}
             >
-              <Icon
+              <ThemeIcon
                 label="Download"
                 title="Download"
-                path="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="download"
               />
             </button>
           )}
@@ -398,12 +355,10 @@ export function ItemCard({
               aria-label="View file"
               onClick={() => onView?.(item)}
             >
-              <Icon
+              <ThemeIcon
                 label="View"
                 title="View"
-                path="M607.5-372.5Q660-425 660-500t-52.5-127.5Q555-680 480-680t-127.5 52.5Q300-575 300-500t52.5 127.5Q405-320 480-320t127.5-52.5Zm-204-51Q372-455 372-500t31.5-76.5Q435-608 480-608t76.5 31.5Q585-545 585-500t-31.5 76.5Q515-392 480-392t-76.5-31.5ZM214-281.5Q94-363 40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200q-146 0-266-81.5Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="view"
               />
             </button>
           )}
@@ -414,12 +369,10 @@ export function ItemCard({
               aria-label="Download file"
               onClick={() => downloadTextFile(item)}
             >
-              <Icon
+              <ThemeIcon
                 label="Download"
                 title="Download"
-                path="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="download"
               />
             </button>
           )}
@@ -434,12 +387,10 @@ export function ItemCard({
               ref={triggerRef}
               onClick={onMenuToggle}
             >
-              <Icon
+              <ThemeIcon
                 label="Menu"
                 title="Menu"
-                path="M480-160q-33 0-56.5-23.5T400-240q0-33 23.5-56.5T480-320q33 0 56.5 23.5T560-240q0 33-23.5 56.5T480-160Zm0-240q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0-240q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z"
-                viewBox="0 -960 960 960"
-                filled
+                name="menu"
               />
             </button>
             {isMenuOpen && menuView === 'menu' && (
@@ -459,10 +410,10 @@ export function ItemCard({
                   tabIndex={-1}
                   onClick={handleEdit}
                 >
-                  <Icon
+                  <ThemeIcon
                     label="Edit"
                     title="Edit"
-                    path="M12 20h9M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"
+                    name="edit"
                   />
                 </button>
                 <button
@@ -473,12 +424,10 @@ export function ItemCard({
                   tabIndex={-1}
                   onClick={handleDeleteStart}
                 >
-                  <Icon
+                  <ThemeIcon
                     label="Delete"
                     title="Delete"
-                    path="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"
-                    viewBox="0 -960 960 960"
-                    filled
+                    name="delete"
                   />
                 </button>
               </div>
@@ -500,12 +449,10 @@ export function ItemCard({
                   tabIndex={-1}
                   onClick={handleDeleteConfirm}
                 >
-                  <Icon
+                  <ThemeIcon
                     label="Confirm"
                     title="Confirm"
-                    path="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"
-                    viewBox="0 -960 960 960"
-                    filled
+                    name="confirm"
                   />
                 </button>
                 <button
@@ -519,12 +466,10 @@ export function ItemCard({
                     triggerRef.current?.focus();
                   }}
                 >
-                  <Icon
+                  <ThemeIcon
                     label="Cancel"
                     title="Cancel"
-                    path="M256-213.847 213.847-256l224-224-224-224L256-746.153l224 224 224-224L746.153-704l-224 224 224 224L704-213.847l-224-224-224 224Z"
-                    viewBox="0 -960 960 960"
-                    filled
+                    name="cancel"
                   />
                 </button>
               </div>

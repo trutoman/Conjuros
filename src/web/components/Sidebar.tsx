@@ -3,6 +3,7 @@ import type { Tag } from '@conjuros/contracts';
 import type { CollectionFilters } from '../hooks/useCollectionFilters';
 import { TagMatchToggle } from './TagMatchToggle';
 import { TagColumnIcon } from './TagColumnIcon';
+import { ThemeIcon } from './ThemeIcon';
 
 export function Sidebar({
   tags,
@@ -11,6 +12,7 @@ export function Sidebar({
   onToggleOpen,
   onChange,
   onManageTags,
+  onManageThemes,
   onClose,
 }: {
   tags: Tag[];
@@ -19,6 +21,7 @@ export function Sidebar({
   onToggleOpen?: () => void;
   onChange: (filters: CollectionFilters) => void;
   onManageTags: () => void;
+  onManageThemes?: () => void;
   onClose?: () => void;
 }) {
   const groupedCategories = useMemo(() => {
@@ -73,7 +76,7 @@ export function Sidebar({
             />
             {onClose && (
               <button className="sidebar-close quiet" onClick={onClose} aria-label="Close sidebar">
-                ✕
+                <ThemeIcon name="close" />
               </button>
             )}
           </div>
@@ -130,6 +133,11 @@ export function Sidebar({
             <button className="quiet" onClick={onManageTags}>
               Manage tags
             </button>
+            {onManageThemes && (
+              <button className="quiet" onClick={onManageThemes}>
+                Themes
+              </button>
+            )}
           </div>
         </>
       )}

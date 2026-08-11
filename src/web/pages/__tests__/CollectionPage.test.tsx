@@ -80,6 +80,19 @@ vi.mock('../../hooks/useTags', () => ({
   useTags: () => tagsState,
 }));
 
+vi.mock('../../hooks/useThemes', () => ({
+  useThemes: () => ({
+    themes: [],
+    total: 0,
+    isLoading: false,
+    error: null as Error | null,
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    activate: vi.fn(),
+  }),
+}));
+
 afterEach(() => {
   sessionStorage.clear();
   localStorage.clear();
