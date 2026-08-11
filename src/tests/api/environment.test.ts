@@ -25,6 +25,7 @@ describe('parseApiEnvironment', () => {
       databaseName: 'conjuros',
       sessionSecret: 'a-32-character-session-secret-value',
       adminEmail: null,
+      corsOrigin: 'http://localhost:5173',
       port: 3000,
     });
   });
@@ -37,6 +38,31 @@ describe('parseApiEnvironment', () => {
       databaseName: 'conjuros',
       sessionSecret: 'a-32-character-session-secret-value',
       adminEmail: 'admin@example.com',
+      corsOrigin: 'http://localhost:5173',
+      port: 3000,
+    });
+  });
+
+  it('treats an empty admin email as absent', () => {
+    expect(parseApiEnvironment({ ...validEnvironment, ADMIN_EMAIL: '' })).toEqual({
+      mongoUri: 'mongodb://localhost:27017',
+      databaseName: 'conjuros',
+      sessionSecret: 'a-32-character-session-secret-value',
+      adminEmail: null,
+      corsOrigin: 'http://localhost:5173',
+      port: 3000,
+    });
+  });
+
+  it('parses a configurable CORS origin', () => {
+    expect(
+      parseApiEnvironment({ ...validEnvironment, CORS_ORIGIN: 'https://conjuros.example.com' }),
+    ).toEqual({
+      mongoUri: 'mongodb://localhost:27017',
+      databaseName: 'conjuros',
+      sessionSecret: 'a-32-character-session-secret-value',
+      adminEmail: null,
+      corsOrigin: 'https://conjuros.example.com',
       port: 3000,
     });
   });
