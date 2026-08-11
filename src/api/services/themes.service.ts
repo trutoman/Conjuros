@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import {
   iconAssetKeySchema,
+  iconAssetKeys,
   normalizeTagColor,
   themeInputSchema,
   themeQuerySchema,
   themeSchema,
   themeUpdateSchema,
+  type IconAssetKey,
   type SiteThemeContext,
   type Theme,
   type ThemeInput,
@@ -19,9 +21,12 @@ import { buildSeedThemes } from '../repositories/themeSeed';
 import type { UsersRepository } from '../repositories/users.repository';
 
 function normalizeStoredTheme(theme: StoredTheme): StoredTheme {
+  // Keyed record: pass through unchanged.
   if (!Array.isArray(theme.iconAssets)) {
     return theme;
   }
+  // Legacy `string[]` (from `theme-svg-sprite-icons`): convert to a keyed record
+  // by merging each entry's `{ path, viewBox }` from `ICON_ASSETS`.
   const record: StoredTheme['iconAssets'] = {} as StoredTheme['iconAssets'];
   for (const candidate of theme.iconAssets) {
     const parsed = iconAssetKeySchema.safeParse(candidate);
@@ -33,11 +38,62 @@ function normalizeStoredTheme(theme: StoredTheme): StoredTheme {
       viewBox: fallback.viewBox,
     };
   }
+  if (Object.keys(record).length === 0) return theme;
   return { ...theme, iconAssets: record };
 }
 
 function publicTheme(theme: StoredTheme): Theme {
   return themeSchema.parse(normalizeStoredTheme(theme));
+}
+
+function sameIconAssets(
+  left: Theme['iconAssets'],
+  right: Theme['iconAssets'],
+): boolean {
+  const leftRecord = left as Record<string, { path: string; viewBox: string }>;
+  const rightRecord = right as Record<string, { path: string; viewBox: string }>;
+  const leftKeys = Object.keys(leftRecord);
+  const rightKeys = Object.keys(rightRecord);
+  if (leftKeys.length !== rightKeys.length) return false;
+  for (const key of leftKeys) {
+    const a = leftRecord[key];
+    const b = rightRecord[key];
+    if (!a || !b) return false;
+    if (a.path !== b.path || a.viewBox !== b.viewBox) return false;
+  }
+  return true;
+}
+
+function buildIconAssetsRecord(
+  current: Theme['iconAssets'],
+): Record<IconAssetKey, { path: string; viewBox: string }> {
+  const record = {} as Record<IconAssetKey, { path: string; viewBox: string }>;
+  // Preserve existing entries (admin customizations win).
+  if (!Array.isArray(current)) {
+    for (const [key, value] of Object.entries(current)) {
+      const parsed = iconAssetKeySchema.safeParse(key);
+      if (!parsed.success) continue;
+      if (!value || typeof value.path !== 'string' || typeof value.viewBox !== 'string') continue;
+      record[parsed.data] = { path: value.path, viewBox: value.viewBox };
+    }
+  } else {
+    // Legacy array path: derive from `ICON_ASSETS`.
+    for (const candidate of current) {
+      const parsed = iconAssetKeySchema.safeParse(candidate);
+      if (!parsed.success) continue;
+      const fallback = ICON_ASSETS[parsed.data];
+      if (!fallback) continue;
+      record[parsed.data] = { path: fallback.path, viewBox: fallback.viewBox };
+    }
+  }
+  // Fill missing keys from `ICON_ASSETS`.
+  for (const key of iconAssetKeys) {
+    if (record[key]) continue;
+    const fallback = ICON_ASSETS[key];
+    if (!fallback) continue;
+    record[key] = { path: fallback.path, viewBox: fallback.viewBox };
+  }
+  return record;
 }
 
 export class ThemesService {
@@ -66,6 +122,23 @@ export class ThemesService {
     if ((await this.themes.count()) > 0) return;
     for (const seed of buildSeedThemes()) {
       await this.themes.create(seed);
+    }
+  }
+
+  async backfillIconAssets(): Promise<void> {
+    const total = await this.themes.count();
+    if (total === 0) return;
+
+    const stored = await this.themes.findAll();
+    for (const theme of stored) {
+      const normalized = normalizeStoredTheme(theme);
+      const merged = buildIconAssetsRecord(normalized.iconAssets);
+      if (sameIconAssets(merged, normalized.iconAssets)) continue;
+      await this.themes.replace({
+        ...theme,
+        iconAssets: merged,
+        updatedAt: new Date().toISOString(),
+      });
     }
   }
 

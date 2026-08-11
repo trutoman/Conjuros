@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import type { IconAssetKey, IconAssets, Theme } from '@conjuros/contracts';
+import type { IconAssetKey, Theme } from '@conjuros/contracts';
 import { getActiveTheme } from '../services/themes';
 import { applyTheme } from '../lib/applyTheme';
 import { ICON_ASSETS } from '../lib/iconAssets';
 
 function resolveIcons(theme: Theme | null): Record<IconAssetKey, { path: string; viewBox: string }> {
   const merged: Record<IconAssetKey, { path: string; viewBox: string }> = { ...ICON_ASSETS };
-  if (theme) {
-    const stored = theme.iconAssets as IconAssets;
-    for (const [key, value] of Object.entries(stored)) {
+  if (theme && theme.iconAssets && typeof theme.iconAssets === 'object' && !Array.isArray(theme.iconAssets)) {
+    for (const [key, value] of Object.entries(theme.iconAssets)) {
       merged[key as IconAssetKey] = value;
     }
   }

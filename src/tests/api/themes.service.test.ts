@@ -5,6 +5,7 @@ import { InMemoryUsersRepository } from '../../api/repositories/users.repository
 import { ThemesService } from '../../api/services/themes.service';
 import { grantAdminRole, ensureThemesSeeded } from '../../api/bootstrap';
 import { AppError } from '../../api/errors';
+import { ICON_ASSETS } from '../../web/lib/iconAssets';
 import type { ThemeQuery } from '@conjuros/contracts';
 
 function setup() {
@@ -95,12 +96,12 @@ describe('themes service', () => {
 });
 
 describe('legacy iconAssets shape migration', () => {
-  async function seedLegacyTheme(themes: InMemoryThemesRepository) {
+  async function seedLegacyArrayTheme(themes: InMemoryThemesRepository, name = 'light') {
     const now = new Date().toISOString();
     const stored = {
-      id: 'theme-light-legacy',
-      name: 'light',
-      label: 'Light',
+      id: `theme-${name}-legacy-array`,
+      name,
+      label: name === 'light' ? 'Light' : 'Dark',
       colors: {
         pageBg: '#f7faf8',
         pageBgAccent: 'rgba(15, 23, 42, 0.04)',
@@ -135,7 +136,7 @@ describe('legacy iconAssets shape migration', () => {
 
   it('resolves a stored theme whose iconAssets is the legacy array shape', async () => {
     const { themes, service } = setup();
-    await seedLegacyTheme(themes);
+    await seedLegacyArrayTheme(themes);
 
     const context = await service.getActiveForUser('nobody@example.com');
     expect(context.theme.name).toBe('light');
@@ -148,7 +149,7 @@ describe('legacy iconAssets shape migration', () => {
 
   it('lists legacy-shape themes with a normalized iconAssets record', async () => {
     const { themes, service } = setup();
-    await seedLegacyTheme(themes);
+    await seedLegacyArrayTheme(themes);
 
     const { items } = await service.list(query);
     const light = items.find((theme) => theme.name === 'light')!;
@@ -169,6 +170,154 @@ describe('legacy iconAssets shape migration', () => {
     const spellPath = spell?.path ?? '';
     expect(spellPath).toBeTruthy();
     expect(spellPath).toMatch(/^[Mm]/);
+  });
+});
+
+describe('iconAssets backfill', () => {
+  async function seedLegacyArrayTheme(themes: InMemoryThemesRepository, name = 'light') {
+    const now = new Date().toISOString();
+    const stored = {
+      id: `theme-${name}-legacy-array`,
+      name,
+      label: name === 'light' ? 'Light' : 'Dark',
+      colors: {
+        pageBg: '#f7faf8',
+        pageBgAccent: 'rgba(15, 23, 42, 0.04)',
+        surface: '#ffffff',
+        surfaceElevated: '#fffdfa',
+        surfaceMuted: '#edf2ef',
+        surfaceAlt: '#f4f8f6',
+        text: '#0f172a',
+        textMuted: '#475569',
+        border: '#cbd5e1',
+        borderStrong: '#a5b4c3',
+        primary: '#4f46e5',
+        primaryStrong: '#4338ca',
+        accentSoft: '#e0e7ff',
+        danger: '#dc2626',
+        success: '#15803d',
+        warning: '#b45309',
+        shadow: '0 14px 32px rgba(15, 23, 42, 0.08)',
+      },
+      fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
+      fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
+      iconAssets: ['spell', 'copy'] as unknown as StoredTheme['iconAssets'],
+      kindColors: { spell: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+      tagColorPalette: ['#1A73E8', '#7C3AED'],
+      isDefault: true,
+      createdAt: now,
+      updatedAt: now,
+    } as unknown as StoredTheme;
+    await themes.create(stored);
+    return stored;
+  }
+
+  async function seedPartialKeyedTheme(themes: InMemoryThemesRepository) {
+    const now = new Date().toISOString();
+    const partial = {
+      id: 'theme-light-partial',
+      name: 'light',
+      label: 'Light',
+      colors: {
+        pageBg: '#f7faf8',
+        pageBgAccent: 'rgba(15, 23, 42, 0.04)',
+        surface: '#ffffff',
+        surfaceElevated: '#fffdfa',
+        surfaceMuted: '#edf2ef',
+        surfaceAlt: '#f4f8f6',
+        text: '#0f172a',
+        textMuted: '#475569',
+        border: '#cbd5e1',
+        borderStrong: '#a5b4c3',
+        primary: '#4f46e5',
+        primaryStrong: '#4338ca',
+        accentSoft: '#e0e7ff',
+        danger: '#dc2626',
+        success: '#15803d',
+        warning: '#b45309',
+        shadow: '0 14px 32px rgba(15, 23, 42, 0.08)',
+      },
+      fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
+      fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
+      iconAssets: {
+        spell: { path: 'CUSTOM_SPELL_PATH', viewBox: '0 0 24 24' },
+        copy: { path: 'CUSTOM_COPY_PATH', viewBox: '0 0 24 24' },
+      } as unknown as StoredTheme['iconAssets'],
+      kindColors: { spell: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+      tagColorPalette: ['#1A73E8', '#7C3AED'],
+      isDefault: true,
+      createdAt: now,
+      updatedAt: now,
+    } as unknown as StoredTheme;
+    await themes.create(partial);
+    return partial;
+  }
+
+  it('upserts a legacy-shape document to a full keyed record', async () => {
+    const { themes, service } = setup();
+    await seedLegacyArrayTheme(themes);
+
+    await service.backfillIconAssets();
+
+    const stored = await themes.findById('theme-light-legacy-array');
+    expect(stored).not.toBeNull();
+    const iconAssets = stored!.iconAssets as Record<string, { path: string; viewBox: string }>;
+    const expectedKeys = ['spell', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download', 'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'search', 'sun', 'moon', 'add'];
+    for (const key of expectedKeys) {
+      expect(iconAssets[key]).toBeDefined();
+      expect(iconAssets[key].path).toBe(ICON_ASSETS[key as keyof typeof ICON_ASSETS].path);
+      expect(iconAssets[key].viewBox).toBe(ICON_ASSETS[key as keyof typeof ICON_ASSETS].viewBox);
+    }
+    expect(Object.keys(iconAssets).length).toBe(expectedKeys.length);
+  });
+
+  it('preserves custom paths and only fills missing keys', async () => {
+    const { themes, service } = setup();
+    await seedPartialKeyedTheme(themes);
+
+    await service.backfillIconAssets();
+
+    const stored = await themes.findById('theme-light-partial');
+    const iconAssets = stored!.iconAssets as Record<string, { path: string; viewBox: string }>;
+    expect(iconAssets.spell.path).toBe('CUSTOM_SPELL_PATH');
+    expect(iconAssets.copy.path).toBe('CUSTOM_COPY_PATH');
+    expect(iconAssets.close).toBeDefined();
+    expect(iconAssets.sun).toBeDefined();
+    expect(iconAssets.moon).toBeDefined();
+    expect(iconAssets.add).toBeDefined();
+  });
+
+  it('is idempotent on a second run', async () => {
+    const { themes, service } = setup();
+    await seedLegacyArrayTheme(themes);
+
+    await service.backfillIconAssets();
+    const firstUpdatedAt = (await themes.findById('theme-light-legacy-array'))!.updatedAt;
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await service.backfillIconAssets();
+    const secondUpdatedAt = (await themes.findById('theme-light-legacy-array'))!.updatedAt;
+
+    expect(secondUpdatedAt).toBe(firstUpdatedAt);
+  });
+
+  it('is a no-op when the collection is empty', async () => {
+    const { service } = setup();
+    await expect(service.backfillIconAssets()).resolves.toBeUndefined();
+  });
+
+  it('passes through a fully keyed record unchanged', async () => {
+    const { service } = setup();
+    await ensureThemesSeeded(service);
+
+    const before = await service.list(query);
+    const beforeUpdatedAt = before.items[0].updatedAt;
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await service.backfillIconAssets();
+
+    const after = await service.list(query);
+    expect(after.items[0].updatedAt).toBe(beforeUpdatedAt);
   });
 });
 

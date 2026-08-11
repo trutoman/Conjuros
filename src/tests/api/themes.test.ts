@@ -196,8 +196,8 @@ describe('theme endpoints', () => {
       .expect(400);
   });
 
-  describe('legacy iconAssets shape', () => {
-    async function seedLegacyTheme(context: ReturnType<typeof createSeededTestApp>) {
+  describe('legacy iconAssets shape (string[] from theme-svg-sprite-icons)', () => {
+    async function seedLegacyArrayTheme(context: ReturnType<typeof createSeededTestApp>) {
       const now = new Date().toISOString();
       const legacy = {
         id: 'theme-light-legacy',
@@ -224,7 +224,7 @@ describe('theme endpoints', () => {
         },
         fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
         fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
-        iconAssets: ['spell', 'copy'],
+        iconAssets: ['spell', 'copy'] as unknown as Parameters<typeof context.themes.create>[0] extends infer T ? T extends { iconAssets: infer R } ? R : never : never,
         kindColors: { spell: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
         tagColorPalette: ['#1A73E8', '#7C3AED'],
         isDefault: true,
@@ -234,9 +234,9 @@ describe('theme endpoints', () => {
       await context.themes.create(legacy as unknown as Parameters<typeof context.themes.create>[0]);
     }
 
-    it('GET /api/themes/active returns HTTP 200 for a stored legacy-shape theme', async () => {
+    it('GET /api/themes/active returns HTTP 200 and normalizes the legacy array shape', async () => {
       const context = createSeededTestApp();
-      await seedLegacyTheme(context);
+      await seedLegacyArrayTheme(context);
       const cookie = await registerUser(request, context.app, 'legacy@example.com');
 
       const active = await request(context.app)
@@ -244,16 +244,15 @@ describe('theme endpoints', () => {
         .set('Cookie', cookie)
         .expect(200);
       expect(active.body.theme.name).toBe('light');
-      expect(Array.isArray(active.body.theme.iconAssets)).toBe(false);
-      expect(active.body.theme.iconAssets).toMatchObject({
-        spell: { path: expect.any(String), viewBox: expect.any(String) },
-        copy: { path: expect.any(String), viewBox: expect.any(String) },
-      });
+      const iconAssets = active.body.theme.iconAssets;
+      expect(Array.isArray(iconAssets)).toBe(false);
+      expect(iconAssets.spell).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
+      expect(iconAssets.copy).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
     });
 
     it('GET /api/themes returns HTTP 200 and normalizes the legacy shape', async () => {
       const context = createSeededTestApp();
-      await seedLegacyTheme(context);
+      await seedLegacyArrayTheme(context);
       const cookie = await registerUser(request, context.app, 'legacy@example.com');
 
       const list = await request(context.app).get('/api/themes').set('Cookie', cookie).expect(200);
@@ -262,6 +261,33 @@ describe('theme endpoints', () => {
         spell: { path: expect.any(String), viewBox: expect.any(String) },
         copy: { path: expect.any(String), viewBox: expect.any(String) },
       });
+    });
+
+    it('GET /api/themes/active returns a full 20-key keyed record after backfillIconAssets', async () => {
+      const context = createSeededTestApp();
+      await seedLegacyArrayTheme(context);
+      await context.themesService.backfillIconAssets();
+      const cookie = await registerUser(request, context.app, 'legacy-backfill@example.com');
+
+      const active = await request(context.app)
+        .get('/api/themes/active')
+        .set('Cookie', cookie)
+        .expect(200);
+      const iconAssets = active.body.theme.iconAssets;
+      expect(typeof iconAssets).toBe('object');
+      expect(Array.isArray(iconAssets)).toBe(false);
+      const expectedKeys = [
+        'spell', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download',
+        'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close',
+        'search', 'sun', 'moon', 'add',
+      ];
+      expect(Object.keys(iconAssets).sort()).toEqual([...expectedKeys].sort());
+      for (const key of expectedKeys) {
+        expect(iconAssets[key]).toMatchObject({
+          path: expect.any(String),
+          viewBox: expect.any(String),
+        });
+      }
     });
   });
 });

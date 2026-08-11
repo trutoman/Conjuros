@@ -668,43 +668,44 @@ describe('ItemCard', () => {
       renderItemCard({ item: createFileItem() });
 
       const fileBadge = screen.getByRole('img', { name: 'File' });
+      const filePath =
+        'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6';
       const markdownPath =
         'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8';
+      expect(fileBadge.querySelector('path')?.getAttribute('d')).toBe(filePath);
       expect(fileBadge.querySelector('path')?.getAttribute('d')).not.toBe(markdownPath);
     });
 
-    it('uses the exact same eye icon path as View markdown for View file', () => {
+    it('uses the exact same icon path as View markdown for View file', () => {
       renderItemCard({ item: createMarkdownItem() });
-      const markdownIcon = screen
+      const markdownPath = screen
         .getByRole('button', { name: 'View markdown' })
-        .querySelector('path');
+        .querySelector('path')
+        ?.getAttribute('d');
       renderItemCard({ item: createFileItem() });
-      const fileIcon = screen
+      const filePath = screen
         .getByRole('button', { name: 'View file' })
-        .querySelector('svg');
+        .querySelector('path')
+        ?.getAttribute('d');
 
-      const viewBox = fileIcon?.getAttribute('viewBox');
-      const filePath = fileIcon?.querySelector('path')?.getAttribute('d');
-      const markdownPath = markdownIcon?.getAttribute('d');
-      expect(viewBox).toBe('0 0 24 24');
       expect(filePath).toBe(markdownPath);
+      expect(filePath?.startsWith('M2 12s3-7')).toBe(true);
     });
 
-    it('uses the exact same download icon path as the markdown download for Download file', () => {
+    it('uses the exact same icon path as the markdown download for Download file', () => {
       renderItemCard({ item: createMarkdownItem() });
-      const markdownIcon = screen
+      const markdownPath = screen
         .getByRole('button', { name: 'Download markdown' })
-        .querySelector('svg');
+        .querySelector('path')
+        ?.getAttribute('d');
       renderItemCard({ item: createFileItem() });
-      const fileIcon = screen
+      const filePath = screen
         .getByRole('button', { name: 'Download file' })
-        .querySelector('svg');
+        .querySelector('path')
+        ?.getAttribute('d');
 
-      const viewBoxContainer = fileIcon?.getAttribute('viewBox');
-      const filePath = fileIcon?.querySelector('path')?.getAttribute('d');
-      const markdownPath = markdownIcon?.querySelector('path')?.getAttribute('d');
-      expect(viewBoxContainer).toBe('0 0 24 24');
       expect(filePath).toBe(markdownPath);
+      expect(filePath?.startsWith('M21 15v4a2 2 0 0 1-2 2H5')).toBe(true);
     });
   });
 
@@ -732,21 +733,25 @@ describe('ItemCard', () => {
   });
 
   describe('theme-driven icon rendering', () => {
+    function renderWithIcons(ui: React.ReactNode, icons: ThemeIcons = defaultIcons) {
+      return render(<ThemeIconsContext.Provider value={icons}>{ui}</ThemeIconsContext.Provider>);
+    }
+
     it('renders the copy icon with the path provided by the theme context', () => {
       const customPath = 'M1 1 H10 V10 H1 Z';
-      const { container } = render(
-        <ThemeIconsContext.Provider
-          value={{ ...defaultIcons, copy: { path: customPath, viewBox: '0 0 12 12' } }}
-        >
-          <ItemCard
-            item={createSpellItem()}
-            tags={[]}
-            onEdit={() => undefined}
-            onDelete={() => undefined}
-            isMenuOpen={false}
-            onMenuToggle={() => undefined}
-          />
-        </ThemeIconsContext.Provider>,
+      const { container } = renderWithIcons(
+        <ItemCard
+          item={createSpellItem()}
+          tags={[]}
+          onEdit={() => undefined}
+          onDelete={() => undefined}
+          isMenuOpen={false}
+          onMenuToggle={() => undefined}
+        />,
+        {
+          ...defaultIcons,
+          copy: { path: customPath, viewBox: '0 0 12 12' },
+        },
       );
 
       const copyIcon = container.querySelector('button[aria-label="Copy command"] svg');
@@ -755,18 +760,17 @@ describe('ItemCard', () => {
     });
 
     it('falls back to the bundled icon when the theme omits a key', () => {
-      const partialIcons = { spell: defaultIcons.spell, view: defaultIcons.view } as ThemeIcons;
-      const { container } = render(
-        <ThemeIconsContext.Provider value={partialIcons}>
-          <ItemCard
-            item={createSpellItem()}
-            tags={[]}
-            onEdit={() => undefined}
-            onDelete={() => undefined}
-            isMenuOpen={false}
-            onMenuToggle={() => undefined}
-          />
-        </ThemeIconsContext.Provider>,
+      const partial = { spell: defaultIcons.spell, view: defaultIcons.view } as ThemeIcons;
+      const { container } = renderWithIcons(
+        <ItemCard
+          item={createSpellItem()}
+          tags={[]}
+          onEdit={() => undefined}
+          onDelete={() => undefined}
+          isMenuOpen={false}
+          onMenuToggle={() => undefined}
+        />,
+        partial,
       );
 
       const copyIcon = container.querySelector('button[aria-label="Copy command"] svg');

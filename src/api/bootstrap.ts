@@ -13,3 +13,7 @@ export async function grantAdminRole(users: UsersRepository, adminEmail: string 
 export async function ensureThemesSeeded(themes: ThemesService): Promise<void> {
   await themes.ensureSeeded();
 }
+
+export async function backfillThemeIcons(themes: ThemesService): Promise<void> {
+  await themes.backfillIconAssets();
+}
