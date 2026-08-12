@@ -1,10 +1,4 @@
-# Developer Environment
-
-## Purpose
-
-This capability covers the local development environment and contributor workflow needed to run and validate the project.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Repeatable local development setup using Docker and MongoDB
 The system SHALL provide a repeatable local development setup using Docker Compose that builds and runs the full application in three containers (`db`, `api`, and `web`), with a documented fallback that runs only MongoDB in Docker for npm-based hot-reload development.

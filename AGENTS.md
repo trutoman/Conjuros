@@ -9,6 +9,7 @@ All project documentation, code, and code comments must be written in English.
 npm run dev              # Start API (port 3000) + frontend (port 5173) concurrently
 npm run dev:api          # API only via tsx watch
 npm run dev:web          # Frontend only via Vite
+docker compose up -d     # Build/start all containers: db + api + web (frontend on 5173)
 ```
 
 **Validation (required before finishing):**

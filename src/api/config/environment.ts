@@ -19,7 +19,14 @@ const apiEnvironmentSchema = z.object({
   MONGODB_URI: mongoUriSchema,
   MONGODB_DATABASE: nonBlankString,
   SESSION_SECRET: nonBlankString.min(32),
-  ADMIN_EMAIL: emailSchema.optional(),
+  ADMIN_EMAIL: z.preprocess(
+    (value) => (value === undefined || value === '' ? undefined : value),
+    emailSchema.optional(),
+  ),
+  CORS_ORIGIN: z.preprocess(
+    (value) => (value === undefined || value === '' ? undefined : value),
+    z.string().trim().url().optional(),
+  ),
   PORT: z.preprocess(
     (value) => (value === undefined || value === '' ? undefined : value),
     z.coerce.number().int().min(1).max(65_535).optional(),
@@ -31,6 +38,7 @@ export interface ApiEnvironment {
   databaseName: string;
   sessionSecret: string;
   adminEmail: string | null;
+  corsOrigin: string;
   port: number;
 }
 
@@ -46,6 +54,7 @@ export function parseApiEnvironment(environment: Record<string, string | undefin
     databaseName: parsed.data.MONGODB_DATABASE,
     sessionSecret: parsed.data.SESSION_SECRET,
     adminEmail: parsed.data.ADMIN_EMAIL ?? null,
+    corsOrigin: parsed.data.CORS_ORIGIN ?? 'http://localhost:5173',
     port: parsed.data.PORT ?? 3000,
   };
 }

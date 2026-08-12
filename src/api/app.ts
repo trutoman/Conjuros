@@ -25,13 +25,14 @@ export interface AppDependencies {
   themes: ThemesRepository;
   users: UsersRepository;
   sessionSecret: string;
+  corsOrigin?: string;
 }
 
 export function createApp(dependencies: AppDependencies) {
   const app = express();
   const auth = requireAuth(dependencies.sessionSecret);
   const admin = requireAdmin(dependencies.users);
-  app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+  app.use(cors({ origin: dependencies.corsOrigin ?? 'http://localhost:5173', credentials: true }));
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
   app.get('/api/health', (_request, response) => response.json({ status: 'ok' }));

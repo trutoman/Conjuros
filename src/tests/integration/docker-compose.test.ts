@@ -46,7 +46,7 @@ describe('Docker Compose MongoDB persistence', () => {
 
     let client: MongoClient | undefined;
     try {
-      const start = await runDocker(['compose', '-p', composeProject, 'up', '-d', 'mongo']);
+      const start = await runDocker(['compose', '-p', composeProject, 'up', '-d', 'db']);
       if (start.code !== 0) {
         throw new Error(`Docker Compose could not start the local MongoDB service: ${start.stderr}`);
       }
@@ -56,7 +56,7 @@ describe('Docker Compose MongoDB persistence', () => {
       await client.close();
       client = undefined;
 
-      const restart = await runDocker(['compose', '-p', composeProject, 'restart', 'mongo']);
+      const restart = await runDocker(['compose', '-p', composeProject, 'restart', 'db']);
       expect(restart.code).toBe(0);
 
       client = await waitForMongo();

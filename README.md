@@ -1,19 +1,20 @@
 # Conjuros
 
-Conjuros is a private collection for spells, web links, and markdown notes. Markdown notes can optionally carry a `filename` (a plain `.md` file name) shown in the markdown reader and editable in the item form. This repository includes a contributor-owned MongoDB service for local development.
+Conjuros is a private collection for spells, web links, and markdown notes. Markdown notes can optionally carry a `filename` (a plain `.md` file name) shown in the markdown reader and editable in the item form. The stack runs in three Docker containers — `db`, `api`, and `web` — with the React frontend served by Nginx and the API proxied on a single origin.
 
 ## Local Development
 
 ### Prerequisites
 
-- Node.js and npm.
 - Docker Desktop or Docker Engine with its daemon running.
-- Port `27017` available for MongoDB.
-- Port `5173` available for the Vite frontend.
+- Ports `27017` (MongoDB), `3000` (API), and `5173` (frontend) available.
 
-### Start the Workspace
+### Start the Workspace (containers)
 
-1. Verify Docker before starting MongoDB:
+The application runs in three connected containers: `db` (MongoDB), `api` (Express),
+and `web` (Nginx serving the built React app and proxying `/api` to the API container).
+
+1. Verify Docker before building:
 
    ```sh
    npm run docker:check
@@ -21,37 +22,41 @@ Conjuros is a private collection for spells, web links, and markdown notes. Mark
 
    If the command says the Docker CLI is unavailable, install Docker. If it says Docker is installed but unavailable, start the Docker daemon.
 
-2. Start the local MongoDB service:
-
-   ```sh
-   docker compose up -d
-   ```
-
-   This starts the `mongo-local` container at `mongodb://localhost:27017` and stores development data in the `mongo_data` volume. Do not run `docker compose down -v` unless you intend to delete local MongoDB data.
-
-3. Create local configuration:
+2. Create local configuration:
 
    ```sh
    cp .env.example .env
    ```
 
-   Set `MONGODB_DATABASE` and a unique `SESSION_SECRET` of at least 32 characters. Keep `.env` private and never commit or share its contents.
+   Set `MONGODB_DATABASE` and a unique `SESSION_SECRET` of at least 32 characters. `docker compose` reads these values from `.env`, so this file must exist before starting the stack. Keep `.env` private and never commit or share its contents.
 
-4. Install dependencies and start the application:
+3. Build and start all three containers:
 
    ```sh
-   npm install
-   npm run dev
+   docker compose up -d
    ```
 
-   When startup succeeds, open [http://localhost:5173](http://localhost:5173).
+   The `api` container waits for Mongo to become healthy, and the `web` container starts after the API is ready. Open [http://localhost:5173](http://localhost:5173) once startup completes. Stop the stack with `docker compose down`; do not run `docker compose down -v` unless you intend to delete local MongoDB data (stored in the `mongo_data` volume).
+
+### Local Development (npm)
+
+To develop frontend and API code with hot reload, run only the database in Docker and everything else via npm:
+
+```sh
+docker compose up -d db
+npm install
+npm run dev
+```
+
+When startup succeeds, open [http://localhost:5173](http://localhost:5173).
 
 ## Troubleshooting
 
 - **Docker unavailable**: run `npm run docker:check`; install Docker or start its daemon before running Compose.
-- **Port 27017 already in use**: stop the conflicting service or choose another local development environment before running `docker compose up -d`. Docker will report that `mongo-local` could not bind the port; do not assume it connected to an existing MongoDB instance.
+- **`SESSION_SECRET` is required**: `docker compose up` fails before starting the `api` container when `.env` is missing or lacks `SESSION_SECRET`. Create `.env` from `.env.example` and set a value of at least 32 characters.
+- **Port 27017 already in use**: stop the conflicting service or choose another local development environment before running `docker compose up -d`.
 - **Invalid configuration**: API startup stops before serving requests and names the invalid environment variable. Update `.env` without placing real values in logs, issue reports, or source control.
-- **Port 5173 unavailable**: the workspace has not reached the required frontend address. Stop the conflicting process, then rerun `npm run dev` and confirm [http://localhost:5173](http://localhost:5173) loads.
+- **Port 5173 unavailable**: the workspace has not reached the required frontend address. Stop the conflicting process, then rerun `docker compose up -d` and confirm [http://localhost:5173](http://localhost:5173) loads.
 
 ## Validation
 

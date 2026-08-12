@@ -24,5 +24,6 @@ const app = createApp({
 	themes,
 	users,
 	sessionSecret: environment.sessionSecret,
+	corsOrigin: environment.corsOrigin,
 });
 app.listen(environment.port, () => console.info(`Conjuros API listening on port ${environment.port}`));
