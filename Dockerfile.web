@@ -3,7 +3,11 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 COPY package.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
+
+RUN corepack enable
+RUN corepack prepare pnpm@11.23.0 --activate
 
 RUN pnpm install
 

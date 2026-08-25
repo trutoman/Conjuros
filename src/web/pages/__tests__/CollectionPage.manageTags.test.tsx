@@ -339,4 +339,32 @@ describe('CollectionPage inline manage tags view', () => {
       /\.tag-management-actions \.search-field\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-width:\s*0;[^}]*\}/,
     );
   });
+
+  it('renders the Add tag control as an icon button, not plain text', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    const addTag = manageFrame().getByRole('button', { name: 'Add tag' });
+    expect(addTag.classList.contains('add-item-button')).toBe(true);
+    expect(addTag.querySelector('svg.icon')).toBeInTheDocument();
+
+    const css = readFileSync(join(process.cwd(), 'src/web/index.css'), 'utf8');
+    expect(css).toMatch(/\.tag-management-header \.add-item-button\s*\{/);
+  });
+
+  it('orders the tag management header as button, then heading, then search box', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    const frame = manageFrame();
+    const addTag = frame.getByRole('button', { name: 'Add tag' });
+    const heading = frame.getByRole('heading', { name: 'Manage tags' });
+    const searchInput = frame.getByLabelText('Search tags');
+
+    const indicator = (node: HTMLElement, follower: HTMLElement) =>
+      (node.compareDocumentPosition(follower) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+    expect(indicator(addTag, heading)).toBe(true);
+    expect(indicator(heading, searchInput)).toBe(true);
+  });
 });
