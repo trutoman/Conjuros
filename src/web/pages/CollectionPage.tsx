@@ -316,6 +316,15 @@ export function CollectionPage({
                     <ThemeIcon name="close" />
                   </button>
                   <div className="tag-management-header">
+                    <button
+                      type="button"
+                      className="add-item-button"
+                      onClick={() => openTagFormInManage(null)}
+                      aria-label="Add tag"
+                      title="Add tag"
+                    >
+                      <ThemeIcon name="add" />
+                    </button>
                     <h2>Manage tags</h2>
                     <div className="tag-management-actions">
                       <div className="search-field">
@@ -345,9 +354,6 @@ export function CollectionPage({
                           </button>
                         )}
                       </div>
-                      <button type="button" onClick={() => openTagFormInManage(null)}>
-                        Add tag
-                      </button>
                     </div>
                   </div>
                   {actionError && <ErrorState message={actionError} />}
