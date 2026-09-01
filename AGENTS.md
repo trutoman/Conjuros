@@ -6,8 +6,9 @@ All project documentation, code, and code comments must be written in English.
 
 **Development:**
 ```bash
-npm run dev              # Start API (port 3000) + frontend (port 5173) concurrently
-npm run dev:api          # API only via tsx watch
+npm run dev              # Ensure db container is healthy, free 3000/5173, then start API + frontend
+npm run dev:api          # API only via tsx watch (requires MongoDB on localhost:27017)
+npm run dev:db           # Prepare dev prerequisites: free 3000/5173 (stop api/web containers, fail fast if busy), then compose up --wait db
 npm run dev:web          # Frontend only via Vite
 docker compose up -d     # Build/start all containers: db + api + web (frontend on 5173)
 ```
@@ -24,9 +25,8 @@ npm run build            # tsc --noEmit + vite build
 
 **Setup:**
 ```bash
-npm run docker:check     # Verify Docker CLI and daemon before docker compose up
-docker compose up -d     # Start local MongoDB at localhost:27017
 cp .env.example .env     # Create local config (set MONGODB_DATABASE and SESSION_SECRET ≥32 chars)
+npm run docker:check     # Optional: verify Docker CLI and daemon before running npm run dev
 ```
 
 ## Product

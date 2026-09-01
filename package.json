@@ -8,8 +8,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"pnpm:dev:api\" \"pnpm:dev:web\"",
+    "dev": "pnpm run dev:db && concurrently \"pnpm:dev:api\" \"pnpm:dev:web\"",
     "dev:api": "tsx watch src/api/server.ts",
+    "dev:db": "node scripts/check-docker.mjs && docker compose stop api web && node scripts/check-ports.mjs && docker compose up -d --wait --wait-timeout 120 db",
     "dev:web": "vite",
     "build": "tsc --noEmit && vite build",
     "check": "pnpm run lint && pnpm run test && pnpm run build",

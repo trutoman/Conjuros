@@ -40,10 +40,9 @@ and `web` (Nginx serving the built React app and proxying `/api` to the API cont
 
 ### Local Development (npm)
 
-To develop frontend and API code with hot reload, run only the database in Docker and everything else via npm:
+To develop frontend and API code with hot reload, run only the database in Docker and everything else via npm. `npm run dev` checks Docker availability, stops any full-stack `api`/`web` containers, verifies ports `3000` and `5173` are free (failing fast with the PID of a conflicting process), starts the `db` container and waits for it to become healthy, and then starts the API and Vite dev server:
 
 ```sh
-docker compose up -d db
 npm install
 npm run dev
 ```
@@ -53,6 +52,7 @@ When startup succeeds, open [http://localhost:5173](http://localhost:5173).
 ## Troubleshooting
 
 - **Docker unavailable**: run `npm run docker:check`; install Docker or start its daemon before running Compose.
+- **`Port 3000 or 5173 is already in use`**: when `npm run dev` fails fast, its message names the process holding the port — usually a leftover dev session. Stop it (`kill <pid>`) and rerun `npm run dev`.
 - **`SESSION_SECRET` is required**: `docker compose up` fails before starting the `api` container when `.env` is missing or lacks `SESSION_SECRET`. Create `.env` from `.env.example` and set a value of at least 32 characters.
 - **Port 27017 already in use**: stop the conflicting service or choose another local development environment before running `docker compose up -d`.
 - **Invalid configuration**: API startup stops before serving requests and names the invalid environment variable. Update `.env` without placing real values in logs, issue reports, or source control.
