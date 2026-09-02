@@ -723,10 +723,14 @@ select {
 
 .action-message {
   margin-top: 0.7rem;
+  font-size: 0.85rem;
   color: var(--success);
 }
 
-.action-message,
+.action-message--error {
+  color: var(--danger);
+}
+
 .field-error {
   color: var(--danger);
   font-size: 0.85rem;

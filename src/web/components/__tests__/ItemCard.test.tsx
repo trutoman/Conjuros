@@ -164,7 +164,21 @@ describe('ItemCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy command' }));
 
     expect(writeText).toHaveBeenCalledWith('git status --short');
-    expect(await screen.findByText('Command copied')).toBeInTheDocument();
+    const message = await screen.findByText('Command copied');
+    expect(message).toBeInTheDocument();
+    expect(message).toHaveClass('action-message');
+    expect(message).not.toHaveClass('action-message--error');
+  });
+
+  it('shows a copy failure message styled as an error', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('clipboard denied'));
+    Object.assign(navigator, { clipboard: { writeText } });
+    renderItemCard();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy command' }));
+
+    const message = await screen.findByText('Could not copy command');
+    expect(message).toHaveClass('action-message--error');
   });
 
   it('renders tag colors and shows only two buttons in item-actions for a spell', () => {
