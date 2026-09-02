@@ -4,6 +4,7 @@ import { computeTagOverflow, estimateInlineWidth } from './itemCardOverflow';
 import { markdownSlug, plainTextSlug } from '../lib/itemCardSlug';
 import { downloadMarkdownFile } from '../lib/downloadMarkdown';
 import { downloadTextFile } from '../lib/downloadFile';
+import { useTransientMessage } from '../hooks/useTransientMessage';
 import { ThemeIcon } from './ThemeIcon';
 
 export function ItemCard({
@@ -23,7 +24,7 @@ export function ItemCard({
   isMenuOpen: boolean;
   onMenuToggle: () => void;
 }) {
-  const [message, setMessage] = useState('');
+  const { message, showMessage } = useTransientMessage();
   const [expanded, setExpanded] = useState(false);
   const [topRowWidth, setTopRowWidth] = useState<number>(Number.POSITIVE_INFINITY);
   const [isTagOverflowOpen, setIsTagOverflowOpen] = useState(false);
@@ -109,9 +110,9 @@ export function ItemCard({
   async function copy(value: string, label: string) {
     try {
       await navigator.clipboard.writeText(value);
-      setMessage(`${label} copied`);
+      showMessage(`${label} copied`, 'success');
     } catch {
-      setMessage(`Could not copy ${label.toLowerCase()}`);
+      showMessage(`Could not copy ${label.toLowerCase()}`, 'error');
     }
   }
 
@@ -479,8 +480,11 @@ export function ItemCard({
       </div>
       {item.description && expanded && <p className="item-description">{item.description}</p>}
       {message && (
-        <p className="action-message" role="status">
-          {message}
+        <p
+          className={`action-message${message.kind === 'error' ? ' action-message--error' : ''}`}
+          role="status"
+        >
+          {message.text}
         </p>
       )}
     </article>
