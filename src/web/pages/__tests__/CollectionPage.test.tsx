@@ -251,18 +251,34 @@ describe('CollectionPage', () => {
     expect(screen.queryByRole('button', { name: 'Close sidebar' })).not.toBeInTheDocument();
   });
 
-  it('returns to the collection view when the Add item form is closed via its close button', () => {
+  it('keeps the collection list visible while the Add item form is open as a modal', () => {
     render(<CollectionPage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
     expect(screen.getByRole('heading', { name: 'Add item' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Add item' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
+    expect(screen.getByText('Git status')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'discard.me' } });
     fireEvent.click(screen.getByRole('button', { name: 'Close item form' }));
 
     expect(collectionState.create).not.toHaveBeenCalled();
+    expect(screen.queryByRole('heading', { name: 'Add item' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
+    expect(screen.getByText('Git status')).toBeInTheDocument();
+  });
+
+  it('dismisses the Add item form when clicking outside the modal', () => {
+    render(<CollectionPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    expect(screen.getByRole('heading', { name: 'Add item' })).toBeInTheDocument();
+
+    fireEvent.mouseDown(screen.getByTestId('modal-backdrop'));
+
+    expect(screen.queryByRole('heading', { name: 'Add item' })).not.toBeInTheDocument();
+    expect(collectionState.create).not.toHaveBeenCalled();
     expect(screen.getByText('Git status')).toBeInTheDocument();
   });
 
@@ -326,7 +342,7 @@ describe('CollectionPage', () => {
     expect(screen.queryByRole('button', { name: 'Copy content' })).not.toBeInTheDocument();
   });
 
-  it('opens the markdown viewer from a card and replaces the collection list', () => {
+  it('opens the markdown viewer as a modal over the persistent collection list', () => {
     collectionState.items = [
       {
         id: 'item-md',
@@ -354,8 +370,9 @@ describe('CollectionPage', () => {
     expect(
       screen.getByRole('heading', { name: /View markdown Runbook/ }),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'View markdown' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /View markdown Runbook/ })).toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
+    expect(screen.getAllByText('Runbook').length).toBeGreaterThan(0);
   });
 
   it('closes the markdown viewer back to the collection list', () => {
@@ -381,7 +398,8 @@ describe('CollectionPage', () => {
     render(<CollectionPage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'View markdown' }));
-    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /View markdown/ })).toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Close markdown viewer' }));
 

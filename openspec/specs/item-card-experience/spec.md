@@ -71,7 +71,7 @@ When the contextual menu on an item card is open, the card SHALL be raised above
 
 ### Requirement: Markdown card action button opens the viewer
 
-A `markdown` item card SHALL offer a "View markdown" action button in the card's item-actions row, identical in placement and styling to the spell "Copy command" and web-link "Open link" action buttons, using an eye icon as its glyph. Clicking it SHALL open the markdown viewer panel for that item inside the collection item area. Only `markdown` items SHALL have this action; spell and web-link cards SHALL NOT show it.
+A `markdown` item card SHALL offer a "View markdown" action button in the card's item-actions row, identical in placement and styling to the spell "Copy command" and web-link "Open link" action buttons, using an eye icon as its glyph. Clicking it SHALL open the markdown viewer panel for that item as a floating modal above the collection page while the item list remains visible behind it. Only `markdown` items SHALL have this action; spell and web-link cards SHALL NOT show it.
 
 #### Scenario: View markdown button appears on markdown cards
 
@@ -92,7 +92,14 @@ A `markdown` item card SHALL offer a "View markdown" action button in the card's
 #### Scenario: Clicking the button opens the viewer
 
 - **WHEN** a user clicks the "View markdown" action button on a markdown item card
-- **THEN** the markdown viewer panel opens for that item inside the collection item area
+- **THEN** the markdown viewer panel opens for that item as a floating modal
+- **AND** the collection subheader and item list remain visible behind the modal backdrop
+
+#### Scenario: Closing the viewer reveals the unchanged list
+
+- **WHEN** the user closes the markdown viewer (backdrop click, Escape, or Close control)
+- **THEN** the viewer is removed
+- **AND** the same item list state shown before opening is visible again
 
 ### Requirement: Markdown item cards render the content
 

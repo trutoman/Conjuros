@@ -1,1 +1,28 @@
-export function DeleteConfirmDialog({ title, onConfirm, onCancel }: { title: string; onConfirm: () => void; onCancel: () => void }) { return <div className="dialog-backdrop" role="presentation"><section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-title"><h2 id="delete-title">Delete {title}?</h2><p>This action cannot be undone.</p><div><button className="danger" onClick={onConfirm}>Delete item</button><button className="quiet" onClick={onCancel}>Cancel</button></div></section></div>; }
+import { Modal } from './Modal';
+
+export function DeleteConfirmDialog({
+  title,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal label={`Delete ${title}?`} onClose={onCancel}>
+      <div className="confirm-dialog">
+        <h2>Delete {title}?</h2>
+        <p>This action cannot be undone.</p>
+        <div>
+          <button className="danger" onClick={onConfirm}>
+            Delete item
+          </button>
+          <button className="quiet" onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
