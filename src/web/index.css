@@ -1380,6 +1380,31 @@ select {
   padding: 1.25rem;
 }
 
+.modal-backdrop {
+  z-index: 1100;
+}
+
+.modal-panel {
+  width: min(34rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border-radius: 1rem;
+}
+
+.modal-panel-wide {
+  width: min(56rem, 100%);
+}
+
+.modal-panel > .item-form {
+  height: auto;
+}
+
+.modal-panel > .confirm-dialog {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 1rem;
+}
+
 .auth-shell {
   min-height: 100vh;
   display: grid;

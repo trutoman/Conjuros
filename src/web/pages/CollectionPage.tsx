@@ -17,6 +17,7 @@ import { ErrorState } from '../components/ErrorState';
 import { Sidebar } from '../components/Sidebar';
 import { ItemForm } from '../components/ItemForm';
 import { ItemCardViewer } from '../components/ItemCardViewer';
+import { Modal } from '../components/Modal';
 import { TagForm } from '../components/TagForm';
 import { TagList } from '../components/TagList';
 import { ThemeForm } from '../components/ThemeForm';
@@ -291,141 +292,7 @@ export function CollectionPage({
           )}
 
           <div className="main-content-frame">
-            {viewerItem !== undefined && viewerItem !== null ? (
-              <ItemCardViewer
-                item={viewerItem}
-                onClose={closeViewer}
-                onEdit={() => openItemForm(viewerItem)}
-              />
-            ) : manageTags ? (
-              formTag !== undefined ? (
-                <TagForm
-                  tag={formTag ?? undefined}
-                  onSubmit={saveTag}
-                  onCancel={() => setFormTag(undefined)}
-                  palette={tagPalette}
-                />
-              ) : (
-                <div className="item-form tag-management-view">
-                  <button
-                    type="button"
-                    className="form-close"
-                    aria-label="Close tag management"
-                    onClick={closeManageTags}
-                  >
-                    <ThemeIcon name="close" />
-                  </button>
-                  <div className="tag-management-header">
-                    <button
-                      type="button"
-                      className="add-item-button"
-                      onClick={() => openTagFormInManage(null)}
-                      aria-label="Add tag"
-                      title="Add tag"
-                    >
-                      <ThemeIcon name="add" />
-                    </button>
-                    <h2>Manage tags</h2>
-                    <div className="tag-management-actions">
-                      <div className="search-field">
-                        <svg
-                          className="icon search-icon"
-                          role="img"
-                          aria-hidden="true"
-                          viewBox="0 0 24 24"
-                          focusable="false"
-                        >
-                          <path d="M11 3a8 8 0 1 0 0 16 8 8 0 1 0 0-16Z M21 21l-4.3-4.3" />
-                        </svg>
-                        <input
-                          aria-label="Search tags"
-                          value={tagQuery}
-                          onChange={(event) => setTagQuery(event.target.value)}
-                          placeholder="Search in name or category..."
-                        />
-                        {tagQuery && (
-                          <button
-                            type="button"
-                            className="search-clear-button"
-                            onClick={() => setTagQuery('')}
-                            aria-label="Clear search"
-                          >
-                            <ThemeIcon name="close" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  {actionError && <ErrorState message={actionError} />}
-                  {tagsState.isLoading ? (
-                    <LoadingState />
-                  ) : tagsState.error ? (
-                    <ErrorState message={tagsState.error.message} />
-                  ) : (
-                    <TagList
-                      tags={visibleTags}
-                      onEdit={setFormTag}
-                      onDelete={setDeleteTag}
-                      onMove={(id, order) =>
-                        void tagsState
-                          .reorder({ id, order })
-                          .catch((cause: unknown) =>
-                            setActionError(
-                              cause instanceof Error ? cause.message : 'Could not reorder tag',
-                            ),
-                          )
-                      }
-                    />
-                  )}
-                </div>
-              )
-              ) : manageThemes ? (
-                formTheme !== undefined ? (
-                  <ThemeForm
-                    theme={formTheme ?? undefined}
-                    onSubmit={saveTheme}
-                    onCancel={() => setFormTheme(undefined)}
-                  />
-                ) : (
-                  <div className="item-form tag-management-view">
-                    <button
-                      type="button"
-                      className="form-close"
-                      aria-label="Close theme management"
-                      onClick={closeManageThemes}
-                    >
-                      <ThemeIcon name="close" />
-                    </button>
-                    <div className="tag-management-header">
-                      <h2>Manage themes</h2>
-                      <button type="button" onClick={() => openThemeForm(null)}>
-                        Add theme
-                      </button>
-                    </div>
-                    {actionError && <ErrorState message={actionError} />}
-                    {themesState.isLoading ? (
-                      <LoadingState />
-                    ) : themesState.error ? (
-                      <ErrorState message={themesState.error.message} />
-                    ) : (
-                      <ThemeListView
-                        themes={themesState.themes}
-                        onEdit={openThemeForm}
-                        onAdd={() => openThemeForm(null)}
-                        onActivate={(theme) => void confirmThemeActivate(theme)}
-                        onDelete={setDeleteTheme}
-                      />
-                    )}
-                  </div>
-                )
-              ) : formItem !== undefined ? (
-              <ItemForm
-                item={formItem ?? undefined}
-                availableTags={tagsState.tags}
-                onSubmit={save}
-                onCancel={() => setFormItem(undefined)}
-              />
-            ) : (
+            {(
               <>
                 <div className="collection-subheader">
                   <button
@@ -511,6 +378,172 @@ export function CollectionPage({
               </>
             )}
           </div>
+          {viewerItem !== undefined && viewerItem !== null && (
+            <Modal
+              label={
+                viewerItem.kind === 'markdown'
+                  ? `View markdown ${viewerItem.title}`
+                  : `View file ${viewerItem.title}`
+              }
+              onClose={closeViewer}
+              size="wide"
+            >
+              <ItemCardViewer
+                item={viewerItem}
+                onClose={closeViewer}
+                onEdit={() => openItemForm(viewerItem)}
+              />
+            </Modal>
+          )}
+          {manageTags && (
+            <Modal label="Manage tags" onClose={closeManageTags} size="wide">
+              <div className="item-form tag-management-view">
+                <button
+                  type="button"
+                  className="form-close"
+                  aria-label="Close tag management"
+                  onClick={closeManageTags}
+                >
+                  <ThemeIcon name="close" />
+                </button>
+                <div className="tag-management-header">
+                  <button
+                    type="button"
+                    className="add-item-button"
+                    onClick={() => openTagFormInManage(null)}
+                    aria-label="Add tag"
+                    title="Add tag"
+                  >
+                    <ThemeIcon name="add" />
+                  </button>
+                  <h2>Manage tags</h2>
+                  <div className="tag-management-actions">
+                    <div className="search-field">
+                      <svg
+                        className="icon search-icon"
+                        role="img"
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        focusable="false"
+                      >
+                        <path d="M11 3a8 8 0 1 0 0 16 8 8 0 1 0 0-16Z M21 21l-4.3-4.3" />
+                      </svg>
+                      <input
+                        aria-label="Search tags"
+                        value={tagQuery}
+                        onChange={(event) => setTagQuery(event.target.value)}
+                        placeholder="Search in name or category..."
+                      />
+                      {tagQuery && (
+                        <button
+                          type="button"
+                          className="search-clear-button"
+                          onClick={() => setTagQuery('')}
+                          aria-label="Clear search"
+                        >
+                          <ThemeIcon name="close" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {actionError && <ErrorState message={actionError} />}
+                {tagsState.isLoading ? (
+                  <LoadingState />
+                ) : tagsState.error ? (
+                  <ErrorState message={tagsState.error.message} />
+                ) : (
+                  <TagList
+                    tags={visibleTags}
+                    onEdit={setFormTag}
+                    onDelete={setDeleteTag}
+                    onMove={(id, order) =>
+                      void tagsState
+                        .reorder({ id, order })
+                        .catch((cause: unknown) =>
+                          setActionError(
+                            cause instanceof Error ? cause.message : 'Could not reorder tag',
+                          ),
+                        )
+                    }
+                  />
+                )}
+              </div>
+            </Modal>
+          )}
+          {manageTags && formTag !== undefined && (
+            <Modal
+              label={formTag ? `Edit tag ${formTag.tagName}` : 'Add tag'}
+              onClose={() => setFormTag(undefined)}
+            >
+              <TagForm
+                tag={formTag ?? undefined}
+                onSubmit={saveTag}
+                onCancel={() => setFormTag(undefined)}
+                palette={tagPalette}
+              />
+            </Modal>
+          )}
+          {manageThemes && (
+            <Modal label="Manage themes" onClose={closeManageThemes} size="wide">
+              <div className="item-form tag-management-view">
+                <button
+                  type="button"
+                  className="form-close"
+                  aria-label="Close theme management"
+                  onClick={closeManageThemes}
+                >
+                  <ThemeIcon name="close" />
+                </button>
+                <div className="tag-management-header">
+                  <h2>Manage themes</h2>
+                  <button type="button" onClick={() => openThemeForm(null)}>
+                    Add theme
+                  </button>
+                </div>
+                {actionError && <ErrorState message={actionError} />}
+                {themesState.isLoading ? (
+                  <LoadingState />
+                ) : themesState.error ? (
+                  <ErrorState message={themesState.error.message} />
+                ) : (
+                  <ThemeListView
+                    themes={themesState.themes}
+                    onEdit={openThemeForm}
+                    onAdd={() => openThemeForm(null)}
+                    onActivate={(theme) => void confirmThemeActivate(theme)}
+                    onDelete={setDeleteTheme}
+                  />
+                )}
+              </div>
+            </Modal>
+          )}
+          {manageThemes && formTheme !== undefined && (
+            <Modal
+              label={formTheme ? `Edit theme ${formTheme.label}` : 'Add theme'}
+              onClose={() => setFormTheme(undefined)}
+            >
+              <ThemeForm
+                theme={formTheme ?? undefined}
+                onSubmit={saveTheme}
+                onCancel={() => setFormTheme(undefined)}
+              />
+            </Modal>
+          )}
+          {formItem !== undefined && (
+            <Modal
+              label={formItem ? `Edit item ${formItem.title}` : 'Add item'}
+              onClose={() => setFormItem(undefined)}
+              size="wide"
+            >
+              <ItemForm
+                item={formItem ?? undefined}
+                availableTags={tagsState.tags}
+                onSubmit={save}
+                onCancel={() => setFormItem(undefined)}
+              />
+            </Modal>
+          )}
         </div>
         {deleteItem && (
           <DeleteConfirmDialog

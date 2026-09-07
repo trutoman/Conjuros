@@ -132,8 +132,8 @@ afterEach(() => {
   tagsState.reorder.mockResolvedValue(undefined);
 });
 
-describe('CollectionPage inline manage tags view', () => {
-  it('shows the management view as the sole frame content while keeping the sidebar visible', () => {
+describe('CollectionPage tag management modal', () => {
+  it('shows the management view as a modal over the persistent collection list', () => {
     render(<CollectionPage />);
 
     expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
@@ -142,13 +142,26 @@ describe('CollectionPage inline manage tags view', () => {
     openManageTags();
 
     expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Manage tags' })).toBeInTheDocument();
     const frame = manageFrame();
     expect(frame.getByText('git')).toBeInTheDocument();
     expect(frame.getByText('docs')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
-    expect(screen.queryByText('Git status')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
+    expect(screen.getByText('Git status')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Manage tags' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Collapse tags sidebar' })).toBeInTheDocument();
+  });
+
+  it('dismisses the management view when clicking outside the modal', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByTestId('modal-backdrop'));
+
+    expect(screen.queryByRole('heading', { name: 'Manage tags' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
+    expect(screen.getByText('Git status')).toBeInTheDocument();
   });
 
   it('returns to the management list after saving a new tag', async () => {
@@ -168,7 +181,8 @@ describe('CollectionPage inline manage tags view', () => {
       color: '#112233',
     });
     expect(await screen.findByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Add tag' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
   });
 
   it('returns to the management list after canceling the tag form', () => {
@@ -181,7 +195,7 @@ describe('CollectionPage inline manage tags view', () => {
 
     expect(tagsState.create).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
   });
 
   it('returns to the management list when the tag form is closed via its close button', () => {
@@ -196,7 +210,23 @@ describe('CollectionPage inline manage tags view', () => {
 
     expect(tagsState.create).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Search collection')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
+  });
+
+  it('dismisses only the nested tag form when clicking outside of it', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.click(manageFrame().getByRole('button', { name: 'Add tag' }));
+    expect(screen.getByRole('heading', { name: 'Add tag' })).toBeInTheDocument();
+    expect(screen.getAllByRole('dialog')).toHaveLength(2);
+
+    const backdrops = screen.getAllByTestId('modal-backdrop');
+    fireEvent.mouseDown(backdrops[backdrops.length - 1]);
+
+    expect(screen.queryByRole('heading', { name: 'Add tag' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
+    expect(tagsState.create).not.toHaveBeenCalled();
   });
 
   it('pre-fills the edit form and saves the updated tag', async () => {
@@ -229,7 +259,7 @@ describe('CollectionPage inline manage tags view', () => {
 
     fireEvent.click(manageFrame().getAllByRole('button', { name: 'Tag menu' })[0]);
     fireEvent.click(manageFrame().getByRole('menuitem', { name: 'Delete' }));
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Delete git?' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
