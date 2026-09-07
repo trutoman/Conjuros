@@ -21,8 +21,18 @@ import { buildSeedThemes } from '../repositories/themeSeed';
 import type { UsersRepository } from '../repositories/users.repository';
 
 function normalizeStoredTheme(theme: StoredTheme): StoredTheme {
-  // Keyed record: pass through unchanged.
+  // Keyed record: migrate the superseded `clear` artwork, else pass through unchanged.
   if (!Array.isArray(theme.iconAssets)) {
+    const clear = (theme.iconAssets as Record<string, { path: string; viewBox: string }>).clear;
+    if (clear?.path !== undefined && SUPERSEDED_CLEAR_PATHS.has(clear.path)) {
+      return {
+        ...theme,
+        iconAssets: {
+          ...theme.iconAssets,
+          clear: { path: ICON_ASSETS.clear.path, viewBox: ICON_ASSETS.clear.viewBox },
+        },
+      };
+    }
     return theme;
   }
   // Legacy `string[]` (from `theme-svg-sprite-icons`): convert to a keyed record
@@ -64,6 +74,15 @@ function sameIconAssets(
   return true;
 }
 
+// Previous bundled `clear` artwork variants (outline redrawing, then the 960-grid
+// verbatim path), both superseded by the rescaled 24-grid artwork. A stored entry
+// exactly matching either is treated as a shipped default and migrated; any other
+// stored value is an admin customization and is preserved.
+const SUPERSEDED_CLEAR_PATHS = new Set([
+  'M4 5h16l-6.5 7.5V19l-3 1.5v-8L4 5z M17.5 8.5l3 3 M20.5 8.5l-3 3',
+  'm476-420 84-84 84 84 56-56-84-84 84-84-56-56-84 84-84-84-56 56 84 84-84 84 56 56ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z',
+]);
+
 function buildIconAssetsRecord(
   current: Theme['iconAssets'],
 ): Record<IconAssetKey, { path: string; viewBox: string }> {
@@ -92,6 +111,10 @@ function buildIconAssetsRecord(
     const fallback = ICON_ASSETS[key];
     if (!fallback) continue;
     record[key] = { path: fallback.path, viewBox: fallback.viewBox };
+  }
+  // Migrate the superseded bundled `clear` artwork; custom values are preserved.
+  if (record.clear?.path !== undefined && SUPERSEDED_CLEAR_PATHS.has(record.clear.path)) {
+    record.clear = { path: ICON_ASSETS.clear.path, viewBox: ICON_ASSETS.clear.viewBox };
   }
   return record;
 }
@@ -133,7 +156,9 @@ export class ThemesService {
     for (const theme of stored) {
       const normalized = normalizeStoredTheme(theme);
       const merged = buildIconAssetsRecord(normalized.iconAssets);
-      if (sameIconAssets(merged, normalized.iconAssets)) continue;
+      // Compare against the raw stored value (not the normalized copy) so that
+      // read-time migrations (e.g. the superseded `clear` artwork) are persisted.
+      if (!Array.isArray(theme.iconAssets) && sameIconAssets(merged, theme.iconAssets)) continue;
       await this.themes.replace({
         ...theme,
         iconAssets: merged,

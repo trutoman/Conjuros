@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
 
 vi.mock('../../hooks/useCollection', () => ({
@@ -49,6 +49,11 @@ vi.mock('../../hooks/useThemes', () => ({
 }));
 
 describe('CollectionPage tag filters', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+
   it('switches between all and any tag filter modes', () => {
     render(<CollectionPage />);
 
@@ -64,5 +69,25 @@ describe('CollectionPage tag filters', () => {
     expect(screen.getByText('Git only')).toBeInTheDocument();
     expect(screen.getByText('Docs only')).toBeInTheDocument();
     expect(screen.getByText('Both tags')).toBeInTheDocument();
+  });
+
+  it('clears the tag selection and restores the full list when the clear button is activated', () => {
+    render(<CollectionPage />);
+
+    const clearBtn = screen.getByRole('button', { name: 'Clear tag selection' });
+    expect(clearBtn).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText('git'));
+    expect(clearBtn).toBeEnabled();
+    expect(screen.getByText('Git only')).toBeInTheDocument();
+    expect(screen.getByText('Both tags')).toBeInTheDocument();
+    expect(screen.queryByText('Docs only')).not.toBeInTheDocument();
+
+    fireEvent.click(clearBtn);
+
+    expect(screen.getByText('Git only')).toBeInTheDocument();
+    expect(screen.getByText('Docs only')).toBeInTheDocument();
+    expect(screen.getByText('Both tags')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear tag selection' })).toBeDisabled();
   });
 });

@@ -1619,6 +1619,10 @@ select {
   gap: 0.5rem;
 }
 
+.tags-clear-btn span {
+  line-height: 1;
+}
+
 .tag-match-toggle-wrapper {
   display: inline-flex;
   align-items: center;

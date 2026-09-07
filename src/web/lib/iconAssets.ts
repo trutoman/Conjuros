@@ -65,6 +65,10 @@ export const ICON_ASSETS: Record<IconAssetKey, { path: string; viewBox: string }
     path: 'M18 6 6 18 M6 6l12 12',
     viewBox: '0 0 24 24',
   },
+  clear: {
+    path: 'm11.9 13.5l2.1 -2.1l2.1 2.1l1.4 -1.4l-2.1 -2.1l2.1 -2.1l-1.4 -1.4l-2.1 2.1l-2.1 -2.1l-1.4 1.4l2.1 2.1l-2.1 2.1l1.4 1.4ZM8 18q-0.82 0 -1.41 -0.59T6 16v-12q0 -0.82 0.59 -1.41T8 2h12q0.83 0 1.41 0.59T22 4v12q0 0.83 -0.59 1.41T20 18H8Zm0 -2h12v-12H8v12ZM4 22q-0.82 0 -1.41 -0.59T2 20v-14h2v14h14v2H4Zm4 -18v12v-12Z',
+    viewBox: '0 0 24 24',
+  },
   search: {
     path: 'M11 3a8 8 0 1 0 0 16 8 8 0 1 0 0-16Z M21 21l-4.3-4.3',
     viewBox: '0 0 24 24',
