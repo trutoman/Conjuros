@@ -85,6 +85,7 @@ export const iconAssetKeys = [
   'expand',
   'collapse',
   'close',
+  'clear',
   'search',
   'sun',
   'moon',

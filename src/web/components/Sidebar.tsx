@@ -70,6 +70,16 @@ export function Sidebar({
         </button>
         {isOpen && (
           <div className="sidebar-header-right">
+            <button
+              type="button"
+              className="tags-toggle-btn tags-clear-btn quiet"
+              disabled={filters.tags.length === 0}
+              onClick={() => onChange({ ...filters, tags: [] })}
+              aria-label="Clear tag selection"
+            >
+              <span>Clear</span>
+              <ThemeIcon name="clear" />
+            </button>
             <TagMatchToggle
               mode={filters.tagFilterMode}
               onChange={(mode) => onChange({ ...filters, tagFilterMode: mode })}

@@ -262,7 +262,7 @@ describe('iconAssets backfill', () => {
     const stored = await themes.findById('theme-light-legacy-array');
     expect(stored).not.toBeNull();
     const iconAssets = stored!.iconAssets as Record<string, { path: string; viewBox: string }>;
-    const expectedKeys = ['spell', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download', 'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'search', 'sun', 'moon', 'add'];
+    const expectedKeys = ['spell', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download', 'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'clear', 'search', 'sun', 'moon', 'add'];
     for (const key of expectedKeys) {
       expect(iconAssets[key]).toBeDefined();
       expect(iconAssets[key].path).toBe(ICON_ASSETS[key as keyof typeof ICON_ASSETS].path);
@@ -282,10 +282,67 @@ describe('iconAssets backfill', () => {
     expect(iconAssets.spell.path).toBe('CUSTOM_SPELL_PATH');
     expect(iconAssets.copy.path).toBe('CUSTOM_COPY_PATH');
     expect(iconAssets.close).toBeDefined();
+    expect(iconAssets.clear).toMatchObject({
+      path: ICON_ASSETS.clear.path,
+      viewBox: ICON_ASSETS.clear.viewBox,
+    });
     expect(iconAssets.sun).toBeDefined();
     expect(iconAssets.moon).toBeDefined();
     expect(iconAssets.add).toBeDefined();
   });
+
+  it('ships the rescaled clear artwork on the 24-unit grid with no hardcoded color', () => {
+    expect(ICON_ASSETS.clear.viewBox).toBe('0 0 24 24');
+    expect(ICON_ASSETS.clear.path.startsWith('m11.9 13.5')).toBe(true);
+    expect(JSON.stringify(ICON_ASSETS.clear)).not.toContain('#');
+    // Uniform grid + shared `.icon` styling ⇒ same visual weight for every icon.
+    for (const entry of Object.values(ICON_ASSETS)) {
+      expect(entry.viewBox).toBe('0 0 24 24');
+    }
+  });
+
+  it.each([
+    {
+      name: 'outline redrawing',
+      path: 'M4 5h16l-6.5 7.5V19l-3 1.5v-8L4 5z M17.5 8.5l3 3 M20.5 8.5l-3 3',
+      viewBox: '0 0 24 24',
+    },
+    {
+      name: '960-grid verbatim path',
+      path: 'm476-420 84-84 84 84 56-56-84-84 84-84-56-56-84 84-84-84-56 56 84 84-84 84 56 56ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z',
+      viewBox: '0 -960 960 960',
+    },
+  ])(
+    'migrates the superseded bundled clear artwork ($name) on read and backfill, preserving custom values',
+    async ({ path, viewBox }) => {
+      const { themes, service } = setup();
+      await ensureThemesSeeded(service);
+
+      const SUPERSEDED = { path, viewBox };
+      const CUSTOM = { path: 'CUSTOM_CLEAR_PATH', viewBox: '0 0 24 24' };
+
+      const light = (await themes.findByName('light'))!;
+      await themes.replace({ ...light, iconAssets: { ...light.iconAssets, clear: SUPERSEDED } });
+      const dark = (await themes.findByName('dark'))!;
+      await themes.replace({ ...dark, iconAssets: { ...dark.iconAssets, clear: CUSTOM } });
+
+      // Read normalization converges without persisting.
+      expect((await service.get(light.id)).iconAssets.clear).toMatchObject({
+        path: ICON_ASSETS.clear.path,
+        viewBox: ICON_ASSETS.clear.viewBox,
+      });
+      expect((await themes.findById(light.id))!.iconAssets.clear).toMatchObject(SUPERSEDED);
+
+      await service.backfillIconAssets();
+
+      // Backfill persists the migration while preserving the custom value.
+      expect((await themes.findById(light.id))!.iconAssets.clear).toMatchObject({
+        path: ICON_ASSETS.clear.path,
+        viewBox: ICON_ASSETS.clear.viewBox,
+      });
+      expect((await themes.findById(dark.id))!.iconAssets.clear).toMatchObject(CUSTOM);
+    },
+  );
 
   it('is idempotent on a second run', async () => {
     const { themes, service } = setup();

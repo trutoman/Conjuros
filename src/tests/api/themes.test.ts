@@ -263,7 +263,7 @@ describe('theme endpoints', () => {
       });
     });
 
-    it('GET /api/themes/active returns a full 20-key keyed record after backfillIconAssets', async () => {
+    it('GET /api/themes/active returns a full 21-key keyed record after backfillIconAssets', async () => {
       const context = createSeededTestApp();
       await seedLegacyArrayTheme(context);
       await context.themesService.backfillIconAssets();
@@ -279,7 +279,7 @@ describe('theme endpoints', () => {
       const expectedKeys = [
         'spell', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download',
         'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close',
-        'search', 'sun', 'moon', 'add',
+        'clear', 'search', 'sun', 'moon', 'add',
       ];
       expect(Object.keys(iconAssets).sort()).toEqual([...expectedKeys].sort());
       for (const key of expectedKeys) {
