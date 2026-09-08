@@ -33,6 +33,19 @@ vi.mock('../../hooks/useTags', () => ({
   }),
 }));
 
+vi.mock('../../hooks/useTagCategories', () => ({
+  useTagCategories: () => ({
+    categories: [],
+    total: 0,
+    isLoading: false,
+    error: null,
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    reorder: vi.fn(),
+  }),
+}));
+
 afterEach(() => {
   mockTags = [
     {

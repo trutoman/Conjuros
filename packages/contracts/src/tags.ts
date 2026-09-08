@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_TAG_CATEGORY } from './tag-categories';
 
 export const tagNamePattern = /^[A-Za-z0-9.]+$/;
 export const hexColorPattern = /^#[0-9A-Fa-f]{6}$/;
@@ -31,9 +32,20 @@ export function normalizeTagCategory(tagCategory: string): string {
   return tagCategory.trim().toLowerCase();
 }
 
+function emptyCategoryToGeneral(value: unknown): unknown {
+  if (typeof value === 'string' && value.trim() === '') return 'general';
+  return value;
+}
+
+function missingCategoryToGeneral(value: unknown): unknown {
+  if (value === undefined || value === null) return 'general';
+  if (typeof value === 'string' && value.trim() === '') return 'general';
+  return value;
+}
+
 export const tagInputSchema = z.object({
   tagName: tagNameSchema,
-  tagCategory: tagCategorySchema,
+  tagCategory: z.preprocess(missingCategoryToGeneral, tagCategorySchema.default(DEFAULT_TAG_CATEGORY)),
   description: tagDescriptionSchema,
   color: tagColorSchema,
 });
@@ -41,7 +53,7 @@ export const tagInputSchema = z.object({
 export const tagUpdateSchema = z
   .object({
     tagName: tagNameSchema.optional(),
-    tagCategory: tagCategorySchema.optional(),
+    tagCategory: z.preprocess(emptyCategoryToGeneral, tagCategorySchema.optional()),
     description: tagDescriptionSchema.optional(),
     color: tagColorSchema.optional(),
   })

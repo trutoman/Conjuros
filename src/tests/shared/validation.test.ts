@@ -483,15 +483,23 @@ describe('collection item contracts', () => {
     expect(reorderItemSchema.parse({ order: 3 })).toEqual({ order: 3 });
   });
 
-  it('requires a non-empty trimmed tag category', () => {
+  it('resolves a missing or blank tag category to general', () => {
     expect(
-      tagInputSchema.safeParse({
+      tagInputSchema.parse({
         tagName: 'deploy.todo',
         tagCategory: '   ',
         description: '',
         color: '#123ABC',
-      }).success,
-    ).toBe(false);
+      }).tagCategory,
+    ).toBe('general');
+
+    expect(
+      tagInputSchema.parse({
+        tagName: 'deploy.todo',
+        description: '',
+        color: '#123ABC',
+      }).tagCategory,
+    ).toBe('general');
 
     expect(
       tagInputSchema.parse({

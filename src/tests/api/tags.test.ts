@@ -36,6 +36,27 @@ describe('tag endpoints', () => {
     await request(app).delete(`/api/tags/${created.body.id}`).set('Cookie', cookie).expect(204);
   });
 
+  it('searches and sorts tags by derived category', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+    await createTag(request, app, cookie, 'odd.name', 'zebra');
+    await createTag(request, app, cookie, 'aaa.name', 'alpha');
+
+    const searched = await request(app)
+      .get('/api/tags?search=zebra')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(searched.body.total).toBe(1);
+    expect(searched.body.items[0]).toMatchObject({ tagName: 'odd.name', tagCategory: 'zebra' });
+
+    const sorted = await request(app)
+      .get('/api/tags?sort=tagCategory')
+      .set('Cookie', cookie)
+      .expect(200);
+    const categories = sorted.body.items.map((item: { tagCategory: string }) => item.tagCategory);
+    expect(categories).toEqual([...categories].sort());
+  });
+
   it('normalizes the tag category to lowercase on create', async () => {
     const { app } = createTestApp();
     const cookie = await registerUser(request, app, 'owner@example.com');
@@ -235,73 +256,24 @@ describe('tag endpoints', () => {
     expect(afterCategoryUpdate.body.tags).toEqual(['old.tag']);
   });
 
-  it('surfaces legacy tags without category or with capitalized categories as general', async () => {
-    const { app, tags } = createTestApp();
+  it('stores membership on categories and keeps tag documents free of category fields', async () => {
+    const { app, tags, tagCategories } = createTestApp();
     const cookie = await registerUser(request, app, 'owner@example.com');
-    await createTag(request, app, cookie, 'seed.tag', 'Seed');
+    const created = await createTag(request, app, cookie, 'seed.tag', 'Seed');
+    expect(created.body.tagCategory).toBe('seed');
 
-    const legacyStore = tags as unknown as {
-      tags: Map<
-        string,
-        {
-          id: string;
-          ownerId: string;
-          tagName: string;
-          tagNameNormalized: string;
-          tagCategory?: string;
-          tagCategoryNormalized?: string;
-          description: string;
-          color: string;
-          order: number;
-          createdAt: string;
-          updatedAt: string;
-        }
-      >;
+    const tagStore = tags as unknown as { tags: Map<string, Record<string, unknown>> };
+    for (const doc of tagStore.tags.values()) {
+      expect(doc).not.toHaveProperty('tagCategory');
+      expect(doc).not.toHaveProperty('tagCategoryNormalized');
+    }
+
+    const categoryStore = tagCategories as unknown as {
+      categories: Map<string, { name: string; tagIds: string[] }>;
     };
-
-    const ownerId = [...legacyStore.tags.values()][0]?.ownerId;
-    if (!ownerId) throw new Error('Expected seeded tag owner ID');
-
-    legacyStore.tags.set('legacy-tag', {
-      id: 'legacy-tag',
-      ownerId,
-      tagName: 'legacy.tag',
-      tagNameNormalized: 'legacy.tag',
-      description: '',
-      color: '#123ABC',
-      order: 1,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    });
-
-    legacyStore.tags.set('legacy-capitalized', {
-      id: 'legacy-capitalized',
-      ownerId,
-      tagName: 'legacy.capitalized',
-      tagNameNormalized: 'legacy.capitalized',
-      tagCategory: 'General',
-      tagCategoryNormalized: 'general',
-      description: '',
-      color: '#123ABC',
-      order: 1,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    });
-
-    const listed = await request(app).get('/api/tags').set('Cookie', cookie).expect(200);
-
-    expect(listed.body.items).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: 'legacy-tag',
-          tagCategory: 'general',
-        }),
-        expect.objectContaining({
-          id: 'legacy-capitalized',
-          tagCategory: 'general',
-        }),
-      ]),
-    );
+    const seed = [...categoryStore.categories.values()].find((category) => category.name === 'seed');
+    expect(seed).toBeDefined();
+    expect(seed?.tagIds).toContain(created.body.id);
   });
 
   it('does not rename unrelated item tags when only a tag category changes', async () => {

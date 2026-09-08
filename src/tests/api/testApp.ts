@@ -1,5 +1,6 @@
 import { createApp } from '../../api/app';
 import { InMemoryItemsRepository } from '../../api/repositories/items.repository';
+import { InMemoryTagCategoriesRepository } from '../../api/repositories/tag-categories.repository';
 import { InMemoryTagsRepository } from '../../api/repositories/tags.repository';
 import { InMemoryThemesRepository } from '../../api/repositories/themes.repository';
 import { InMemoryUsersRepository } from '../../api/repositories/users.repository';
@@ -7,12 +8,14 @@ import { InMemoryUsersRepository } from '../../api/repositories/users.repository
 export function createTestApp() {
   const items = new InMemoryItemsRepository();
   const tags = new InMemoryTagsRepository();
+  const tagCategories = new InMemoryTagCategoriesRepository();
   const themes = new InMemoryThemesRepository();
   const users = new InMemoryUsersRepository();
   return {
-    app: createApp({ items, tags, themes, users, sessionSecret: 'test-session-secret' }),
+    app: createApp({ items, tags, tagCategories, themes, users, sessionSecret: 'test-session-secret' }),
     items,
     tags,
+    tagCategories,
     themes,
     users,
   };

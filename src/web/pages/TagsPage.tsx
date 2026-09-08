@@ -7,6 +7,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { ThemeIcon } from '../components/ThemeIcon';
 import { UserWidget } from '../components/UserWidget';
 import { useTags } from '../hooks/useTags';
+import { useTagCategories } from '../hooks/useTagCategories';
 
 export function TagsPage({
   onBack,
@@ -22,6 +23,7 @@ export function TagsPage({
   onSignOut?: () => void;
 }) {
   const tagsState = useTags();
+  const categoriesState = useTagCategories();
   const [formTag, setFormTag] = useState<Tag | null | undefined>(undefined);
   const [deleteTag, setDeleteTag] = useState<Tag | null>(null);
   const [actionError, setActionError] = useState('');
@@ -33,6 +35,12 @@ export function TagsPage({
       !normalizedTagQuery ||
       tag.tagName.toLowerCase().includes(normalizedTagQuery) ||
       tag.tagCategory.toLowerCase().includes(normalizedTagQuery),
+  );
+  const categoryNames = categoriesState.categories.map((category) => category.name);
+  const emptyCategories = categoriesState.categories.filter(
+    (category) =>
+      category.tagCount === 0 &&
+      (!normalizedTagQuery || category.name.toLowerCase().includes(normalizedTagQuery)),
   );
 
   async function saveTag(input: TagInput) {
@@ -99,6 +107,10 @@ export function TagsPage({
         </div>
       </header>
       {actionError && <p className="field-error">{actionError}</p>}
+      {categoriesState.isLoading && <p className="field-hint">Loading categories…</p>}
+      {categoriesState.error && (
+        <p className="field-error">Could not load categories: {categoriesState.error.message}</p>
+      )}
       <TagList
         tags={visibleTags}
         onEdit={setFormTag}
@@ -114,9 +126,24 @@ export function TagsPage({
       {formTag !== undefined && (
         <TagForm
           tag={formTag ?? undefined}
+          categories={categoryNames}
           onSubmit={saveTag}
           onCancel={() => setFormTag(undefined)}
         />
+      )}
+      {!categoriesState.isLoading && emptyCategories.length > 0 && (
+        <section className="tag-panel" aria-label="Empty categories">
+          <ul className="tag-list">
+            {emptyCategories.map((category) => (
+              <li key={category.id} className="tag-row" data-testid={`empty-category-${category.id}`}>
+                <div className="tag-row-label">
+                  <span className="tag-category">{category.name.toLowerCase()}</span>
+                  <span className="tag-description">No tags in this category</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       {deleteTag && (
         <DeleteConfirmDialog

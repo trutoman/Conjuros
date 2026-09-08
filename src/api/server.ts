@@ -4,6 +4,7 @@ import { parseApiEnvironment } from './config/environment';
 import { getDatabase } from './repositories/connection';
 import { grantAdminRole, ensureThemesSeeded, backfillThemeIcons } from './bootstrap';
 import { MongoItemsRepository } from './repositories/items.repository';
+import { MongoTagCategoriesRepository } from './repositories/tag-categories.repository';
 import { MongoTagsRepository } from './repositories/tags.repository';
 import { MongoThemesRepository } from './repositories/themes.repository';
 import { MongoUsersRepository } from './repositories/users.repository';
@@ -21,6 +22,7 @@ await backfillThemeIcons(themesService);
 const app = createApp({
 	items: new MongoItemsRepository(database),
 	tags: new MongoTagsRepository(database),
+	tagCategories: new MongoTagCategoriesRepository(database),
 	themes,
 	users,
 	sessionSecret: environment.sessionSecret,

@@ -7,6 +7,7 @@ import { ThemeIcon } from './ThemeIcon';
 
 export function Sidebar({
   tags,
+  categories = [],
   filters,
   isOpen = true,
   onToggleOpen,
@@ -16,6 +17,7 @@ export function Sidebar({
   onClose,
 }: {
   tags: Tag[];
+  categories?: string[];
   filters: CollectionFilters;
   isOpen?: boolean;
   onToggleOpen?: () => void;
@@ -26,8 +28,14 @@ export function Sidebar({
 }) {
   const groupedCategories = useMemo(() => {
     const grouped: Record<string, Tag[]> = {};
+    for (const category of categories) {
+      const normalized = category.toLowerCase();
+      if (!grouped[normalized]) {
+        grouped[normalized] = [];
+      }
+    }
     for (const tag of tags) {
-      const category = (tag.tagCategory || 'General').toLowerCase();
+      const category = (tag.tagCategory || 'general').toLowerCase();
       if (!grouped[category]) {
         grouped[category] = [];
       }
@@ -38,7 +46,7 @@ export function Sidebar({
       grouped[catName].sort((a, b) => a.tagName.localeCompare(b.tagName));
     }
     return { names: sortedCategoryNames, tagsMap: grouped };
-  }, [tags]);
+  }, [tags, categories]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {

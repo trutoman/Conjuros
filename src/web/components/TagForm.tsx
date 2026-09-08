@@ -9,17 +9,24 @@ export function TagForm({
   onSubmit,
   onCancel,
   palette = [],
+  categories = [],
 }: {
   tag?: Tag;
   onSubmit: (input: TagInput) => Promise<unknown> | void;
   onCancel: () => void;
   palette?: string[] | null;
+  categories?: string[];
 }) {
   const [tagName, setTagName] = useState(tag?.tagName.toLowerCase() ?? '');
-  const [tagCategory, setTagCategory] = useState(tag?.tagCategory.toLowerCase() ?? '');
+  const [tagCategory, setTagCategory] = useState(tag?.tagCategory.toLowerCase() ?? 'general');
   const [description, setDescription] = useState(tag?.description ?? '');
   const [color, setColor] = useState(tag?.color ?? palette?.[0] ?? '#1A73E8');
   const [error, setError] = useState('');
+  const normalizedCategory = tagCategory.trim().toLowerCase() || 'general';
+  const isNewCategory =
+    categories.length > 0 &&
+    normalizedCategory !== '' &&
+    !categories.some((candidate) => candidate.toLowerCase() === normalizedCategory);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -55,8 +62,18 @@ export function TagForm({
         <input
           value={tagCategory}
           onChange={(event) => setTagCategory(event.target.value.toLowerCase())}
+          list="tag-category-suggestions"
+          placeholder="general"
         />
       </FormField>
+      <datalist id="tag-category-suggestions">
+        {categories.map((category) => (
+          <option key={category} value={category.toLowerCase()} />
+        ))}
+      </datalist>
+      {isNewCategory && (
+        <p className="field-hint">New category will be created</p>
+      )}
       <FormField label="Description">
         <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
       </FormField>

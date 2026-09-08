@@ -29,6 +29,7 @@ import { UserWidget } from '../components/UserWidget';
 import { useCollection } from '../hooks/useCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
 import { useTags } from '../hooks/useTags';
+import { useTagCategories } from '../hooks/useTagCategories';
 import { useThemes } from '../hooks/useThemes';
 
 const MOBILE_BREAKPOINT_PX = 768;
@@ -51,6 +52,7 @@ export function CollectionPage({
   const { filters, setFilters, query } = useCollectionFilters();
   const { items, isLoading, error, create, update, remove, reorder } = useCollection(query);
   const tagsState = useTags();
+  const categoriesState = useTagCategories();
   const themesState = useThemes();
   const [isNarrowViewport, setIsNarrowViewport] = useState(
     () => window.innerWidth <= MOBILE_BREAKPOINT_PX,
@@ -271,6 +273,7 @@ export function CollectionPage({
           >
             <Sidebar
               tags={tagsState.tags}
+              categories={categoriesState.categories.map((category) => category.name)}
               filters={filters}
               isOpen={effectiveSidebarOpen}
               onToggleOpen={handleToggleSidebar}
@@ -468,6 +471,38 @@ export function CollectionPage({
                     }
                   />
                 )}
+                {categoriesState.error && <ErrorState message={categoriesState.error.message} />}
+                {!categoriesState.isLoading &&
+                  categoriesState.categories.filter(
+                    (category) =>
+                      category.tagCount === 0 &&
+                      (!normalizedTagQuery ||
+                        category.name.toLowerCase().includes(normalizedTagQuery)),
+                  ).length > 0 && (
+                    <section className="tag-panel" aria-label="Empty categories">
+                      <ul className="tag-list">
+                        {categoriesState.categories
+                          .filter(
+                            (category) =>
+                              category.tagCount === 0 &&
+                              (!normalizedTagQuery ||
+                                category.name.toLowerCase().includes(normalizedTagQuery)),
+                          )
+                          .map((category) => (
+                            <li
+                              key={category.id}
+                              className="tag-row"
+                              data-testid={`empty-category-${category.id}`}
+                            >
+                              <div className="tag-row-label">
+                                <span className="tag-category">{category.name.toLowerCase()}</span>
+                                <span className="tag-description">No tags in this category</span>
+                              </div>
+                            </li>
+                          ))}
+                      </ul>
+                    </section>
+                  )}
               </div>
             </Modal>
           )}
@@ -478,6 +513,7 @@ export function CollectionPage({
             >
               <TagForm
                 tag={formTag ?? undefined}
+                categories={categoriesState.categories.map((category) => category.name)}
                 onSubmit={saveTag}
                 onCancel={() => setFormTag(undefined)}
                 palette={tagPalette}
