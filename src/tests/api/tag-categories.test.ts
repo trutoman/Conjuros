@@ -81,20 +81,44 @@ describe('tag category entity', () => {
     expect(empty.tagCount).toBe(0);
   });
 
-  it('rejects deleting a non-empty category but allows deleting an empty one', async () => {
+  it('cascades deleting a non-empty category to its tags but allows deleting an empty one', async () => {
     const { app } = createTestApp();
     const cookie = await registerUser(request, app, 'owner@example.com');
 
-    await request(app)
+    const tag = await request(app)
       .post('/api/tags')
       .set('Cookie', cookie)
       .send({ tagName: 'busy.tag', tagCategory: 'busy', description: '', color: '#123ABC' })
       .expect(201);
 
+    const createdItem = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'spell',
+        title: 'Busy spell',
+        description: '',
+        tags: ['busy.tag'],
+        relatedItemIds: [],
+        command: 'echo busy',
+      })
+      .expect(201);
+
     const categories = await request(app).get('/api/tag-categories').set('Cookie', cookie).expect(200);
     const busy = categories.body.items.find((item: { name: string }) => item.name === 'busy');
 
-    await request(app).delete(`/api/tag-categories/${busy.id}`).set('Cookie', cookie).expect(400);
+    await request(app).delete(`/api/tag-categories/${busy.id}`).set('Cookie', cookie).expect(204);
+
+    await request(app).get(`/api/tags/${tag.body.id}`).set('Cookie', cookie).expect(404);
+
+    const afterDelete = await request(app)
+      .get(`/api/items/${createdItem.body.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(afterDelete.body.tags).toEqual([]);
+
+    const remaining = await request(app).get('/api/tag-categories').set('Cookie', cookie).expect(200);
+    expect(remaining.body.items.find((item: { name: string }) => item.name === 'busy')).toBeUndefined();
 
     const empty = await request(app)
       .post('/api/tag-categories')

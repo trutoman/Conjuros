@@ -315,37 +315,16 @@ describe('ItemCard', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
-  it('shows inline confirmation when Delete is clicked', () => {
-    render(<ControlledItemCard />);
-    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
-
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Confirm delete' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Cancel delete' })).toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
-  });
-
-  it('calls onDelete and closes the menu when Confirm is clicked', () => {
+  it('calls onDelete directly and closes the menu when Delete is clicked', () => {
     const onDelete = vi.fn();
     render(<ControlledItemCard onDelete={onDelete} />);
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Confirm delete' }));
 
     expect(onDelete).toHaveBeenCalledWith(spell);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-  });
-
-  it('does not call onDelete when Cancel is clicked', () => {
-    const onDelete = vi.fn();
-    render(<ControlledItemCard onDelete={onDelete} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Cancel delete' }));
-
-    expect(onDelete).not.toHaveBeenCalled();
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Confirm delete' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Cancel delete' })).not.toBeInTheDocument();
   });
 
   it('moves focus with ArrowDown and ArrowUp between menu items', () => {

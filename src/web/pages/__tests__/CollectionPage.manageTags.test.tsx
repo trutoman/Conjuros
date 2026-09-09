@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -521,16 +521,22 @@ describe('CollectionPage tag management modal', () => {
 
     fireEvent.click(manageFrame().getByRole('button', { name: 'Category menu for documentation' }));
     fireEvent.click(manageFrame().getByRole('menuitem', { name: 'Delete' }));
-    expect(screen.getByRole('dialog', { name: 'Delete documentation?' })).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Delete documentation?' });
+    expect(
+      within(dialog).getByText('This will also delete the 1 tag in this category.'),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
     expect(categoryRemoveMock).toHaveBeenCalledWith('cat-documentation');
-    expect(await screen.findByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Delete documentation?' })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
   });
 
   it('keeps the management view open when deleting a category fails', async () => {
-    categoryRemoveMock.mockRejectedValueOnce(new Error('Tag category is not empty'));
+    categoryRemoveMock.mockRejectedValueOnce(new Error('Could not delete category'));
     render(<CollectionPage />);
     openManageTags();
 
@@ -540,12 +546,12 @@ describe('CollectionPage tag management modal', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Delete development?' });
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('Tag category is not empty');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Could not delete category');
     expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
   });
 
   it('scopes a rejected category delete to the dialog without ghost entries in either list', async () => {
-    categoryRemoveMock.mockRejectedValueOnce(new Error('Tag category is not empty'));
+    categoryRemoveMock.mockRejectedValueOnce(new Error('Could not delete category'));
     render(<CollectionPage />);
     openManageTags();
 
@@ -554,22 +560,22 @@ describe('CollectionPage tag management modal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Delete development?' });
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('Tag category is not empty');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Could not delete category');
 
     // Main collection list keeps its items and shows no error frame for the failure.
     expect(screen.getByText('Git status')).toBeInTheDocument();
     const mainFrame = document.querySelector('.main-content-frame');
     expect(mainFrame).not.toBeNull();
-    expect(within(mainFrame as HTMLElement).queryByText('Tag category is not empty')).not.toBeInTheDocument();
+    expect(within(mainFrame as HTMLElement).queryByText('Could not delete category')).not.toBeInTheDocument();
 
     // Manage tags list keeps its groups with no ghost first entry carrying the error.
-    expect(manageFrame().queryByText('Tag category is not empty')).not.toBeInTheDocument();
+    expect(manageFrame().queryByText('Could not delete category')).not.toBeInTheDocument();
     expect(manageFrame().getByTestId('tag-category-group-cat-development')).toBeInTheDocument();
     expect(manageFrame().getByTestId('tag-row-tag-1')).toBeInTheDocument();
 
     // Cancelling the dialog dismisses the scoped error.
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog', { name: 'Delete development?' })).not.toBeInTheDocument();
-    expect(screen.queryByText('Tag category is not empty')).not.toBeInTheDocument();
+    expect(screen.queryByText('Could not delete category')).not.toBeInTheDocument();
   });
 });

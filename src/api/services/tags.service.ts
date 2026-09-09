@@ -1,6 +1,7 @@
 import {
   DEFAULT_TAG_CATEGORY,
   normalizeTagCategory,
+  normalizeTagCategoryName,
   normalizeTagName,
   reorderItemSchema,
   tagInputSchema,
@@ -140,6 +141,17 @@ export class TagsService {
     if (!(await this.tags.delete(id, ownerId))) {
       throw new AppError(404, 'NOT_FOUND', 'Tag not found');
     }
+  }
+
+  async deleteCategoryWithTags(ownerId: string, categoryId: string) {
+    const category = await this.categories.get(ownerId, categoryId);
+    if (normalizeTagCategoryName(category.name) === DEFAULT_TAG_CATEGORY) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'The general category cannot be deleted');
+    }
+    for (const tagId of [...category.tagIds]) {
+      await this.delete(ownerId, tagId);
+    }
+    await this.categories.delete(ownerId, categoryId);
   }
 
   async reorder(ownerId: string, id: string, order: number) {

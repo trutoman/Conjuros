@@ -634,6 +634,11 @@ export function CollectionPage({
               setManageTagsError('');
             }}
             error={manageTagsError || undefined}
+            details={
+              deleteCategory.tagCount > 0
+                ? `This will also delete ${deleteCategory.tagCount === 1 ? 'the 1 tag' : `all ${deleteCategory.tagCount} tags`} in this category.`
+                : undefined
+            }
           />
         )}
         {deleteTheme && (

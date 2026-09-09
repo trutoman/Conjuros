@@ -46,7 +46,7 @@ export function createApp(dependencies: AppDependencies) {
   const tagCategoriesService = new TagCategoriesService(dependencies.tagCategories);
   const tagsService = new TagsService(dependencies.tags, dependencies.items, themesService, tagCategoriesService);
   app.use('/api/tags', createTagsRouter(createTagsController(tagsService), auth));
-  app.use('/api/tag-categories', createTagCategoriesRouter(createTagCategoriesController(tagCategoriesService), auth));
+  app.use('/api/tag-categories', createTagCategoriesRouter(createTagCategoriesController(tagCategoriesService, tagsService), auth));
   app.use('/api/items', createItemsRouter(createItemsController(new ItemsService(dependencies.items, tagsService)), auth));
   app.use('/api/themes', createThemesRouter(createThemesController(themesService), auth, admin));
   app.use(errorHandler);

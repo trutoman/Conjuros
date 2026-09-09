@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TagsPage } from '../TagsPage';
 
@@ -191,7 +191,8 @@ describe('TagsPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Category menu for hobby' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
-    expect(screen.getByRole('dialog', { name: 'Delete hobby?' })).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Delete hobby?' });
+    expect(within(dialog).queryByText(/will also delete/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
@@ -199,8 +200,28 @@ describe('TagsPage', () => {
     expect(await screen.findByTestId('tag-category-group-cat-work')).toBeInTheDocument();
   });
 
-  it('keeps the view open when deleting a non-empty category fails', async () => {
-    categoryRemoveMock.mockRejectedValueOnce(new Error('Tag category is not empty'));
+  it('communicates the cascade and closes on confirming a non-empty category delete', async () => {
+    render(<TagsPage onBack={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Category menu for work' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Delete work?' });
+    expect(
+      within(dialog).getByText('This will also delete the 1 tag in this category.'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
+
+    expect(categoryRemoveMock).toHaveBeenCalledWith('cat-work');
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Delete work?' })).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText(/will also delete/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the view open when deleting a category fails', async () => {
+    categoryRemoveMock.mockRejectedValueOnce(new Error('Could not delete category'));
     render(<TagsPage onBack={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Category menu for work' }));
@@ -208,12 +229,12 @@ describe('TagsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Delete work?' });
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('Tag category is not empty');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Could not delete category');
     expect(screen.getByTestId('tag-category-group-cat-work')).toBeInTheDocument();
   });
 
   it('scopes a rejected category delete to the dialog and clears it on cancel', async () => {
-    categoryRemoveMock.mockRejectedValueOnce(new Error('Tag category is not empty'));
+    categoryRemoveMock.mockRejectedValueOnce(new Error('Could not delete category'));
     render(<TagsPage onBack={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Category menu for work' }));
@@ -221,17 +242,17 @@ describe('TagsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Delete work?' });
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('Tag category is not empty');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Could not delete category');
 
     // No ghost first-row entry: the error lives only in the dialog, not in a category group.
     const workGroup = screen.getByTestId('tag-category-group-cat-work');
-    expect(within(workGroup).queryByText('Tag category is not empty')).not.toBeInTheDocument();
+    expect(within(workGroup).queryByText('Could not delete category')).not.toBeInTheDocument();
     expect(within(workGroup).getByTestId('tag-row-tag-1')).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
     expect(screen.queryByRole('dialog', { name: 'Delete work?' })).not.toBeInTheDocument();
-    expect(screen.queryByText('Tag category is not empty')).not.toBeInTheDocument();
+    expect(screen.queryByText('Could not delete category')).not.toBeInTheDocument();
     expect(screen.getByTestId('tag-category-group-cat-work')).toBeInTheDocument();
   });
 
