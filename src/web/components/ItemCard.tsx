@@ -30,7 +30,6 @@ export function ItemCard({
   const [isTagOverflowOpen, setIsTagOverflowOpen] = useState(false);
   const topRowRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
-  const [menuView, setMenuView] = useState<'menu' | 'confirm'>('menu');
   const menuRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const tagColors = new Map(tags.map((tag) => [tag.tagName, tag.color]));
@@ -127,11 +126,7 @@ export function ItemCard({
     closeMenu();
   }
 
-  function handleDeleteStart() {
-    setMenuView('confirm');
-  }
-
-  function handleDeleteConfirm() {
+  function handleDelete() {
     onDelete(item);
     closeMenu();
   }
@@ -177,12 +172,6 @@ export function ItemCard({
     if (!isMenuOpen) return;
     const firstItem = menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
     firstItem?.focus();
-  }, [isMenuOpen, menuView]);
-
-  useEffect(() => {
-    if (isMenuOpen) {
-      setMenuView('menu');
-    }
   }, [isMenuOpen]);
 
   return (
@@ -394,7 +383,7 @@ export function ItemCard({
                 name="menu"
               />
             </button>
-            {isMenuOpen && menuView === 'menu' && (
+            {isMenuOpen && (
               <div
                 className="item-menu-dropdown"
                 id={`item-menu-${item.id}`}
@@ -423,54 +412,12 @@ export function ItemCard({
                   role="menuitem"
                   aria-label="Delete"
                   tabIndex={-1}
-                  onClick={handleDeleteStart}
+                  onClick={handleDelete}
                 >
                   <ThemeIcon
                     label="Delete"
                     title="Delete"
                     name="delete"
-                  />
-                </button>
-              </div>
-            )}
-            {isMenuOpen && menuView === 'confirm' && (
-              <div
-                className="item-menu-dropdown item-menu-dropdown--confirm"
-                id={`item-menu-${item.id}`}
-                role="menu"
-                aria-label="Confirm delete"
-                ref={menuRef}
-                onKeyDown={handleMenuKeyDown}
-              >
-                <button
-                  type="button"
-                  className="icon-action danger"
-                  role="menuitem"
-                  aria-label="Confirm delete"
-                  tabIndex={-1}
-                  onClick={handleDeleteConfirm}
-                >
-                  <ThemeIcon
-                    label="Confirm"
-                    title="Confirm"
-                    name="confirm"
-                  />
-                </button>
-                <button
-                  type="button"
-                  className="icon-action"
-                  role="menuitem"
-                  aria-label="Cancel delete"
-                  tabIndex={-1}
-                  onClick={() => {
-                    onMenuToggle();
-                    triggerRef.current?.focus();
-                  }}
-                >
-                  <ThemeIcon
-                    label="Cancel"
-                    title="Cancel"
-                    name="cancel"
                   />
                 </button>
               </div>

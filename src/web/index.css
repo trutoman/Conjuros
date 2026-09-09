@@ -983,6 +983,47 @@ select {
   margin-top: 0;
 }
 
+.tag-panel .category-group {
+  margin-bottom: 1rem;
+}
+
+.tag-panel .category-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.tag-panel .category-group-header h3 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: lowercase;
+  text-align: left;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--page-bg-accent);
+  padding-bottom: 0.25rem;
+}
+
+.tag-panel .category-tags-list {
+  list-style: none;
+  margin: 0.55rem 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.tag-panel .category-tags-list .item-menu-wrapper {
+  flex: 0 0 auto;
+}
+
+.tag-panel .category-group .empty-tags-message {
+  margin: 0.5rem 0 0 1rem;
+}
+
 .item-form fieldset {
   border: 0;
   padding: 0;
@@ -1375,9 +1416,15 @@ select {
 
 .confirm-dialog {
   max-width: 430px;
-  background: #fffefa;
-  border: 2px solid #174f43;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  color: var(--text);
   padding: 1.25rem;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  gap: 0.75rem;
 }
 
 .modal-backdrop {

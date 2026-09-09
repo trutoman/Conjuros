@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import type { Tag, TagInput, ThemePreference } from '@conjuros/contracts';
+import type { Tag, TagCategory, TagInput, ThemePreference } from '@conjuros/contracts';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { TagForm } from '../components/TagForm';
+import { TagCategoryForm } from '../components/TagCategoryForm';
 import { TagList } from '../components/TagList';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ThemeIcon } from '../components/ThemeIcon';
 import { UserWidget } from '../components/UserWidget';
 import { useTags } from '../hooks/useTags';
+import { useTagCategories } from '../hooks/useTagCategories';
 
 export function TagsPage({
   onBack,
@@ -22,9 +24,13 @@ export function TagsPage({
   onSignOut?: () => void;
 }) {
   const tagsState = useTags();
+  const categoriesState = useTagCategories();
   const [formTag, setFormTag] = useState<Tag | null | undefined>(undefined);
   const [deleteTag, setDeleteTag] = useState<Tag | null>(null);
+  const [renameCategory, setRenameCategory] = useState<TagCategory | null>(null);
+  const [deleteCategory, setDeleteCategory] = useState<TagCategory | null>(null);
   const [actionError, setActionError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [tagQuery, setTagQuery] = useState('');
 
   const normalizedTagQuery = tagQuery.trim().toLowerCase();
@@ -34,6 +40,18 @@ export function TagsPage({
       tag.tagName.toLowerCase().includes(normalizedTagQuery) ||
       tag.tagCategory.toLowerCase().includes(normalizedTagQuery),
   );
+  const categoryNames = categoriesState.categories.map((category) => category.name);
+
+  async function confirmCategoryDelete() {
+    if (!deleteCategory) return;
+    try {
+      await categoriesState.remove(deleteCategory.id);
+      setDeleteCategory(null);
+      setDeleteError('');
+    } catch (cause) {
+      setDeleteError(cause instanceof Error ? cause.message : 'Could not delete category');
+    }
+  }
 
   async function saveTag(input: TagInput) {
     try {
@@ -50,8 +68,9 @@ export function TagsPage({
     try {
       await tagsState.remove(deleteTag.id);
       setDeleteTag(null);
+      setDeleteError('');
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Could not delete tag');
+      setDeleteError(cause instanceof Error ? cause.message : 'Could not delete tag');
     }
   }
 
@@ -99,10 +118,24 @@ export function TagsPage({
         </div>
       </header>
       {actionError && <p className="field-error">{actionError}</p>}
+      {categoriesState.isLoading && <p className="field-hint">Loading categories…</p>}
+      {categoriesState.error && (
+        <p className="field-error">Could not load categories: {categoriesState.error.message}</p>
+      )}
       <TagList
         tags={visibleTags}
+        categories={categoriesState.categories}
+        query={tagQuery}
         onEdit={setFormTag}
-        onDelete={setDeleteTag}
+        onDelete={(tag) => {
+          setDeleteError('');
+          setDeleteTag(tag);
+        }}
+        onRenameCategory={setRenameCategory}
+        onDeleteCategory={(category) => {
+          setDeleteError('');
+          setDeleteCategory(category);
+        }}
         onMove={(id, order) =>
           void tagsState
             .reorder({ id, order })
@@ -114,15 +147,49 @@ export function TagsPage({
       {formTag !== undefined && (
         <TagForm
           tag={formTag ?? undefined}
+          categories={categoryNames}
           onSubmit={saveTag}
           onCancel={() => setFormTag(undefined)}
+        />
+      )}
+      {renameCategory && (
+        <TagCategoryForm
+          category={renameCategory}
+          onSubmit={async (name) => {
+            await categoriesState.update({
+              id: renameCategory.id,
+              category: { name },
+            });
+            setRenameCategory(null);
+          }}
+          onCancel={() => setRenameCategory(null)}
         />
       )}
       {deleteTag && (
         <DeleteConfirmDialog
           title={deleteTag.tagName}
           onConfirm={() => void confirmTagDelete()}
-          onCancel={() => setDeleteTag(null)}
+          onCancel={() => {
+            setDeleteTag(null);
+            setDeleteError('');
+          }}
+          error={deleteError || undefined}
+        />
+      )}
+      {deleteCategory && (
+        <DeleteConfirmDialog
+          title={deleteCategory.name}
+          onConfirm={() => void confirmCategoryDelete()}
+          onCancel={() => {
+            setDeleteCategory(null);
+            setDeleteError('');
+          }}
+          error={deleteError || undefined}
+          details={
+            deleteCategory.tagCount > 0
+              ? `This will also delete ${deleteCategory.tagCount === 1 ? 'the 1 tag' : `all ${deleteCategory.tagCount} tags`} in this category.`
+              : undefined
+          }
         />
       )}
     </main>

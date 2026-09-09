@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { TagForm } from '../TagForm';
 
 describe('TagForm', () => {
-  it('does not submit when the category is missing', () => {
+  it('defaults a missing category to general', () => {
     const onSubmit = vi.fn();
     render(<TagForm onSubmit={onSubmit} onCancel={vi.fn()} />);
 
@@ -11,8 +11,16 @@ describe('TagForm', () => {
     fireEvent.change(screen.getByLabelText('Tag color'), { target: { value: '#123ABC' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save tag' }));
 
-    expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ tagCategory: 'general' });
+  });
+
+  it('hints when a new category will be created', () => {
+    render(<TagForm onSubmit={vi.fn()} onCancel={vi.fn()} categories={['work']} />);
+
+    fireEvent.change(screen.getByLabelText('Tag category'), { target: { value: 'hobby' } });
+
+    expect(screen.getByText('New category will be created')).toBeInTheDocument();
   });
 
   it('shows inline validation when color is invalid', () => {
