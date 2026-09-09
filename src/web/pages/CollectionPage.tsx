@@ -6,6 +6,7 @@ import type {
   ItemKind,
   Role,
   Tag,
+  TagCategory,
   TagInput,
   Theme,
   ThemePreference,
@@ -19,6 +20,7 @@ import { ItemForm } from '../components/ItemForm';
 import { ItemCardViewer } from '../components/ItemCardViewer';
 import { Modal } from '../components/Modal';
 import { TagForm } from '../components/TagForm';
+import { TagCategoryForm } from '../components/TagCategoryForm';
 import { TagList } from '../components/TagList';
 import { ThemeForm } from '../components/ThemeForm';
 import { ThemeListView } from '../components/ThemeListView';
@@ -87,9 +89,12 @@ export function CollectionPage({
   const [formTag, setFormTag] = useState<Tag | null | undefined>(undefined);
   const [deleteItem, setDeleteItem] = useState<CollectionItem | null>(null);
   const [deleteTag, setDeleteTag] = useState<Tag | null>(null);
+  const [renameCategory, setRenameCategory] = useState<TagCategory | null>(null);
+  const [deleteCategory, setDeleteCategory] = useState<TagCategory | null>(null);
   const [manageTags, setManageTags] = useState(false);
   const [viewerItem, setViewerItem] = useState<CollectionItem | null | undefined>(undefined);
   const [actionError, setActionError] = useState('');
+  const [manageTagsError, setManageTagsError] = useState('');
   const [tagQuery, setTagQuery] = useState('');
   const [manageThemes, setManageThemes] = useState(false);
   const [formTheme, setFormTheme] = useState<Theme | null | undefined>(undefined);
@@ -110,8 +115,9 @@ export function CollectionPage({
       if (formTag) await tagsState.update({ id: formTag.id, tag: input });
       else await tagsState.create(input);
       setFormTag(undefined);
+      setManageTagsError('');
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Could not save tag');
+      setManageTagsError(cause instanceof Error ? cause.message : 'Could not save tag');
     }
   }
 
@@ -185,12 +191,17 @@ export function CollectionPage({
 
   function openTagFormInManage(tag: Tag | null) {
     setFormItem(undefined);
+    setManageTagsError('');
     setFormTag(tag);
   }
 
   function openManageTags() {
     setFormItem(undefined);
     setFormTag(undefined);
+    setRenameCategory(null);
+    setDeleteCategory(null);
+    setDeleteTag(null);
+    setManageTagsError('');
     setTagQuery('');
     setViewerItem(undefined);
     setManageTags(true);
@@ -198,6 +209,10 @@ export function CollectionPage({
 
   function closeManageTags() {
     setFormTag(undefined);
+    setRenameCategory(null);
+    setDeleteCategory(null);
+    setDeleteTag(null);
+    setManageTagsError('');
     setManageTags(false);
   }
 
@@ -216,8 +231,20 @@ export function CollectionPage({
     try {
       await tagsState.remove(deleteTag.id);
       setDeleteTag(null);
+      setManageTagsError('');
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'Could not delete tag');
+      setManageTagsError(cause instanceof Error ? cause.message : 'Could not delete tag');
+    }
+  }
+
+  async function confirmCategoryDelete() {
+    if (!deleteCategory) return;
+    try {
+      await categoriesState.remove(deleteCategory.id);
+      setDeleteCategory(null);
+      setManageTagsError('');
+    } catch (cause) {
+      setManageTagsError(cause instanceof Error ? cause.message : 'Could not delete category');
     }
   }
 
@@ -450,7 +477,9 @@ export function CollectionPage({
                     </div>
                   </div>
                 </div>
-                {actionError && <ErrorState message={actionError} />}
+                {manageTagsError && !deleteTag && !deleteCategory && (
+                  <ErrorState message={manageTagsError} />
+                )}
                 {tagsState.isLoading ? (
                   <LoadingState />
                 ) : tagsState.error ? (
@@ -458,13 +487,23 @@ export function CollectionPage({
                 ) : (
                   <TagList
                     tags={visibleTags}
+                    categories={categoriesState.categories}
+                    query={tagQuery}
                     onEdit={setFormTag}
-                    onDelete={setDeleteTag}
+                    onDelete={(tag) => {
+                      setManageTagsError('');
+                      setDeleteTag(tag);
+                    }}
+                    onRenameCategory={setRenameCategory}
+                    onDeleteCategory={(category) => {
+                      setManageTagsError('');
+                      setDeleteCategory(category);
+                    }}
                     onMove={(id, order) =>
                       void tagsState
                         .reorder({ id, order })
                         .catch((cause: unknown) =>
-                          setActionError(
+                          setManageTagsError(
                             cause instanceof Error ? cause.message : 'Could not reorder tag',
                           ),
                         )
@@ -472,37 +511,6 @@ export function CollectionPage({
                   />
                 )}
                 {categoriesState.error && <ErrorState message={categoriesState.error.message} />}
-                {!categoriesState.isLoading &&
-                  categoriesState.categories.filter(
-                    (category) =>
-                      category.tagCount === 0 &&
-                      (!normalizedTagQuery ||
-                        category.name.toLowerCase().includes(normalizedTagQuery)),
-                  ).length > 0 && (
-                    <section className="tag-panel" aria-label="Empty categories">
-                      <ul className="tag-list">
-                        {categoriesState.categories
-                          .filter(
-                            (category) =>
-                              category.tagCount === 0 &&
-                              (!normalizedTagQuery ||
-                                category.name.toLowerCase().includes(normalizedTagQuery)),
-                          )
-                          .map((category) => (
-                            <li
-                              key={category.id}
-                              className="tag-row"
-                              data-testid={`empty-category-${category.id}`}
-                            >
-                              <div className="tag-row-label">
-                                <span className="tag-category">{category.name.toLowerCase()}</span>
-                                <span className="tag-description">No tags in this category</span>
-                              </div>
-                            </li>
-                          ))}
-                      </ul>
-                    </section>
-                  )}
               </div>
             </Modal>
           )}
@@ -517,6 +525,24 @@ export function CollectionPage({
                 onSubmit={saveTag}
                 onCancel={() => setFormTag(undefined)}
                 palette={tagPalette}
+              />
+            </Modal>
+          )}
+          {manageTags && renameCategory && (
+            <Modal
+              label={`Rename category ${renameCategory.name}`}
+              onClose={() => setRenameCategory(null)}
+            >
+              <TagCategoryForm
+                category={renameCategory}
+                onSubmit={async (name) => {
+                  await categoriesState.update({
+                    id: renameCategory.id,
+                    category: { name },
+                  });
+                  setRenameCategory(null);
+                }}
+                onCancel={() => setRenameCategory(null)}
               />
             </Modal>
           )}
@@ -592,7 +618,22 @@ export function CollectionPage({
           <DeleteConfirmDialog
             title={deleteTag.tagName}
             onConfirm={() => void confirmTagDelete()}
-            onCancel={() => setDeleteTag(null)}
+            onCancel={() => {
+              setDeleteTag(null);
+              setManageTagsError('');
+            }}
+            error={manageTagsError || undefined}
+          />
+        )}
+        {deleteCategory && (
+          <DeleteConfirmDialog
+            title={deleteCategory.name}
+            onConfirm={() => void confirmCategoryDelete()}
+            onCancel={() => {
+              setDeleteCategory(null);
+              setManageTagsError('');
+            }}
+            error={manageTagsError || undefined}
           />
         )}
         {deleteTheme && (

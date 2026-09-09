@@ -74,16 +74,52 @@ vi.mock('../../hooks/useTags', () => ({
 
 vi.mock('../../hooks/useTagCategories', () => ({
   useTagCategories: () => ({
-    categories: [],
-    total: 0,
+    categories: mockCategories,
+    total: mockCategories.length,
     isLoading: false,
     error: null,
     create: vi.fn(),
-    update: vi.fn(),
-    remove: vi.fn(),
+    update: categoryUpdateMock,
+    remove: categoryRemoveMock,
     reorder: vi.fn(),
   }),
 }));
+
+const mockCategories = [
+  {
+    id: 'cat-development',
+    name: 'development',
+    description: '',
+    tagIds: ['tag-1'],
+    tagCount: 1,
+    order: 1,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-documentation',
+    name: 'documentation',
+    description: '',
+    tagIds: ['tag-2'],
+    tagCount: 1,
+    order: 2,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-general',
+    name: 'general',
+    description: '',
+    tagIds: [],
+    tagCount: 0,
+    order: 3,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+];
+
+const categoryUpdateMock = vi.fn().mockResolvedValue(undefined);
+const categoryRemoveMock = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../hooks/useThemes', () => ({
   useThemes: () => ({
@@ -143,6 +179,10 @@ afterEach(() => {
   tagsState.update.mockResolvedValue(undefined);
   tagsState.remove.mockResolvedValue(undefined);
   tagsState.reorder.mockResolvedValue(undefined);
+  categoryUpdateMock.mockReset();
+  categoryRemoveMock.mockReset();
+  categoryUpdateMock.mockResolvedValue(undefined);
+  categoryRemoveMock.mockResolvedValue(undefined);
 });
 
 describe('CollectionPage tag management modal', () => {
@@ -409,5 +449,127 @@ describe('CollectionPage tag management modal', () => {
 
     expect(indicator(addTag, heading)).toBe(true);
     expect(indicator(heading, searchInput)).toBe(true);
+  });
+
+  it('groups tags under their category with the tags stacked below the group name', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    const frame = manageFrame();
+    expect(frame.getByRole('heading', { name: 'development' })).toBeInTheDocument();
+    expect(frame.getByRole('heading', { name: 'documentation' })).toBeInTheDocument();
+
+    const developmentGroup = frame.getByTestId('tag-category-group-cat-development');
+    expect(within(developmentGroup).getByTestId('tag-row-tag-1')).toBeInTheDocument();
+    expect(within(developmentGroup).queryByTestId('tag-row-tag-2')).not.toBeInTheDocument();
+  });
+
+  it('renders empty categories as groups in the same list', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    const frame = manageFrame();
+    const generalGroup = frame.getByTestId('tag-category-group-cat-general');
+    expect(within(generalGroup).getByText('No tags in this category')).toBeInTheDocument();
+  });
+
+  it('hides groups that match neither the query nor their tags', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.change(manageFrame().getByLabelText('Search tags'), {
+      target: { value: 'documentation' },
+    });
+
+    expect(manageFrame().getByTestId('tag-category-group-cat-documentation')).toBeInTheDocument();
+    expect(
+      manageFrame().queryByTestId('tag-category-group-cat-development'),
+    ).not.toBeInTheDocument();
+    expect(manageFrame().queryByTestId('tag-category-group-cat-general')).not.toBeInTheDocument();
+  });
+
+  it('renames a category through its group menu', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.click(manageFrame().getByRole('button', { name: 'Category menu for development' }));
+    fireEvent.click(manageFrame().getByRole('menuitem', { name: 'Rename' }));
+    expect(screen.getByRole('heading', { name: 'Rename category' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Category name'), { target: { value: 'dev' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save category' }));
+
+    expect(categoryUpdateMock).toHaveBeenCalledWith({
+      id: 'cat-development',
+      category: { name: 'dev' },
+    });
+  });
+
+  it('offers no menu for the general category', () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    expect(manageFrame().getByTestId('tag-category-group-cat-general')).toBeInTheDocument();
+    expect(
+      manageFrame().queryByRole('button', { name: 'Category menu for general' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('deletes a category through the confirm dialog', async () => {
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.click(manageFrame().getByRole('button', { name: 'Category menu for documentation' }));
+    fireEvent.click(manageFrame().getByRole('menuitem', { name: 'Delete' }));
+    expect(screen.getByRole('dialog', { name: 'Delete documentation?' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
+
+    expect(categoryRemoveMock).toHaveBeenCalledWith('cat-documentation');
+    expect(await screen.findByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
+  });
+
+  it('keeps the management view open when deleting a category fails', async () => {
+    categoryRemoveMock.mockRejectedValueOnce(new Error('Tag category is not empty'));
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.click(manageFrame().getByRole('button', { name: 'Category menu for development' }));
+    fireEvent.click(manageFrame().getByRole('menuitem', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Delete development?' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Tag category is not empty');
+    expect(screen.getByRole('heading', { name: 'Manage tags' })).toBeInTheDocument();
+  });
+
+  it('scopes a rejected category delete to the dialog without ghost entries in either list', async () => {
+    categoryRemoveMock.mockRejectedValueOnce(new Error('Tag category is not empty'));
+    render(<CollectionPage />);
+    openManageTags();
+
+    fireEvent.click(manageFrame().getByRole('button', { name: 'Category menu for development' }));
+    fireEvent.click(manageFrame().getByRole('menuitem', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Delete development?' });
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Tag category is not empty');
+
+    // Main collection list keeps its items and shows no error frame for the failure.
+    expect(screen.getByText('Git status')).toBeInTheDocument();
+    const mainFrame = document.querySelector('.main-content-frame');
+    expect(mainFrame).not.toBeNull();
+    expect(within(mainFrame as HTMLElement).queryByText('Tag category is not empty')).not.toBeInTheDocument();
+
+    // Manage tags list keeps its groups with no ghost first entry carrying the error.
+    expect(manageFrame().queryByText('Tag category is not empty')).not.toBeInTheDocument();
+    expect(manageFrame().getByTestId('tag-category-group-cat-development')).toBeInTheDocument();
+    expect(manageFrame().getByTestId('tag-row-tag-1')).toBeInTheDocument();
+
+    // Cancelling the dialog dismisses the scoped error.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'Delete development?' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Tag category is not empty')).not.toBeInTheDocument();
   });
 });

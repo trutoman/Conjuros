@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,20 +27,65 @@ const tags = [
   },
 ];
 
+const categories = [
+  {
+    id: 'cat-work',
+    name: 'work',
+    description: '',
+    tagIds: ['tag-1'],
+    tagCount: 1,
+    order: 1,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-personal',
+    name: 'personal',
+    description: '',
+    tagIds: ['tag-2'],
+    tagCount: 1,
+    order: 2,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-hobby',
+    name: 'hobby',
+    description: '',
+    tagIds: [],
+    tagCount: 0,
+    order: 3,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'cat-general',
+    name: 'general',
+    description: '',
+    tagIds: [],
+    tagCount: 0,
+    order: 4,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  },
+];
+
 describe('TagList', () => {
   it('renders each tag as a colored pill with its metadata', () => {
     render(<TagList tags={tags} onEdit={vi.fn()} onDelete={vi.fn()} onMove={vi.fn()} />);
 
-    const pills = screen.getAllByText(/^deploy\./).map((node) => node.closest('.tag-filter-pill'));
-    expect(pills).toHaveLength(2);
-    expect(pills[0]).toHaveStyle({ color: '#123ABC', borderColor: '#123ABC' });
-    expect(pills[0]?.getAttribute('style')).toContain(
+    const pillFor = (name: string) =>
+      screen.getByText(name).closest('.tag-filter-pill') as HTMLElement | null;
+    const deployTodo = pillFor('deploy.todo');
+    const deployDone = pillFor('deploy.done');
+    expect(deployTodo).toHaveStyle({ color: '#123ABC', borderColor: '#123ABC' });
+    expect(deployTodo?.getAttribute('style')).toContain(
       'color-mix(in srgb, #123ABC 8%, var(--surface))',
     );
-    expect(pills[1]).toHaveStyle({ color: '#ABC123', borderColor: '#ABC123' });
+    expect(deployDone).toHaveStyle({ color: '#ABC123', borderColor: '#ABC123' });
 
-    expect(screen.getByText('work')).toBeInTheDocument();
-    expect(screen.getByText('personal')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'work' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'personal' })).toBeInTheDocument();
   });
 
   it('renders tag names and categories in lowercase', () => {
@@ -51,8 +96,8 @@ describe('TagList', () => {
     render(<TagList tags={mixedCase} onEdit={vi.fn()} onDelete={vi.fn()} onMove={vi.fn()} />);
 
     expect(screen.getByText('deploy.todo')).toBeInTheDocument();
-    expect(screen.getByText('work')).toBeInTheDocument();
-    expect(screen.getByText('personal')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'work' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'personal' })).toBeInTheDocument();
   });
 
   it('does not render inline edit, delete, move up, or move down buttons', () => {
@@ -95,11 +140,11 @@ describe('TagList', () => {
 
     render(<TagList tags={tags} onEdit={onEdit} onDelete={onDelete} onMove={vi.fn()} />);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Tag menu' })[1]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Tag menu' })[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
     expect(onEdit).toHaveBeenCalledWith(tags[1]);
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Tag menu' })[1]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Tag menu' })[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalledWith(tags[1]);
   });
@@ -142,11 +187,11 @@ describe('TagList', () => {
     const onMove = vi.fn();
     render(<TagList tags={tags} onEdit={vi.fn()} onDelete={vi.fn()} onMove={onMove} />);
 
-    const secondRow = screen.getByTestId('tag-row-tag-2');
-    secondRow.focus();
-    fireEvent.keyDown(secondRow, { key: 'ArrowUp', altKey: true });
+    const firstRow = screen.getByTestId('tag-row-tag-2');
+    firstRow.focus();
+    fireEvent.keyDown(firstRow, { key: 'ArrowDown', altKey: true });
 
-    expect(document.activeElement).toBe(secondRow);
+    expect(document.activeElement).toBe(firstRow);
     expect(onMove).toHaveBeenCalledWith('tag-2', 1);
   });
 
@@ -154,9 +199,218 @@ describe('TagList', () => {
     const onMove = vi.fn();
     render(<TagList tags={tags} onEdit={vi.fn()} onDelete={vi.fn()} onMove={onMove} />);
 
-    const firstRow = screen.getByTestId('tag-row-tag-1');
+    const firstRow = screen.getByTestId('tag-row-tag-2');
     fireEvent.keyDown(firstRow, { key: 'ArrowUp', altKey: true });
 
     expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it('groups tags under alphabetically ordered category headings', () => {
+    render(
+      <TagList
+        tags={tags}
+        categories={categories}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMove={vi.fn()}
+        onRenameCategory={vi.fn()}
+        onDeleteCategory={vi.fn()}
+      />,
+    );
+
+    const headings = screen.getAllByRole('heading', { level: 3 }).map((node) => node.textContent);
+    expect(headings).toEqual(['general', 'hobby', 'personal', 'work']);
+
+    const workGroup = screen.getByTestId('tag-category-group-cat-work');
+    expect(within(workGroup).getByTestId('tag-row-tag-1')).toBeInTheDocument();
+    expect(within(workGroup).queryByTestId('tag-row-tag-2')).not.toBeInTheDocument();
+
+    const personalGroup = screen.getByTestId('tag-category-group-cat-personal');
+    expect(within(personalGroup).getByTestId('tag-row-tag-2')).toBeInTheDocument();
+  });
+
+  it('renders empty categories as groups with no tags', () => {
+    render(
+      <TagList
+        tags={tags}
+        categories={categories}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMove={vi.fn()}
+        onRenameCategory={vi.fn()}
+        onDeleteCategory={vi.fn()}
+      />,
+    );
+
+    const hobbyGroup = screen.getByTestId('tag-category-group-cat-hobby');
+    expect(within(hobbyGroup).getByText('No tags in this category')).toBeInTheDocument();
+    expect(within(hobbyGroup).queryByTestId(/tag-row-/)).not.toBeInTheDocument();
+  });
+
+  it('lays out each group with a left-aligned name and a vertical right-aligned tag stack', () => {
+    render(
+      <TagList
+        tags={tags}
+        categories={categories}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMove={vi.fn()}
+        onRenameCategory={vi.fn()}
+        onDeleteCategory={vi.fn()}
+      />,
+    );
+
+    const header = screen
+      .getByTestId('tag-category-group-cat-work')
+      .querySelector('.category-group-header');
+    expect(header?.querySelector('h3')?.textContent).toBe('work');
+
+    const css = readFileSync(join(process.cwd(), 'src/web/index.css'), 'utf8');
+    expect(css).toMatch(
+      /\.tag-panel \.category-group-header\s*\{[^}]*justify-content:\s*space-between;[^}]*\}/,
+    );
+    expect(css).toMatch(
+      /\.tag-panel \.category-group-header h3\s*\{[^}]*text-align:\s*left;[^}]*\}/,
+    );
+    expect(css).toMatch(
+      /\.tag-panel \.category-tags-list\s*\{[^}]*flex-direction:\s*column;[^}]*\}/,
+    );
+  });
+
+  it('hides groups with no query match and keeps groups matching by tag', () => {
+    const props = {
+      categories,
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+      onMove: vi.fn(),
+      onRenameCategory: vi.fn(),
+      onDeleteCategory: vi.fn(),
+    };
+
+    const { unmount } = render(<TagList tags={tags} query="work" {...props} />);
+    expect(screen.getByTestId('tag-category-group-cat-work')).toBeInTheDocument();
+    expect(screen.queryByTestId('tag-category-group-cat-personal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('tag-category-group-cat-hobby')).not.toBeInTheDocument();
+    unmount();
+
+    render(<TagList tags={tags} query="deploy.done" {...props} />);
+    expect(screen.getByTestId('tag-category-group-cat-personal')).toBeInTheDocument();
+    expect(screen.queryByTestId('tag-category-group-cat-work')).not.toBeInTheDocument();
+  });
+
+  it('keeps an empty category visible when the query matches its name', () => {
+    render(
+      <TagList
+        tags={tags}
+        categories={categories}
+        query="hob"
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMove={vi.fn()}
+        onRenameCategory={vi.fn()}
+        onDeleteCategory={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('tag-category-group-cat-hobby')).toBeInTheDocument();
+    expect(screen.queryByTestId('tag-category-group-cat-work')).not.toBeInTheDocument();
+  });
+
+  it('wires category rename and delete from the group menu', () => {
+    const onRenameCategory = vi.fn();
+    const onDeleteCategory = vi.fn();
+    render(
+      <TagList
+        tags={tags}
+        categories={categories}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMove={vi.fn()}
+        onRenameCategory={onRenameCategory}
+        onDeleteCategory={onDeleteCategory}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Category menu for work' }));
+    expect(
+      screen.getByRole('menu', { name: 'Category options for work' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Rename' }));
+    expect(onRenameCategory).toHaveBeenCalledWith(categories[0]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Category menu for work' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+    expect(onDeleteCategory).toHaveBeenCalledWith(categories[0]);
+  });
+
+  it('offers no actions menu for the general category', () => {
+    render(
+      <TagList
+        tags={tags}
+        categories={categories}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMove={vi.fn()}
+        onRenameCategory={vi.fn()}
+        onDeleteCategory={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Category menu for general' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('tag-category-group-cat-general')).toBeInTheDocument();
+  });
+
+  it('renders no category menus without category handlers', () => {
+    render(<TagList tags={tags} onEdit={vi.fn()} onDelete={vi.fn()} onMove={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: /Category menu for / })).not.toBeInTheDocument();
+  });
+
+  it('closes the tag menu when a category menu opens', () => {
+    render(
+      <TagList
+        tags={tags}
+        categories={categories}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMove={vi.fn()}
+        onRenameCategory={vi.fn()}
+        onDeleteCategory={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Tag menu' })[0]);
+    expect(screen.getByRole('menu', { name: 'Tag options' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Category menu for work' }));
+
+    expect(screen.queryByRole('menu', { name: 'Tag options' })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menu', { name: 'Category options for work' }),
+    ).toBeInTheDocument();
+  });
+
+  it('reorders across groups through the flattened order without changing categories', () => {
+    const onMove = vi.fn();
+    render(
+      <TagList
+        tags={tags}
+        categories={categories}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onMove={onMove}
+        onRenameCategory={vi.fn()}
+        onDeleteCategory={vi.fn()}
+      />,
+    );
+
+    fireEvent.dragStart(screen.getByTestId('tag-row-tag-1'));
+    fireEvent.dragOver(screen.getByTestId('tag-row-tag-2'));
+    fireEvent.drop(screen.getByTestId('tag-row-tag-2'));
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove).toHaveBeenCalledWith('tag-1', 2);
   });
 });
