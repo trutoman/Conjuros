@@ -1,13 +1,33 @@
 import { randomUUID } from 'node:crypto';
-import type { Collection, Db, Filter, Sort } from 'mongodb';
+import {
+  and,
+  arrayContains,
+  arrayOverlaps,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import type { CollectionItem, CollectionItemInput, CollectionQuery } from '@conjuros/contracts';
+import type { Database } from '../db/client';
+import { renumberOwnedRows } from '../db/reorder';
+import { collectionItems } from '../db/schema';
+import { containsPattern } from '../db/sql';
 
 export interface StoredCollectionItem extends CollectionItem {
   ownerId: string;
 }
 
 export interface ItemsRepository {
-  list(ownerId: string, query: CollectionQuery): Promise<{ items: StoredCollectionItem[]; total: number }>;
+  list(
+    ownerId: string,
+    query: CollectionQuery,
+  ): Promise<{ items: StoredCollectionItem[]; total: number }>;
   findOwned(id: string, ownerId: string): Promise<StoredCollectionItem | null>;
   findOwnedByIds(ids: string[], ownerId: string): Promise<StoredCollectionItem[]>;
   findOwnedByTags(ownerId: string, tags: string[]): Promise<StoredCollectionItem[]>;
@@ -23,20 +43,32 @@ export interface ItemsRepository {
 function matchesQuery(item: StoredCollectionItem, query: CollectionQuery): boolean {
   if (query.kind && item.kind !== query.kind) return false;
   if (query.tags && query.tags.length > 0) {
-    const hasTag = query.tagFilterMode === 'any'
-      ? query.tags.some((tag) => item.tags.includes(tag))
-      : query.tags.every((tag) => item.tags.includes(tag));
+    const hasTag =
+      query.tagFilterMode === 'any'
+        ? query.tags.some((tag) => item.tags.includes(tag))
+        : query.tags.every((tag) => item.tags.includes(tag));
     if (!hasTag) return false;
   }
   if (!query.search) return true;
   const value = query.search.toLowerCase();
-  return [item.title, item.description ?? '', item.command ?? '', item.url ?? '', item.content ?? '', ...item.tags]
+  return [
+    item.title,
+    item.description ?? '',
+    item.command ?? '',
+    item.url ?? '',
+    item.content ?? '',
+    ...item.tags,
+  ]
     .join(' ')
     .toLowerCase()
     .includes(value);
 }
 
-function compareItems(left: StoredCollectionItem, right: StoredCollectionItem, sort: CollectionQuery['sort']) {
+function compareItems(
+  left: StoredCollectionItem,
+  right: StoredCollectionItem,
+  sort: CollectionQuery['sort'],
+) {
   if (sort === 'title') return left.title.localeCompare(right.title);
   if (sort === 'updatedAt') return right.updatedAt.localeCompare(left.updatedAt);
   return left.order - right.order;
@@ -66,7 +98,9 @@ export class InMemoryItemsRepository implements ItemsRepository {
 
   async findOwnedByTags(ownerId: string, tags: string[]) {
     if (tags.length === 0) return [];
-    return [...this.items.values()].filter((item) => item.ownerId === ownerId && tags.every((tag) => item.tags.includes(tag)));
+    return [...this.items.values()].filter(
+      (item) => item.ownerId === ownerId && tags.every((tag) => item.tags.includes(tag)),
+    );
   }
 
   async nextOrder(ownerId: string) {
@@ -87,7 +121,8 @@ export class InMemoryItemsRepository implements ItemsRepository {
       command: input.kind === 'spell' ? input.command : null,
       url: input.kind === 'web-link' ? input.url : null,
       content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
-      filename: input.kind === 'markdown' || input.kind === 'file' ? input.filename ?? null : null,
+      filename:
+        input.kind === 'markdown' || input.kind === 'file' ? (input.filename ?? null) : null,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -115,7 +150,9 @@ export class InMemoryItemsRepository implements ItemsRepository {
       .sort((left, right) => left.order - right.order);
     ordered.splice(Math.min(order - 1, ordered.length), 0, item);
     const timestamp = new Date().toISOString();
-    ordered.forEach((candidate, index) => this.items.set(candidate.id, { ...candidate, order: index + 1, updatedAt: timestamp }));
+    ordered.forEach((candidate, index) =>
+      this.items.set(candidate.id, { ...candidate, order: index + 1, updatedAt: timestamp }),
+    );
     return this.items.get(id) ?? null;
   }
 
@@ -152,128 +189,202 @@ export class InMemoryItemsRepository implements ItemsRepository {
   }
 }
 
-export class MongoItemsRepository implements ItemsRepository {
-  private readonly items: Collection<StoredCollectionItem>;
+function toStoredItem(row: typeof collectionItems.$inferSelect): StoredCollectionItem {
+  return {
+    id: row.id,
+    ownerId: row.ownerId,
+    kind: row.kind,
+    title: row.title,
+    description: row.description,
+    tags: row.tags,
+    order: row.order,
+    relatedItemIds: row.relatedItemIds,
+    command: row.command,
+    url: row.url,
+    content: row.content,
+    filename: row.filename,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
 
-  constructor(database: Db) {
-    this.items = database.collection<StoredCollectionItem>('collectionItems');
-  }
+function owned(ownerId: string, id: string) {
+  return and(eq(collectionItems.id, id), eq(collectionItems.ownerId, ownerId));
+}
 
-  private static normalizeRead(doc: StoredCollectionItem): StoredCollectionItem {
-    return {
-      ...doc,
-      description: doc.description ?? null,
-      command: doc.command ?? null,
-      url: doc.url ?? null,
-      content: doc.content ?? null,
-      filename: doc.filename ?? null,
-    };
+function listCondition(ownerId: string, query: CollectionQuery) {
+  const conditions: (SQL | undefined)[] = [eq(collectionItems.ownerId, ownerId)];
+  if (query.kind) conditions.push(eq(collectionItems.kind, query.kind));
+  if (query.tags && query.tags.length > 0) {
+    conditions.push(
+      query.tagFilterMode === 'any'
+        ? arrayOverlaps(collectionItems.tags, query.tags)
+        : arrayContains(collectionItems.tags, query.tags),
+    );
   }
+  if (query.search) {
+    const pattern = containsPattern(query.search);
+    conditions.push(
+      or(
+        ilike(collectionItems.title, pattern),
+        ilike(collectionItems.description, pattern),
+        ilike(collectionItems.command, pattern),
+        ilike(collectionItems.url, pattern),
+        ilike(collectionItems.content, pattern),
+        sql`EXISTS (SELECT 1 FROM unnest(${collectionItems.tags}) AS candidate(tag) WHERE candidate.tag ILIKE ${pattern})`,
+      ),
+    );
+  }
+  return and(...conditions);
+}
+
+export class PostgresItemsRepository implements ItemsRepository {
+  constructor(private readonly db: Database) {}
 
   async list(ownerId: string, query: CollectionQuery) {
-    const filter: Filter<StoredCollectionItem> = { ownerId };
-    if (query.kind) filter.kind = query.kind;
-    if (query.tags && query.tags.length > 0) {
-      filter.tags = query.tagFilterMode === 'any' ? { $in: query.tags } : { $all: query.tags };
-    }
-    if (query.search) {
-      const expression = { $regex: query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
-      filter.$or = [{ title: expression }, { description: expression }, { command: expression }, { url: expression }, { content: expression }, { tags: expression }];
-    }
-    const sort: Sort = query.sort === 'title' ? { title: 1 } : query.sort === 'updatedAt' ? { updatedAt: -1 } : { order: 1 };
-    const [items, total] = await Promise.all([
-      this.items.find(filter).sort(sort).skip(query.skip).limit(query.limit).toArray(),
-      this.items.countDocuments(filter),
+    const where = listCondition(ownerId, query);
+    const sort =
+      query.sort === 'title'
+        ? asc(collectionItems.title)
+        : query.sort === 'updatedAt'
+          ? desc(collectionItems.updatedAt)
+          : asc(collectionItems.order);
+    // The id tie-break keeps pages stable when many rows share the sort key (a reorder gives them one updated_at).
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select()
+        .from(collectionItems)
+        .where(where)
+        .orderBy(sort, asc(collectionItems.id))
+        .limit(query.limit)
+        .offset(query.skip),
+      this.db.select({ total: count() }).from(collectionItems).where(where),
     ]);
-    return { items: items.map(MongoItemsRepository.normalizeRead), total };
+    return { items: rows.map(toStoredItem), total };
   }
 
   async findOwned(id: string, ownerId: string) {
-    const doc = await this.items.findOne({ id, ownerId });
-    return doc ? MongoItemsRepository.normalizeRead(doc) : null;
+    const [row] = await this.db.select().from(collectionItems).where(owned(ownerId, id));
+    return row ? toStoredItem(row) : null;
   }
 
   async findOwnedByIds(ids: string[], ownerId: string) {
-    const docs = await this.items.find({ id: { $in: ids }, ownerId }).toArray();
-    return docs.map(MongoItemsRepository.normalizeRead);
+    if (ids.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(collectionItems)
+      .where(and(eq(collectionItems.ownerId, ownerId), inArray(collectionItems.id, ids)))
+      .orderBy(asc(collectionItems.order), asc(collectionItems.id));
+    return rows.map(toStoredItem);
   }
 
   async findOwnedByTags(ownerId: string, tags: string[]) {
     if (tags.length === 0) return [];
-    const docs = await this.items.find({ ownerId, tags: { $all: tags } }).toArray();
-    return docs.map(MongoItemsRepository.normalizeRead);
+    const rows = await this.db
+      .select()
+      .from(collectionItems)
+      .where(and(eq(collectionItems.ownerId, ownerId), arrayContains(collectionItems.tags, tags)))
+      .orderBy(asc(collectionItems.order), asc(collectionItems.id));
+    return rows.map(toStoredItem);
   }
 
   async nextOrder(ownerId: string) {
-    return (await this.items.countDocuments({ ownerId })) + 1;
+    const [{ total }] = await this.db
+      .select({ total: count() })
+      .from(collectionItems)
+      .where(eq(collectionItems.ownerId, ownerId));
+    return total + 1;
   }
 
   async create(ownerId: string, input: CollectionItemInput, order: number) {
-    const timestamp = new Date().toISOString();
-    const item: StoredCollectionItem = {
-      id: randomUUID(), ownerId, kind: input.kind, title: input.title, description: input.description ?? null,
-      tags: input.tags, relatedItemIds: input.relatedItemIds, order,
-      command: input.kind === 'spell' ? input.command : null,
-      url: input.kind === 'web-link' ? input.url : null,
-      content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
-      filename: input.kind === 'markdown' || input.kind === 'file' ? input.filename ?? null : null,
-      createdAt: timestamp, updatedAt: timestamp,
-    };
-    await this.items.insertOne(item);
-    return item;
+    const timestamp = new Date();
+    const [row] = await this.db
+      .insert(collectionItems)
+      .values({
+        id: randomUUID(),
+        ownerId,
+        kind: input.kind,
+        title: input.title,
+        description: input.description ?? null,
+        tags: input.tags,
+        relatedItemIds: input.relatedItemIds,
+        order,
+        command: input.kind === 'spell' ? input.command : null,
+        url: input.kind === 'web-link' ? input.url : null,
+        content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
+        filename:
+          input.kind === 'markdown' || input.kind === 'file' ? (input.filename ?? null) : null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      .returning();
+    return toStoredItem(row);
   }
 
   async replace(item: StoredCollectionItem) {
-    await this.items.replaceOne({ id: item.id, ownerId: item.ownerId }, item);
+    await this.db
+      .update(collectionItems)
+      .set({
+        kind: item.kind,
+        title: item.title,
+        description: item.description,
+        tags: item.tags,
+        relatedItemIds: item.relatedItemIds,
+        order: item.order,
+        command: item.command,
+        url: item.url,
+        content: item.content,
+        filename: item.filename,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+      })
+      .where(owned(item.ownerId, item.id));
     return item;
   }
 
   async delete(id: string, ownerId: string) {
-    return (await this.items.deleteOne({ id, ownerId })).deletedCount === 1;
+    const deleted = await this.db
+      .delete(collectionItems)
+      .where(owned(ownerId, id))
+      .returning({ id: collectionItems.id });
+    return deleted.length === 1;
   }
 
   async reorder(id: string, ownerId: string, order: number) {
-    const item = await this.findOwned(id, ownerId);
-    if (!item) return null;
-    const all = await this.items.find({ ownerId }).sort({ order: 1 }).toArray();
-    const reordered = all.filter((candidate) => candidate.id !== id).map(MongoItemsRepository.normalizeRead);
-    reordered.splice(Math.min(order - 1, reordered.length), 0, item);
-    const timestamp = new Date().toISOString();
-    await this.items.bulkWrite(reordered.map((candidate, index) => ({
-      updateOne: { filter: { id: candidate.id, ownerId }, update: { $set: { order: index + 1, updatedAt: timestamp } } },
-    })));
-    return { ...item, order: reordered.findIndex((candidate) => candidate.id === id) + 1, updatedAt: timestamp };
+    return this.db.transaction(async (tx) => {
+      if (!(await renumberOwnedRows(tx, collectionItems, ownerId, id, order))) return null;
+      const [row] = await tx.select().from(collectionItems).where(owned(ownerId, id));
+      return toStoredItem(row);
+    });
   }
 
   async removeTagFromOwnerItems(ownerId: string, tag: string) {
-    const result = await this.items.updateMany(
-      { ownerId, tags: tag },
-      { $pull: { tags: tag }, $set: { updatedAt: new Date().toISOString() } },
-    );
-    return result.modifiedCount;
+    const updated = await this.db
+      .update(collectionItems)
+      .set({ tags: sql`array_remove(${collectionItems.tags}, ${tag})`, updatedAt: new Date() })
+      .where(and(eq(collectionItems.ownerId, ownerId), arrayContains(collectionItems.tags, [tag])))
+      .returning({ id: collectionItems.id });
+    return updated.length;
   }
 
   async renameTagForOwnerItems(ownerId: string, oldTag: string, newTag: string) {
     if (oldTag === newTag) return 0;
-
-    const taggedItems = await this.items.find({ ownerId, tags: oldTag }).toArray();
-    if (taggedItems.length === 0) return 0;
-
-    const timestamp = new Date().toISOString();
-    await this.items.bulkWrite(
-      taggedItems.map((item) => ({
-        updateOne: {
-          filter: { id: item.id, ownerId },
-          update: {
-            $set: {
-              tags: [...new Set(item.tags.map((candidate) => (candidate === oldTag ? newTag : candidate)))],
-              updatedAt: timestamp,
-            },
-          },
-        },
-      })),
-    );
-
-    return taggedItems.length;
+    // Replace in place, then drop repeated tags while keeping the order of first occurrences.
+    const updated = await this.db
+      .update(collectionItems)
+      .set({
+        tags: sql`ARRAY(
+          SELECT renamed.tag
+          FROM unnest(array_replace(${collectionItems.tags}, ${oldTag}, ${newTag})) WITH ORDINALITY AS renamed(tag, position)
+          GROUP BY renamed.tag
+          ORDER BY min(renamed.position)
+        )`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(collectionItems.ownerId, ownerId), arrayContains(collectionItems.tags, [oldTag])),
+      )
+      .returning({ id: collectionItems.id });
+    return updated.length;
   }
 }

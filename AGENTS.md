@@ -7,10 +7,16 @@ All project documentation, code, and code comments must be written in English.
 **Development:**
 ```bash
 npm run dev              # Ensure db container is healthy, free 3000/5173, then start API + frontend
-npm run dev:api          # API only via tsx watch (requires MongoDB on localhost:27017)
+npm run dev:api          # API only via tsx watch (requires PostgreSQL on localhost:5432)
 npm run dev:db           # Prepare dev prerequisites: free 3000/5173 (stop api/web containers, fail fast if busy), then compose up --wait db
 npm run dev:web          # Frontend only via Vite
 docker compose up -d     # Build/start all containers: db + api + web (frontend on 5173)
+```
+
+**Database:**
+```bash
+npm run db:generate      # Generate a versioned SQL migration from src/api/db/schema.ts
+npm run db:migrate       # Apply pending migrations to the database named by DATABASE_URL
 ```
 
 **Validation (required before finishing):**
@@ -25,7 +31,7 @@ npm run build            # tsc --noEmit + vite build
 
 **Setup:**
 ```bash
-cp .env.example .env     # Create local config (set MONGODB_DATABASE and SESSION_SECRET ≥32 chars)
+cp .env.example .env     # Create local config (set POSTGRES_PASSWORD (URL-safe), DATABASE_URL and SESSION_SECRET ≥32 chars)
 npm run docker:check     # Optional: verify Docker CLI and daemon before running npm run dev
 ```
 
@@ -37,16 +43,18 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 
 **Monorepo structure:**
 - `src/api/` — Express API server (entry: `server.ts`)
+- `src/api/db/` — Drizzle schema, client, migration runner and SQLSTATE helper
+- `drizzle/` — Generated, committed SQL migrations
 - `src/web/` — React frontend (entry: `main.tsx`, served by Vite from `src/web/`)
 - `packages/contracts/` — Shared Zod schemas and types via `@conjuros/contracts`
 - `src/tests/` — Test suite (mirrors `src/api/` and `src/web/` structure)
 
 **Layer boundaries:**
-- Controllers → Services → Repositories → MongoDB
-- Only repositories access MongoDB; services are persistence-agnostic
+- Controllers → Services → Repositories → PostgreSQL (via Drizzle ORM)
+- Only repositories access PostgreSQL; services are persistence-agnostic
 - HTTP layer has no business logic
 - Validate all inputs at boundaries with Zod; raise `AppError(status, code, message, details)` for domain errors
-- Share contracts via `packages/contracts`; do not duplicate schemas or expose persistence-only fields (e.g., `ownerId`)
+- Share contracts via `packages/contracts`; do not duplicate schemas or expose persistence-only fields (e.g., `ownerId`); `packages/contracts` must not depend on Drizzle
 
 **TypeScript paths:**
 - `@conjuros/contracts` resolves to `packages/contracts/src/index.ts` (configured in `tsconfig.json` and `vite.config.ts`)
@@ -75,8 +83,9 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 
 **Setup:**
 - Unit/integration tests use in-memory repositories (`InMemoryItemsRepository`, `InMemoryUsersRepository`, etc.)
+- Repository behavior tests run the `Postgres*` repositories against an in-process PostgreSQL (PGlite) with the committed migrations applied, so `npm run test` stays Docker-independent
 - Helper: `createTestApp()` in `src/tests/api/testApp.ts` returns `{ app, items, tags, users }`
-- Vitest config excludes `docker-compose.test.ts` from default suite; run separately via `npm run test:docker`
+- Vitest config excludes `docker-compose.test.ts` from default suite; run it separately via `npm run test:docker` against the real PostgreSQL container
 
 **Conventions:**
 - Use `supertest` for API tests; `@testing-library/react` for frontend

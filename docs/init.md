@@ -21,7 +21,7 @@ TypeScript web application
    |-- API Fastify
   |-- business rules
    v
-MongoDB
+PostgreSQL
 ```
 
 ## 2. Recommended Stack
@@ -32,12 +32,12 @@ MongoDB
 - **Components and styling:** Custom CSS with design variables, or an accessible component library already selected by the team. The frontend should be functional and restrained before decorative.
 - **Ordering:** `@dnd-kit` for drag and drop, with an accessible keyboard alternative.
 - **API:** Fastify.
-- **Persistence:** MongoDB using the official driver.
+- **Persistence:** PostgreSQL using Drizzle ORM.
 - **Shared validation:** Zod, reusing schemas and types between frontend and API when the monorepo allows it.
 - **Authentication:** Secure sessions with `httpOnly` cookies or an identity provider. Do not store session tokens in `localStorage`.
 - **Testing:** Vitest; React Testing Library for components; HTTP tests with `fastify.inject`; Playwright for critical flows.
 - **API documentation:** OpenAPI through `@fastify/swagger`.
-- **Local environment:** Docker Compose for MongoDB.
+- **Local environment:** Docker Compose for PostgreSQL.
 - **Quality:** ESLint, Prettier, Husky, and lint-staged.
 
 ## 3. Domain Model
@@ -101,14 +101,14 @@ Initial rules:
 
 Do not store the order as an array of IDs inside the user: `position` per item supports pagination, filtering, and more direct updates. For the first MVP it can be an integer; when reordering, recalculate the affected positions in a validated operation. If the list becomes very large later, migrate to fractional positions.
 
-Initial MongoDB indexes:
+Initial PostgreSQL indexes (declared alongside the Drizzle schema):
 
 ```text
-collectionItems: { ownerId: 1, position: 1 }
-collectionItems: { ownerId: 1, updatedAt: -1 }
-collectionItems: { ownerId: 1, type: 1 }
-collectionItems: { ownerId: 1, tags.value: 1 }
-users: { email: 1 }, unique
+collection_items: { owner_id, position }
+collection_items: { owner_id, updated_at DESC }
+collection_items: { owner_id, kind }
+collection_items: { owner_id, tags }        -- tags is a text[] column
+users: { email } UNIQUE
 ```
 
 ## 4. Core Frontend Experience
@@ -147,7 +147,7 @@ Recommended behavior:
 - When used, the `types` filter limits results to spells, web links, or both.
 - Values within one filter category use OR logic; different categories use AND logic.
 - Manual ordering remains active only when no alternative sort is selected.
-- Search is local only when the collection is already loaded and small; for large collections, the API paginates and filters in MongoDB.
+- Search is local only when the collection is already loaded and small; for large collections, the API paginates and filters in PostgreSQL.
 - Filter state must be reflected in the URL so a view can reload or be saved without losing context.
 - The frontend applies a short debounce to remote search and keeps a non-intrusive loading state.
 
@@ -201,9 +201,9 @@ Conjuros/
 
 Responsibilities must remain separate:
 
-- `apps/web` renders the experience, maintains UI state, and consumes contracts; it does not know MongoDB.
-- `apps/api` authorizes requests, applies business rules, and accesses MongoDB through repositories.
-- `packages/contracts` contains shared contracts: inputs, outputs, enums, and Zod schemas. It must not contain database logic or React components.
+- `apps/web` renders the experience, maintains UI state, and consumes contracts; it does not know PostgreSQL.
+- `apps/api` authorizes requests, applies business rules, and accesses PostgreSQL through repositories (Drizzle ORM).
+- `packages/contracts` contains shared contracts: inputs, outputs, enums, and Zod schemas. It must not contain database logic, Drizzle dependencies, or React components.
 
 The separation looks like this:
 
@@ -212,7 +212,7 @@ flowchart LR
   Web[apps/web\nReact] -->|HTTP + contracts| API[apps/api\nFastify]
   Web -->|imports schemas and types| Contracts[packages/contracts\nZod]
   API -->|imports schemas and types| Contracts
-  API -->|repositories| Mongo[(MongoDB)]
+  API -->|repositories| Postgres[(PostgreSQL)]
 ```
 
 ## 6. Technical Setup
@@ -222,9 +222,9 @@ In the VS Code integrated terminal:
 ```bash
 git init
 npm init -y
-npm install -D typescript@next tsx vitest eslint prettier @types/node
+npm install -D typescript@next tsx vitest eslint prettier @types/node drizzle-kit @types/pg
 npm install -D vite @vitejs/plugin-react @types/react @types/react-dom
-npm install fastify mongodb zod dotenv
+npm install fastify pg drizzle-orm zod dotenv
 npm install react react-dom react-router @tanstack/react-query @dnd-kit/core @dnd-kit/sortable
 npx tsc --init
 ```
@@ -244,21 +244,23 @@ Once each application has its `package.json`, root scripts should validate the w
 }
 ```
 
-For local MongoDB, use `compose.yaml`:
+For local PostgreSQL, use `compose.yaml`:
 
 ```yaml
 services:
-  mongo:
-    image: mongo:8
+  db:
+    image: postgres:18-alpine
     ports:
-      - "27017:27017"
+      - "127.0.0.1:5432:5432"
     environment:
-      MONGO_INITDB_DATABASE: conjuros
+      POSTGRES_USER: conjuros
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: conjuros
     volumes:
-      - mongo-data:/data/db
+      - postgres-data:/var/lib/postgresql
 
 volumes:
-  mongo-data:
+  postgres-data:
 ```
 
 ```bash
@@ -270,8 +272,10 @@ Include `.env.example`, but never commit `.env` or secrets:
 ```env
 API_PORT=3000
 WEB_PORT=5173
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DATABASE=conjuros
+POSTGRES_USER=conjuros
+POSTGRES_PASSWORD=replace-with-a-url-safe-password
+POSTGRES_DB=conjuros
+DATABASE_URL=postgres://conjuros:replace-with-a-url-safe-password@localhost:5432/conjuros
 SESSION_SECRET=replace-with-a-local-secret
 ```
 
@@ -282,7 +286,7 @@ Essential extensions:
 - **ESLint**
 - **Prettier**
 - **Docker**
-- **MongoDB for VS Code**
+- **PostgreSQL for VS Code**
 - **GitHub Copilot** and **GitHub Copilot Chat**
 - **Playwright Test for VS Code**
 - **REST Client** or **Thunder Client**
@@ -303,7 +307,7 @@ Initial `.vscode/settings.json` configuration:
 }
 ```
 
-Create VS Code tasks to start the API, frontend, MongoDB, tests, and linting. This gives people and agents the same verifiable commands.
+Create VS Code tasks to start the API, frontend, PostgreSQL, tests, and linting. This gives people and agents the same verifiable commands.
 
 ## 8. AGENTS.md: Global Repository Rules
 
@@ -328,8 +332,8 @@ title, description, tags, order, and relationships.
 - Use strict TypeScript; do not use `any`.
 - Validate all inputs at boundaries with Zod.
 - The HTTP layer contains no business rules.
-- Services do not depend on Fastify, React, or MongoDB.
-- Only repositories access MongoDB.
+- Services do not depend on Fastify, React, or PostgreSQL.
+- Only repositories access PostgreSQL.
 - Share Zod schemas and types through `packages/contracts` when both web and API use them.
 - Do not duplicate contracts or expose persistence-only fields in public contracts.
 
@@ -371,7 +375,7 @@ There is no need to multiply agents. Create four roles with clear boundaries and
 Responsibilities:
 
 - **`collection-feature`**: implements vertical changes for spells and web links, including contracts, API, persistence, and associated tests.
-- **`frontend-experience`**: implements and reviews screens, search, filters, ordering, accessibility, states, and frontend tests. It does not modify authorization rules or MongoDB schemas without an explicit requirement.
+- **`frontend-experience`**: implements and reviews screens, search, filters, ordering, accessibility, states, and frontend tests. It does not modify authorization rules or PostgreSQL schemas without an explicit requirement.
 - **`test-reviewer`**: finds domain edge cases and filter, ordering, and permission regressions.
 - **`security-reviewer`**: reviews authentication, user isolation, secrets, validation, and destructive operations.
 - **`collection-domain` skill**: gathers stable rules for collection items, tags, order, relationships, and ownership permissions.
@@ -403,7 +407,7 @@ Work primarily in `apps/web/**` and in already agreed contracts.
 - Implement loading, empty, no-results, insufficient-permission, and network-error states.
 
 ## Boundaries
-- Do not access MongoDB directly or introduce secrets in the frontend.
+- Do not access PostgreSQL directly or introduce secrets in the frontend.
 - Do not duplicate API contracts: import available shared schemas and types.
 - Do not alter authorization or API contracts without coordinating the domain change.
 - Do not replace existing components or add UI dependencies without justifying them in the summary.
@@ -465,13 +469,13 @@ description: "Use when implementing or changing spells, web links, tags, relatio
 MCP connects Copilot to external tools. Enable only the ones that cover a specific need:
 
 - **GitHub MCP:** issues, pull requests, and reviews.
-- **MongoDB MCP:** controlled inspection of development collections, indexes, and data.
+- **PostgreSQL MCP:** controlled inspection of development tables, indexes, and data.
 - **Playwright MCP:** inspection and testing of frontend flows.
-- **Context7 MCP:** current documentation for React, Fastify, MongoDB, Zod, and installed libraries.
+- **Context7 MCP:** current documentation for React, Fastify, Drizzle, PostgreSQL, Zod, and installed libraries.
 
 MCP rules:
 
-- Connect MongoDB MCP only to local or development instances at first.
+- Connect database MCP servers only to local or development instances at first.
 - Use least-privilege credentials and keep secrets out of versioned files.
 - Ask for confirmation before deletions, destructive migrations, or bulk data changes.
 - Do not enable MCP servers without a concrete use case.
@@ -506,7 +510,7 @@ An agent is not finished when it generates code; it is finished after checking i
 
 Build vertically, starting with a small experience that works end to end:
 
-1. Configure the monorepo, local MongoDB, strict TypeScript, linting, and tests.
+1. Configure the monorepo, local PostgreSQL, strict TypeScript, linting, and tests.
 2. Create `GET /health` and the React skeleton with a protected collection route.
 3. Implement registration, sign-in, sign-out, and per-user data isolation.
 4. Define Zod contracts and the collection module: create, list, get, edit, and delete spells and web links.
@@ -534,4 +538,4 @@ Read AGENTS.md and applicable instructions. Implement the first vertical Conjuro
 
 ## First Concrete Milestone
 
-The first milestone is a working private collection: registration or sign-in, creation, listing, reading, and reliable one-click copying of the exact text of every command or URL; MongoDB in Docker; a React frontend; Zod validation; tests; and documented agent rules. Advanced search and ordering are added on that base, while keeping quick retrieval of every item at the heart of the product.
+The first milestone is a working private collection: registration or sign-in, creation, listing, reading, and reliable one-click copying of the exact text of every command or URL; PostgreSQL in Docker; a React frontend; Zod validation; tests; and documented agent rules. Advanced search and ordering are added on that base, while keeping quick retrieval of every item at the heart of the product.

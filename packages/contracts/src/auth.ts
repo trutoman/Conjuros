@@ -1,7 +1,13 @@
 import { z } from 'zod';
 
 export const emailSchema = z.string().trim().email().max(254).transform((value) => value.toLowerCase());
-export const passwordSchema = z.string().min(12).max(128);
+export const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(128, 'Password must be at most 128 characters')
+  .regex(/[A-Za-z]/, 'Password must include at least one letter')
+  .regex(/[0-9]/, 'Password must include at least one number')
+  .regex(/[^A-Za-z0-9]/, 'Password must include at least one special character');
 export const themePreferenceSchema = z.enum(['light', 'dark']);
 
 export const credentialsSchema = z.object({

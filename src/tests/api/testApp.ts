@@ -21,7 +21,7 @@ export function createTestApp() {
   };
 }
 
-export const validPassword = 'correct-horse-battery-staple';
+export const validPassword = 'correct-horse-battery-staple-1';
 
 export async function registerUser(
   request: typeof import('supertest'),

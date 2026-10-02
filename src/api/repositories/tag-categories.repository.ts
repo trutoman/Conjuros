@@ -1,10 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import type { Collection, Db, Filter, Sort } from 'mongodb';
+import { and, arrayContains, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import {
   normalizeTagCategoryName,
   type TagCategoryInput,
   type TagCategoryQuery,
 } from '@conjuros/contracts';
+import type { Database } from '../db/client';
+import { renumberOwnedRows } from '../db/reorder';
+import { tagCategories } from '../db/schema';
+import { containsPattern, textArray } from '../db/sql';
+import { AppError } from '../errors';
 
 export interface StoredTagCategory {
   id: string;
@@ -27,21 +32,39 @@ function hydrateCategory(record: StoredTagCategory): StoredTagCategory {
 }
 
 export interface TagCategoriesRepository {
-  list(ownerId: string, query: TagCategoryQuery): Promise<{ items: StoredTagCategory[]; total: number }>;
+  list(
+    ownerId: string,
+    query: TagCategoryQuery,
+  ): Promise<{ items: StoredTagCategory[]; total: number }>;
   findAllOwned(ownerId: string): Promise<StoredTagCategory[]>;
   findOwned(id: string, ownerId: string): Promise<StoredTagCategory | null>;
-  findOwnedByNormalizedName(ownerId: string, nameNormalized: string): Promise<StoredTagCategory | null>;
+  findOwnedByNormalizedName(
+    ownerId: string,
+    nameNormalized: string,
+  ): Promise<StoredTagCategory | null>;
   findOwnedByMemberTag(ownerId: string, tagId: string): Promise<StoredTagCategory | null>;
   nextOrder(ownerId: string): Promise<number>;
   create(ownerId: string, input: TagCategoryInput, order: number): Promise<StoredTagCategory>;
   replace(category: StoredTagCategory): Promise<StoredTagCategory>;
-  addMembers(ownerId: string, categoryId: string, tagIds: string[]): Promise<StoredTagCategory | null>;
-  removeMember(ownerId: string, categoryId: string, tagId: string): Promise<StoredTagCategory | null>;
+  addMembers(
+    ownerId: string,
+    categoryId: string,
+    tagIds: string[],
+  ): Promise<StoredTagCategory | null>;
+  removeMember(
+    ownerId: string,
+    categoryId: string,
+    tagId: string,
+  ): Promise<StoredTagCategory | null>;
   delete(id: string, ownerId: string): Promise<boolean>;
   reorder(id: string, ownerId: string, order: number): Promise<StoredTagCategory | null>;
 }
 
-function compareCategories(left: StoredTagCategory, right: StoredTagCategory, sort: TagCategoryQuery['sort']) {
+function compareCategories(
+  left: StoredTagCategory,
+  right: StoredTagCategory,
+  sort: TagCategoryQuery['sort'],
+) {
   if (sort === 'name') return left.name.localeCompare(right.name);
   if (sort === 'updatedAt') return right.updatedAt.localeCompare(left.updatedAt);
   return left.order - right.order;
@@ -87,7 +110,9 @@ export class InMemoryTagCategoriesRepository implements TagCategoriesRepository 
     return (
       [...this.categories.values()]
         .map((category) => this.persistHydrated(category))
-        .find((category) => category.ownerId === ownerId && category.nameNormalized === nameNormalized) ?? null
+        .find(
+          (category) => category.ownerId === ownerId && category.nameNormalized === nameNormalized,
+        ) ?? null
     );
   }
 
@@ -100,7 +125,9 @@ export class InMemoryTagCategoriesRepository implements TagCategoriesRepository 
   }
 
   async nextOrder(ownerId: string) {
-    return [...this.categories.values()].filter((category) => category.ownerId === ownerId).length + 1;
+    return (
+      [...this.categories.values()].filter((category) => category.ownerId === ownerId).length + 1
+    );
   }
 
   async create(ownerId: string, input: TagCategoryInput, order: number) {
@@ -171,133 +198,178 @@ export class InMemoryTagCategoriesRepository implements TagCategoriesRepository 
   }
 }
 
-export class MongoTagCategoriesRepository implements TagCategoriesRepository {
-  private readonly categories: Collection<StoredTagCategory>;
+function toStoredCategory(row: typeof tagCategories.$inferSelect): StoredTagCategory {
+  return hydrateCategory({
+    id: row.id,
+    ownerId: row.ownerId,
+    name: row.name,
+    nameNormalized: row.nameNormalized,
+    description: row.description,
+    tagIds: row.tagIds,
+    order: row.order,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  });
+}
 
-  constructor(database: Db) {
-    this.categories = database.collection<StoredTagCategory>('tagCategories');
-  }
+function owned(ownerId: string, id: string) {
+  return and(eq(tagCategories.id, id), eq(tagCategories.ownerId, ownerId));
+}
+
+export class PostgresTagCategoriesRepository implements TagCategoriesRepository {
+  constructor(private readonly db: Database) {}
 
   async list(ownerId: string, query: TagCategoryQuery) {
-    const filter: Filter<StoredTagCategory> = { ownerId };
-    if (query.search) {
-      const expression = {
-        $regex: query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-        $options: 'i',
-      };
-      filter.$or = [{ name: expression }, { description: expression }];
-    }
-    const sort: Sort =
+    const pattern = query.search ? containsPattern(query.search) : undefined;
+    const where = and(
+      eq(tagCategories.ownerId, ownerId),
+      pattern
+        ? or(ilike(tagCategories.name, pattern), ilike(tagCategories.description, pattern))
+        : undefined,
+    );
+    const sort =
       query.sort === 'name'
-        ? { name: 1 }
+        ? asc(tagCategories.name)
         : query.sort === 'updatedAt'
-          ? { updatedAt: -1 }
-          : { order: 1 };
-    const [items, total] = await Promise.all([
-      this.categories.find(filter).sort(sort).skip(query.skip).limit(query.limit).toArray(),
-      this.categories.countDocuments(filter),
+          ? desc(tagCategories.updatedAt)
+          : asc(tagCategories.order);
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select()
+        .from(tagCategories)
+        .where(where)
+        .orderBy(sort, asc(tagCategories.id))
+        .limit(query.limit)
+        .offset(query.skip),
+      this.db.select({ total: count() }).from(tagCategories).where(where),
     ]);
-    return { items: items.map(hydrateCategory), total };
+    return { items: rows.map(toStoredCategory), total };
   }
 
   async findAllOwned(ownerId: string) {
-    const items = await this.categories.find({ ownerId }).toArray();
-    return items.map(hydrateCategory);
+    const rows = await this.db
+      .select()
+      .from(tagCategories)
+      .where(eq(tagCategories.ownerId, ownerId))
+      .orderBy(asc(tagCategories.order), asc(tagCategories.id));
+    return rows.map(toStoredCategory);
   }
 
   async findOwned(id: string, ownerId: string) {
-    const category = await this.categories.findOne({ id, ownerId });
-    return category ? hydrateCategory(category) : null;
+    const [row] = await this.db.select().from(tagCategories).where(owned(ownerId, id));
+    return row ? toStoredCategory(row) : null;
   }
 
   async findOwnedByNormalizedName(ownerId: string, nameNormalized: string) {
-    const category = await this.categories.findOne({ ownerId, nameNormalized });
-    return category ? hydrateCategory(category) : null;
+    const [row] = await this.db
+      .select()
+      .from(tagCategories)
+      .where(
+        and(eq(tagCategories.ownerId, ownerId), eq(tagCategories.nameNormalized, nameNormalized)),
+      );
+    return row ? toStoredCategory(row) : null;
   }
 
   async findOwnedByMemberTag(ownerId: string, tagId: string) {
-    const category = await this.categories.findOne({ ownerId, tagIds: tagId });
-    return category ? hydrateCategory(category) : null;
+    const [row] = await this.db
+      .select()
+      .from(tagCategories)
+      .where(and(eq(tagCategories.ownerId, ownerId), arrayContains(tagCategories.tagIds, [tagId])))
+      .orderBy(asc(tagCategories.order), asc(tagCategories.id))
+      .limit(1);
+    return row ? toStoredCategory(row) : null;
   }
 
   async nextOrder(ownerId: string) {
-    return (await this.categories.countDocuments({ ownerId })) + 1;
+    const [{ total }] = await this.db
+      .select({ total: count() })
+      .from(tagCategories)
+      .where(eq(tagCategories.ownerId, ownerId));
+    return total + 1;
   }
 
   async create(ownerId: string, input: TagCategoryInput, order: number) {
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
     const name = normalizeTagCategoryName(input.name);
-    const category: StoredTagCategory = {
-      id: randomUUID(),
-      ownerId,
-      name,
-      nameNormalized: name,
-      description: input.description ?? '',
-      tagIds: [],
-      order,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    };
-    try {
-      await this.categories.insertOne(category);
-    } catch (error) {
-      if ((error as { code?: number }).code === 11000) {
-        const existing = await this.findOwnedByNormalizedName(ownerId, name);
-        if (existing) return existing;
-      }
-      throw error;
-    }
-    return category;
+    const [row] = await this.db
+      .insert(tagCategories)
+      .values({
+        id: randomUUID(),
+        ownerId,
+        name,
+        nameNormalized: name,
+        description: input.description ?? '',
+        tagIds: [],
+        order,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      .onConflictDoNothing({ target: [tagCategories.ownerId, tagCategories.nameNormalized] })
+      .returning();
+    if (row) return toStoredCategory(row);
+    // A concurrent request created the same category first; return it like a sequential retry would.
+    const existing = await this.findOwnedByNormalizedName(ownerId, name);
+    if (existing) return existing;
+    throw new AppError(409, 'CONFLICT', 'Tag category already exists');
   }
 
   async replace(category: StoredTagCategory) {
-    await this.categories.replaceOne({ id: category.id, ownerId: category.ownerId }, category);
+    await this.db
+      .update(tagCategories)
+      .set({
+        name: category.name,
+        nameNormalized: category.nameNormalized,
+        description: category.description,
+        tagIds: category.tagIds,
+        order: category.order,
+        createdAt: new Date(category.createdAt),
+        updatedAt: new Date(category.updatedAt),
+      })
+      .where(owned(category.ownerId, category.id));
     return category;
   }
 
   async addMembers(ownerId: string, categoryId: string, tagIds: string[]) {
-    const timestamp = new Date().toISOString();
-    const updated = await this.categories.findOneAndUpdate(
-      { id: categoryId, ownerId },
-      { $addToSet: { tagIds: { $each: tagIds } }, $set: { updatedAt: timestamp } },
-      { returnDocument: 'after' },
-    );
-    return updated ? hydrateCategory(updated) : null;
+    // Appends the ids that are not members yet, in the given order.
+    const [row] = await this.db
+      .update(tagCategories)
+      .set({
+        tagIds: sql`${tagCategories.tagIds} || ARRAY(
+          SELECT added.tag_id
+          FROM unnest(${textArray(tagIds)}) WITH ORDINALITY AS added(tag_id, position)
+          WHERE added.tag_id <> ALL (${tagCategories.tagIds})
+          GROUP BY added.tag_id
+          ORDER BY min(added.position)
+        )`,
+        updatedAt: new Date(),
+      })
+      .where(owned(ownerId, categoryId))
+      .returning();
+    return row ? toStoredCategory(row) : null;
   }
 
   async removeMember(ownerId: string, categoryId: string, tagId: string) {
-    const timestamp = new Date().toISOString();
-    const updated = await this.categories.findOneAndUpdate(
-      { id: categoryId, ownerId },
-      { $pull: { tagIds: tagId }, $set: { updatedAt: timestamp } },
-      { returnDocument: 'after' },
-    );
-    return updated ? hydrateCategory(updated) : null;
+    const [row] = await this.db
+      .update(tagCategories)
+      .set({ tagIds: sql`array_remove(${tagCategories.tagIds}, ${tagId})`, updatedAt: new Date() })
+      .where(owned(ownerId, categoryId))
+      .returning();
+    return row ? toStoredCategory(row) : null;
   }
 
   async delete(id: string, ownerId: string) {
-    return (await this.categories.deleteOne({ id, ownerId })).deletedCount === 1;
+    const deleted = await this.db
+      .delete(tagCategories)
+      .where(owned(ownerId, id))
+      .returning({ id: tagCategories.id });
+    return deleted.length === 1;
   }
 
   async reorder(id: string, ownerId: string, order: number) {
-    const category = await this.findOwned(id, ownerId);
-    if (!category) return null;
-    const all = await this.categories.find({ ownerId }).sort({ order: 1 }).toArray();
-    const reordered = all.map(hydrateCategory).filter((candidate) => candidate.id !== id);
-    reordered.splice(Math.min(order - 1, reordered.length), 0, category);
-    const timestamp = new Date().toISOString();
-    await this.categories.bulkWrite(
-      reordered.map((candidate, index) => ({
-        updateOne: {
-          filter: { id: candidate.id, ownerId },
-          update: { $set: { order: index + 1, updatedAt: timestamp } },
-        },
-      })),
-    );
-    return {
-      ...category,
-      order: reordered.findIndex((candidate) => candidate.id === id) + 1,
-      updatedAt: timestamp,
-    };
+    return this.db.transaction(async (tx) => {
+      if (!(await renumberOwnedRows(tx, tagCategories, ownerId, id, order))) return null;
+      const [row] = await tx.select().from(tagCategories).where(owned(ownerId, id));
+      return toStoredCategory(row);
+    });
   }
 }
