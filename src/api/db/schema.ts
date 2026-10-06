@@ -32,7 +32,11 @@ const timestamptz = () => timestamp({ withTimezone: true, mode: 'date' });
 export const users = pgTable('users', {
   id: text().primaryKey(),
   email: text().notNull().unique(),
-  passwordHash: text().notNull(),
+  // Nullable so an account can exist without a local password (external identity only).
+  passwordHash: text(),
+  // External provider identity (e.g. Google subject). Nullable and unique: many
+  // accounts stay unlinked while one identity can belong to only one account.
+  googleId: text().unique(),
   theme: themePreferenceEnum().notNull().default('light'),
   role: userRoleEnum().notNull().default('user'),
   createdAt: timestamptz().notNull(),

@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
+import { AppError } from '../../api/errors';
 import {
   InMemoryUsersRepository,
   PostgresUsersRepository,
@@ -23,10 +24,21 @@ describe.each(implementations)('%s users repository', (_name, createRepository) 
       id: expect.any(String),
       email: 'ada@example.com',
       passwordHash: 'hash-1',
+      googleId: null,
       createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
       theme: 'light',
       role: 'user',
     });
+  });
+
+  it('creates a passwordless user', async () => {
+    const repository = createRepository();
+
+    const user = await repository.create('ada@example.com', null);
+
+    expect(user.passwordHash).toBeNull();
+    expect((await repository.findByEmail('ada@example.com'))?.passwordHash).toBeNull();
+    expect((await repository.findById(user.id))?.passwordHash).toBeNull();
   });
 
   it('finds a user by email and by id', async () => {
@@ -42,6 +54,7 @@ describe.each(implementations)('%s users repository', (_name, createRepository) 
 
     expect(await repository.findByEmail('nobody@example.com')).toBeNull();
     expect(await repository.findById('missing')).toBeNull();
+    expect(await repository.findByGoogleId('missing')).toBeNull();
   });
 
   it('keeps users apart', async () => {
@@ -51,6 +64,36 @@ describe.each(implementations)('%s users repository', (_name, createRepository) 
 
     expect(ada.id).not.toBe(grace.id);
     expect((await repository.findByEmail('grace@example.com'))?.id).toBe(grace.id);
+  });
+
+  it('links and finds a user by external identity', async () => {
+    const repository = createRepository();
+    const created = await repository.create('ada@example.com', null);
+
+    const linked = await repository.linkGoogleId(created.id, 'google-sub-1');
+
+    expect(linked?.googleId).toBe('google-sub-1');
+    expect((await repository.findByGoogleId('google-sub-1'))?.id).toBe(created.id);
+    expect(await repository.linkGoogleId('missing', 'google-sub-2')).toBeNull();
+  });
+
+  it('rejects linking the same external identity to two accounts', async () => {
+    const repository = createRepository();
+    const ada = await repository.create('ada@example.com', null);
+    const grace = await repository.create('grace@example.com', null);
+    await repository.linkGoogleId(ada.id, 'google-sub-1');
+
+    await expect(repository.linkGoogleId(grace.id, 'google-sub-1')).rejects.toMatchObject({
+      status: 409,
+      code: 'CONFLICT',
+    });
+  });
+
+  it('rejects a duplicate email on create', async () => {
+    const repository = createRepository();
+    await repository.create('ada@example.com', 'hash-1');
+
+    await expect(repository.create('ada@example.com', 'hash-2')).rejects.toBeInstanceOf(AppError);
   });
 
   it('updates the theme preference and returns the updated user', async () => {

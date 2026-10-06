@@ -78,6 +78,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - `markdown` items may carry an optional `filename`: a plain file name only (no path separators) of at most 64 characters, always ending in `.md`; an empty or absent `filename` is stored and returned as `null`
 - `relatedItemIds` may only refer to items owned by the same user
 - Validate enumerated tags against catalogs; normalize free-form tags
+- Accounts may have no local password (external-identity-only) and may carry at most one external provider identity; a passwordless account must fail password sign-in with the standard invalid-credentials error
 
 ## Testing
 

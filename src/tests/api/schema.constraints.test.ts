@@ -87,6 +87,30 @@ describe('database integrity rules', () => {
     expect(state).toBe(UNIQUE_VIOLATION);
   });
 
+  it('allows accounts without a local password and without an external identity', async () => {
+    await handle.db.insert(users).values([
+      { id: 'user-a', email: 'a@example.com', passwordHash: null, createdAt: now },
+      { id: 'user-b', email: 'b@example.com', passwordHash: null, createdAt: now },
+    ]);
+
+    const rows = await handle.db.select().from(users);
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.passwordHash === null && row.googleId === null)).toBe(true);
+  });
+
+  it('allows many accounts without an external identity but rejects a duplicate one', async () => {
+    await insertUser('user-a');
+    await insertUser('user-b');
+    await handle.db.update(users).set({ googleId: 'google-sub-1' }).where(sql`${users.id} = 'user-a'`);
+
+    const duplicate = await sqlStateOf(
+      handle.db.update(users).set({ googleId: 'google-sub-1' }).where(sql`${users.id} = 'user-b'`),
+    );
+
+    expect(await handle.db.select().from(users)).toHaveLength(2);
+    expect(duplicate).toBe(UNIQUE_VIOLATION);
+  });
+
   it.each([
     ['item', () => handle.db.insert(collectionItems).values(itemRow('missing-user'))],
     [

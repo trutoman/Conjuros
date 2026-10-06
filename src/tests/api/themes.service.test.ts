@@ -30,7 +30,7 @@ describe('themes service', () => {
   it('resolves the active theme from the user theme preference', async () => {
     const { users, service } = setup();
     await ensureThemesSeeded(service);
-    users.create('dark@example.com', 'hash');
+    await users.create('dark@example.com', 'hash');
     const darkUser = (await users.findByEmail('dark@example.com'))!;
     await users.setRole(darkUser.id, 'user');
 
