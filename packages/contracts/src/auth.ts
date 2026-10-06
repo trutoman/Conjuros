@@ -5,7 +5,8 @@ export const passwordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
   .max(128, 'Password must be at most 128 characters')
-  .regex(/[A-Za-z]/, 'Password must include at least one letter')
+  .regex(/[A-Z]/, 'Password must include at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must include at least one lowercase letter')
   .regex(/[0-9]/, 'Password must include at least one number')
   .regex(/[^A-Za-z0-9]/, 'Password must include at least one special character');
 export const themePreferenceSchema = z.enum(['light', 'dark']);
@@ -13,6 +14,16 @@ export const themePreferenceSchema = z.enum(['light', 'dark']);
 export const credentialsSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
+});
+
+export const loginPasswordSchema = z
+  .string()
+  .min(1, 'Password is required')
+  .max(128, 'Password must be at most 128 characters');
+
+export const loginCredentialsSchema = z.object({
+  email: emailSchema,
+  password: loginPasswordSchema,
 });
 
 export const roleSchema = z.enum(['user', 'admin']);
@@ -32,6 +43,7 @@ export const themePreferenceUpdateSchema = z.object({
 });
 
 export type Credentials = z.infer<typeof credentialsSchema>;
+export type LoginCredentials = z.infer<typeof loginCredentialsSchema>;
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 export type ThemePreference = z.infer<typeof themePreferenceSchema>;
 export type Role = z.infer<typeof roleSchema>;

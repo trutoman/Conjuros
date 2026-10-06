@@ -1,9 +1,9 @@
 import type { RequestHandler } from 'express';
-import { credentialsSchema, themePreferenceUpdateSchema } from '@conjuros/contracts';
+import { credentialsSchema, loginCredentialsSchema, themePreferenceUpdateSchema } from '@conjuros/contracts';
 import { AppError } from '../errors';
 import type { UsersRepository } from '../repositories/users.repository';
 import { authenticateUser, createSession, readAuthenticatedUserProfile, registerUser, updateAuthenticatedUserTheme } from '../services/auth.service';
-import { parseOrThrow } from '../utils/http';
+import { parseCredentialsOrThrow, parseOrThrow } from '../utils/http';
 
 const sessionOptions = {
   httpOnly: true,
@@ -15,10 +15,9 @@ const sessionOptions = {
 
 export function createAuthController(users: UsersRepository, sessionSecret: string): Record<string, RequestHandler> {
   async function authenticate(request: Parameters<RequestHandler>[0], response: Parameters<RequestHandler>[1], mode: 'register' | 'login') {
-    const credentials = parseOrThrow(credentialsSchema, request.body);
     const authenticatedUser = mode === 'register'
-      ? await registerUser(users, credentials)
-      : await authenticateUser(users, credentials);
+      ? await registerUser(users, parseCredentialsOrThrow(credentialsSchema, request.body))
+      : await authenticateUser(users, parseCredentialsOrThrow(loginCredentialsSchema, request.body));
     const user = await readAuthenticatedUserProfile(users, authenticatedUser);
     response.cookie('conjuros_session', createSession(authenticatedUser, sessionSecret), sessionOptions).status(mode === 'register' ? 201 : 200).json({ user });
   }
