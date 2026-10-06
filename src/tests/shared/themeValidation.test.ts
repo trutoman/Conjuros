@@ -160,4 +160,18 @@ describe('role contracts', () => {
       }),
     ).toEqual({ id: 'id-1', email: 'a@b.com', theme: 'dark', role: 'admin' });
   });
+
+  it('omits the external provider identity from the authenticated profile', () => {
+    const parsed = authenticatedUserProfileSchema.parse({
+      id: 'id-1',
+      email: 'a@b.com',
+      theme: 'light',
+      role: 'user',
+      googleId: 'sub-1',
+      passwordHash: null,
+    });
+
+    expect(parsed).not.toHaveProperty('googleId');
+    expect(parsed).not.toHaveProperty('passwordHash');
+  });
 });

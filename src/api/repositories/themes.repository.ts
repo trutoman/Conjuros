@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import type { Collection, Db, Filter, Sort } from 'mongodb';
+import { and, asc, count, desc, eq, ilike, ne, or, sql } from 'drizzle-orm';
 import type { Theme, ThemeQuery } from '@conjuros/contracts';
+import type { Database } from '../db/client';
+import { themes } from '../db/schema';
+import { containsPattern } from '../db/sql';
 
 export type StoredTheme = Theme;
-
-type StoredThemeDocument = StoredTheme & { _id?: unknown };
 
 export interface ThemesRepository {
   list(query: ThemeQuery): Promise<{ items: StoredTheme[]; total: number }>;
@@ -32,7 +33,7 @@ function compareThemes(left: StoredTheme, right: StoredTheme, sort: ThemeQuery['
 }
 
 export class InMemoryThemesRepository implements ThemesRepository {
-  private readonly themes = new Map<string, StoredThemeDocument>();
+  private readonly themes = new Map<string, StoredTheme>();
 
   async list(query: ThemeQuery) {
     const matching = [...this.themes.values()]
@@ -90,78 +91,128 @@ export class InMemoryThemesRepository implements ThemesRepository {
   }
 }
 
-export class MongoThemesRepository implements ThemesRepository {
-  private readonly themes: Collection<StoredThemeDocument>;
+function toStoredTheme(row: typeof themes.$inferSelect): StoredTheme {
+  return {
+    id: row.id,
+    name: row.name,
+    label: row.label,
+    colors: row.colors,
+    fonts: row.fonts,
+    fontSizes: row.fontSizes,
+    iconAssets: row.iconAssets,
+    kindColors: row.kindColors,
+    tagColorPalette: row.tagColorPalette,
+    isDefault: row.isDefault,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
 
-  constructor(database: Db) {
-    this.themes = database.collection<StoredThemeDocument>('themes');
-  }
+function toThemeColumns(theme: StoredTheme) {
+  return {
+    name: theme.name,
+    label: theme.label,
+    colors: theme.colors,
+    fonts: theme.fonts,
+    fontSizes: theme.fontSizes,
+    iconAssets: theme.iconAssets,
+    kindColors: theme.kindColors,
+    tagColorPalette: theme.tagColorPalette,
+    isDefault: theme.isDefault,
+    createdAt: new Date(theme.createdAt),
+    updatedAt: new Date(theme.updatedAt),
+  };
+}
+
+export class PostgresThemesRepository implements ThemesRepository {
+  constructor(private readonly db: Database) {}
 
   async list(query: ThemeQuery) {
-    const filter: Filter<StoredTheme> = {};
-    if (query.search) {
-      filter.$or = [
-        { name: { $regex: query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
-        { label: { $regex: query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
-      ];
-    }
-    const sort: Sort =
+    const pattern = query.search ? containsPattern(query.search) : undefined;
+    const where = pattern
+      ? or(ilike(themes.name, pattern), ilike(themes.label, pattern))
+      : undefined;
+    const sort =
       query.sort === 'label'
-        ? { label: 1 }
+        ? asc(themes.label)
         : query.sort === 'updatedAt'
-          ? { updatedAt: -1 }
-          : { name: 1 };
-    const [items, total] = await Promise.all([
-      this.themes.find(filter).sort(sort).skip(query.skip).limit(query.limit).toArray(),
-      this.themes.countDocuments(filter),
+          ? desc(themes.updatedAt)
+          : asc(themes.name);
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select()
+        .from(themes)
+        .where(where)
+        .orderBy(sort, asc(themes.id))
+        .limit(query.limit)
+        .offset(query.skip),
+      this.db.select({ total: count() }).from(themes).where(where),
     ]);
-    return { items, total };
+    return { items: rows.map(toStoredTheme), total };
   }
 
   async findAll() {
-    return this.themes.find({}).toArray();
+    const rows = await this.db.select().from(themes).orderBy(asc(themes.createdAt), asc(themes.id));
+    return rows.map(toStoredTheme);
   }
 
   async findById(id: string) {
-    return this.themes.findOne({ id });
+    const [row] = await this.db.select().from(themes).where(eq(themes.id, id));
+    return row ? toStoredTheme(row) : null;
   }
 
   async findByName(name: string) {
-    return this.themes.findOne({ name });
+    const [row] = await this.db.select().from(themes).where(eq(themes.name, name));
+    return row ? toStoredTheme(row) : null;
   }
 
   async findDefault() {
-    return this.themes.findOne({ isDefault: true });
+    const [row] = await this.db.select().from(themes).where(eq(themes.isDefault, true));
+    return row ? toStoredTheme(row) : null;
   }
 
   async count() {
-    return this.themes.countDocuments({});
+    const [{ total }] = await this.db.select({ total: count() }).from(themes);
+    return total;
   }
 
   async create(theme: StoredTheme) {
     const stored = { ...theme, id: theme.id || randomUUID() };
-    await this.themes.insertOne(stored);
+    await this.db.insert(themes).values({ id: stored.id, ...toThemeColumns(stored) });
     return stored;
   }
 
   async replace(theme: StoredTheme) {
-    await this.themes.replaceOne({ id: theme.id }, theme);
+    await this.db.update(themes).set(toThemeColumns(theme)).where(eq(themes.id, theme.id));
     return theme;
   }
 
   async delete(id: string) {
-    return (await this.themes.deleteOne({ id })).deletedCount === 1;
+    const deleted = await this.db
+      .delete(themes)
+      .where(eq(themes.id, id))
+      .returning({ id: themes.id });
+    return deleted.length === 1;
   }
 
   async setDefault(id: string) {
-    const target = await this.findById(id);
-    if (!target) return null;
-    const timestamp = new Date().toISOString();
-    await this.themes.updateMany({ isDefault: true, id: { $ne: id } }, { $set: { isDefault: false, updatedAt: timestamp } });
-    return this.themes.findOneAndUpdate(
-      { id },
-      { $set: { isDefault: true, updatedAt: timestamp } },
-      { returnDocument: 'after' },
-    );
+    // Demote before promoting: the partial unique index allows only one default row at a time.
+    return this.db.transaction(async (tx) => {
+      // Serializes concurrent activations so the later one demotes the earlier one instead of hitting the index.
+      await tx.execute(sql`LOCK TABLE ${themes} IN SHARE ROW EXCLUSIVE MODE`);
+      const [target] = await tx.select({ id: themes.id }).from(themes).where(eq(themes.id, id));
+      if (!target) return null;
+      const updatedAt = new Date();
+      await tx
+        .update(themes)
+        .set({ isDefault: false, updatedAt })
+        .where(and(eq(themes.isDefault, true), ne(themes.id, id)));
+      const [row] = await tx
+        .update(themes)
+        .set({ isDefault: true, updatedAt })
+        .where(eq(themes.id, id))
+        .returning();
+      return toStoredTheme(row);
+    });
   }
 }

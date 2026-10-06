@@ -14,10 +14,45 @@ export async function registerUser(repository: UsersRepository, credentials: Cre
 
 export async function authenticateUser(repository: UsersRepository, credentials: Credentials): Promise<AuthenticatedUser> {
   const user = await repository.findByEmail(credentials.email);
-  if (!user || !(await bcrypt.compare(credentials.password, user.passwordHash))) {
+  // Accounts created through an external identity have no local password and must
+  // fail password sign-in with the same error as a wrong password (never crash).
+  if (!user || user.passwordHash === null || !(await bcrypt.compare(credentials.password, user.passwordHash))) {
     throw new AppError(401, 'AUTH_ERROR', 'Invalid email or password');
   }
   return { id: user.id, email: user.email };
+}
+
+export interface ExternalIdentity {
+  subject: string;
+  email: string | null;
+  emailVerified: boolean;
+}
+
+export async function resolveExternalIdentity(repository: UsersRepository, identity: ExternalIdentity): Promise<AuthenticatedUser> {
+  if (!identity.emailVerified || !identity.email) {
+    throw new AppError(401, 'AUTH_ERROR', 'The external account does not expose a verified email');
+  }
+
+  const linked = await repository.findByGoogleId(identity.subject);
+  if (linked) {
+    return { id: linked.id, email: linked.email };
+  }
+
+  const existing = await repository.findByEmail(identity.email);
+  if (existing) {
+    const updated = await repository.linkGoogleId(existing.id, identity.subject);
+    if (!updated) {
+      throw new AppError(401, 'AUTH_ERROR', 'The external account could not be linked');
+    }
+    return { id: updated.id, email: updated.email };
+  }
+
+  const created = await repository.create(identity.email, null);
+  const linkedNew = await repository.linkGoogleId(created.id, identity.subject);
+  if (!linkedNew) {
+    throw new AppError(401, 'AUTH_ERROR', 'The external account could not be linked');
+  }
+  return { id: linkedNew.id, email: linkedNew.email };
 }
 
 export async function readAuthenticatedUserProfile(repository: UsersRepository, user: AuthenticatedUser): Promise<AuthenticatedUserProfile> {

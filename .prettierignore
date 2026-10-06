@@ -2,6 +2,7 @@ node_modules/
 dist/
 build/
 coverage/
+drizzle/
 package-lock.json
 pnpm-lock.yaml
 yarn.lock

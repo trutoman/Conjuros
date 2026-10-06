@@ -10,7 +10,7 @@ describe('checkDockerAvailability', () => {
 
     expect(result).toEqual({
       available: false,
-      message: 'Docker CLI is unavailable. Install Docker before starting the local MongoDB service.',
+      message: 'Docker CLI is unavailable. Install Docker before starting the local database service.',
     });
   });
 
@@ -25,7 +25,7 @@ describe('checkDockerAvailability', () => {
 
     expect(result).toEqual({
       available: false,
-      message: 'Docker is installed but unavailable. Start the Docker daemon before starting the local MongoDB service.',
+      message: 'Docker is installed but unavailable. Start the Docker daemon before starting the local database service.',
     });
   });
 });

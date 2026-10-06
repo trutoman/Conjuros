@@ -20,5 +20,12 @@
       "@conjuros/contracts": ["packages/contracts/src/index.ts"]
     }
   },
-  "include": ["src", "packages", "vite.config.ts", "vitest.config.ts", "eslint.config.js"]
+  "include": [
+    "src",
+    "packages",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "drizzle.config.ts",
+    "eslint.config.js"
+  ]
 }

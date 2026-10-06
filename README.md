@@ -7,11 +7,11 @@ Conjuros is a private collection for spells, web links, and markdown notes. Mark
 ### Prerequisites
 
 - Docker Desktop or Docker Engine with its daemon running.
-- Ports `27017` (MongoDB), `3000` (API), and `5173` (frontend) available.
+- Ports `5432` (PostgreSQL), `3000` (API), and `5173` (frontend) available.
 
 ### Start the Workspace (containers)
 
-The application runs in three connected containers: `db` (MongoDB), `api` (Express),
+The application runs in three connected containers: `db` (PostgreSQL), `api` (Express),
 and `web` (Nginx serving the built React app and proxying `/api` to the API container).
 
 1. Verify Docker before building:
@@ -28,7 +28,7 @@ and `web` (Nginx serving the built React app and proxying `/api` to the API cont
    cp .env.example .env
    ```
 
-   Set `MONGODB_DATABASE` and a unique `SESSION_SECRET` of at least 32 characters. `docker compose` reads these values from `.env`, so this file must exist before starting the stack. Keep `.env` private and never commit or share its contents.
+   Set a required `POSTGRES_PASSWORD` (use only URL-safe characters — letters, digits, `- . _ ~`) and a unique `SESSION_SECRET` of at least 32 characters. `.env.example` also documents `POSTGRES_USER`, `POSTGRES_DB`, and `DATABASE_URL` for an API started on the host. `docker compose` reads these values from `.env`, so this file must exist before starting the stack. Keep `.env` private and never commit or share its contents.
 
 3. Build and start all three containers:
 
@@ -36,7 +36,21 @@ and `web` (Nginx serving the built React app and proxying `/api` to the API cont
    docker compose up -d
    ```
 
-   The `api` container waits for Mongo to become healthy, and the `web` container starts after the API is ready. Open [http://localhost:5173](http://localhost:5173) once startup completes. Stop the stack with `docker compose down`; do not run `docker compose down -v` unless you intend to delete local MongoDB data (stored in the `mongo_data` volume).
+   The `api` container waits for PostgreSQL to become healthy, applies any pending database migrations, and the `web` container starts after the API is ready. Open [http://localhost:5173](http://localhost:5173) once startup completes. Stop the stack with `docker compose down`; do not run `docker compose down -v` unless you intend to delete local PostgreSQL data (stored in the `postgres_data` volume).
+
+### From-scratch database
+
+The database starts empty: there is no import of previously stored MongoDB data. On first start the API creates the schema through its committed migrations and seeds the default `light` and `dark` themes. Register accounts again after switching to PostgreSQL.
+
+To reset the database, remove the volume and recreate the stack:
+
+```sh
+docker compose down
+docker volume rm conjuros_postgres_data
+docker compose up -d
+```
+
+The `ADMIN_EMAIL` account is granted the admin role at API startup, so register that account first and then restart the API container (`docker compose restart api`) for the role to take effect.
 
 ### Local Development (npm)
 
@@ -47,14 +61,15 @@ npm install
 npm run dev
 ```
 
-When startup succeeds, open [http://localhost:5173](http://localhost:5173).
+The API reads its connection from `DATABASE_URL` (`postgres://…@localhost:5432/…`), so keep it consistent with the `POSTGRES_*` values in `.env`. When startup succeeds, open [http://localhost:5173](http://localhost:5173).
 
 ## Troubleshooting
 
 - **Docker unavailable**: run `npm run docker:check`; install Docker or start its daemon before running Compose.
 - **`Port 3000 or 5173 is already in use`**: when `npm run dev` fails fast, its message names the process holding the port — usually a leftover dev session. Stop it (`kill <pid>`) and rerun `npm run dev`.
 - **`SESSION_SECRET` is required**: `docker compose up` fails before starting the `api` container when `.env` is missing or lacks `SESSION_SECRET`. Create `.env` from `.env.example` and set a value of at least 32 characters.
-- **Port 27017 already in use**: stop the conflicting service or choose another local development environment before running `docker compose up -d`.
+- **`POSTGRES_PASSWORD` is required**: `docker compose up` fails before starting the `db` container when `.env` is missing or lacks `POSTGRES_PASSWORD`. Set a URL-safe value, since the password is embedded in the API's `DATABASE_URL`.
+- **Port 5432 already in use**: stop the conflicting service or choose another local development environment before running `docker compose up -d`; `npm run test:docker` also needs port `5432` free.
 - **Invalid configuration**: API startup stops before serving requests and names the invalid environment variable. Update `.env` without placing real values in logs, issue reports, or source control.
 - **Port 5173 unavailable**: the workspace has not reached the required frontend address. Stop the conflicting process, then rerun `docker compose up -d` and confirm [http://localhost:5173](http://localhost:5173) loads.
 
@@ -66,22 +81,24 @@ Run the Docker-independent quality suite:
 npm run check
 ```
 
-On a Docker-capable machine, verify local MongoDB data survives a normal service restart:
+On a Docker-capable machine with port `5432` free, verify local PostgreSQL data survives a normal service restart:
 
 ```sh
 npm run test:docker
 ```
 
-The Docker persistence test uses an isolated Compose project and removes its test volume after completion.
+The persistence test starts the database in an isolated Compose project, exercises the production connection and migration wiring, and removes its test volume after completion. Repository behavior is also verified without Docker against an in-process PostgreSQL engine with the committed migrations applied.
 
-## Data Migration
+## Database Schema Changes
 
-After upgrading an existing database to support markdown items, run the backfill so every stored item carries the `content` field (as `null` for non-markdown items). Without it, reads of pre-existing items fail validation because the nullable `content` field is missing rather than `null`.
+Change the schema by editing `src/api/db/schema.ts` and generating a versioned SQL migration:
 
 ```sh
-npm run migrate:backfill-content
+npm run db:generate
 ```
 
-The script is idempotent: it only touches documents that are missing the `content` field.
+Generated migrations live in `drizzle/` and must be committed with the change. The API applies pending migrations at startup; to apply them explicitly against the database named by `DATABASE_URL`, run:
 
-No migration is required for the optional markdown `filename`: reads normalize a missing `filename` to `null`.
+```sh
+npm run db:migrate
+```
