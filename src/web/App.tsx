@@ -52,8 +52,8 @@ function AuthScreen({
           <label>
             Email
             <input
-              type="email"
-              required
+              type="text"
+              autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -62,8 +62,7 @@ function AuthScreen({
             Password
             <input
               type="password"
-              required
-              minLength={8}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
