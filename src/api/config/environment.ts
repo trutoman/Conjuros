@@ -40,6 +40,8 @@ const apiEnvironmentSchema = z
       blankToUndefined,
       z.coerce.number().int().min(1).max(65_535).optional(),
     ),
+    DATABASE_SSL: z.preprocess(blankToUndefined, z.enum(['disable', 'require']).optional()),
+    DATABASE_SSL_CA: z.preprocess(blankToUndefined, nonBlankString.optional()),
     SMTP_URL: z.preprocess(blankToUndefined, smtpUrlSchema.optional()),
     MAIL_FROM: z.preprocess(blankToUndefined, emailSchema.optional()),
     APP_BASE_URL: z.preprocess(blankToUndefined, z.string().trim().url().optional()),
@@ -55,6 +57,8 @@ const apiEnvironmentSchema = z
 
 export interface ApiEnvironment {
   databaseUrl: string;
+  databaseSsl: 'disable' | 'require';
+  databaseSslCa: string | null;
   sessionSecret: string;
   adminEmail: string | null;
   corsOrigin: string;
@@ -78,6 +82,8 @@ export function parseApiEnvironment(
 
   return {
     databaseUrl: parsed.data.DATABASE_URL,
+    databaseSsl: parsed.data.DATABASE_SSL ?? 'disable',
+    databaseSslCa: parsed.data.DATABASE_SSL_CA ?? null,
     sessionSecret: parsed.data.SESSION_SECRET,
     adminEmail: parsed.data.ADMIN_EMAIL ?? null,
     corsOrigin: parsed.data.CORS_ORIGIN ?? 'http://localhost:5173',

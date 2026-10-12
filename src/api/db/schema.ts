@@ -40,7 +40,7 @@ export const users = pgTable('users', {
   theme: themePreferenceEnum().notNull().default('light'),
   role: userRoleEnum().notNull().default('user'),
   createdAt: timestamptz().notNull(),
-});
+}).enableRLS();
 
 export const passwordResetTokens = pgTable(
   'password_reset_tokens',
@@ -56,7 +56,7 @@ export const passwordResetTokens = pgTable(
     createdAt: timestamptz().notNull(),
   },
   (table) => [index('password_reset_tokens_user_id_idx').on(table.userId)],
-);
+).enableRLS();
 
 const ownerId = () =>
   text()
@@ -93,7 +93,7 @@ export const collectionItems = pgTable(
       )`,
     ),
   ],
-);
+).enableRLS();
 
 export const tags = pgTable(
   'tags',
@@ -113,7 +113,7 @@ export const tags = pgTable(
     index('tags_owner_name_normalized_idx').on(table.ownerId, table.tagNameNormalized),
     index('tags_owner_position_idx').on(table.ownerId, table.order),
   ],
-);
+).enableRLS();
 
 export const tagCategories = pgTable(
   'tag_categories',
@@ -131,7 +131,7 @@ export const tagCategories = pgTable(
   (table) => [
     uniqueIndex('tag_categories_owner_name_normalized_idx').on(table.ownerId, table.nameNormalized),
   ],
-);
+).enableRLS();
 
 export const themes = pgTable(
   'themes',
@@ -155,4 +155,4 @@ export const themes = pgTable(
       .on(table.isDefault)
       .where(sql`${table.isDefault}`),
   ],
-);
+).enableRLS();

@@ -2,31 +2,35 @@
 
 ## Purpose
 
-Defines the containerized running model of Conjuros: a Compose stack of three connected containers (`db`, `api`, `web`) that communicate over a shared network to serve the frontend and API on a single origin.
+Defines the containerized running model of Conjuros: a Compose stack of two connected containers (`api`, `web`) that communicate over a shared network to serve the frontend and API on a single origin, backed by an external Supabase PostgreSQL database.
 
 ## Requirements
 
-### Requirement: Stack runs in three connected containers
-The system SHALL run as a Docker Compose stack of exactly three application services — `db` (MongoDB), `api` (Express), and `web` (Nginx serving the built frontend) — connected on a shared network so services resolve each other by service name.
+### Requirement: Stack runs in two connected containers
+The system SHALL run as a Docker Compose stack of two application services — `api` (Express) and `web` (Nginx serving the built frontend) — connected on a shared network so services resolve each other by service name. The database is external and is not part of the stack.
 
 #### Scenario: Full stack starts with one command
 - **WHEN** a contributor runs `docker compose up -d --build` with a valid `.env`
-- **THEN** the `conjuros-db`, `conjuros-api`, and `conjuros-web` containers start and the frontend is reachable at `http://localhost:5173`
+- **THEN** the `conjuros-api` and `conjuros-web` containers start and the frontend is reachable at `http://localhost:5173`
 
 #### Scenario: Startup ordering is health-gated
 - **WHEN** the stack starts
-- **THEN** the `api` container waits for the `db` container to report healthy, and the `web` container waits for the `api` container to report healthy, before starting
+- **THEN** the `web` container waits for the `api` container to report healthy before starting
 
-### Requirement: API connects to MongoDB over the stack network
-The `api` container SHALL connect to MongoDB using the `db` service name within the Compose network, requiring no host-port dependency for its primary connection.
+#### Scenario: No local database container
+- **WHEN** the Compose file is inspected
+- **THEN** it defines no `db` or database-administration service and no PostgreSQL volume
 
-#### Scenario: Internal database connection
-- **WHEN** the `api` container starts in the stack
-- **THEN** it connects to MongoDB at `mongodb://db:27017` and serves the API once the connection is established
+### Requirement: API connects to Supabase PostgreSQL
+The `api` container SHALL connect to the remote PostgreSQL database using the `DATABASE_URL` and `DATABASE_SSL` values passed from `.env`.
 
-#### Scenario: Host access to MongoDB
-- **WHEN** the stack is running
-- **THEN** MongoDB is also reachable on the host at `localhost:27017` for external tooling and tests
+#### Scenario: Remote database connection
+- **WHEN** the `api` container starts with a valid `.env`
+- **THEN** it connects to the database named by `DATABASE_URL` and serves the API once migrations are applied
+
+#### Scenario: Missing database URL
+- **WHEN** `docker compose up` runs without `DATABASE_URL` in `.env`
+- **THEN** Compose fails with a `DATABASE_URL is required` error before starting the `api` container
 
 ### Requirement: Frontend and API are served on a single origin
 The `web` container SHALL serve the built single-page application and forward `/api/*` requests to the `api` container so the browser communicates with one host and port.

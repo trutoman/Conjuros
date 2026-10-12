@@ -16,7 +16,10 @@ import { ThemesService } from './services/themes.service';
 const environment = parseApiEnvironment(process.env);
 
 // Any failure below rejects the top-level await, so the process exits non-zero before it listens.
-const { db } = createDatabase(environment.databaseUrl);
+const { db } = createDatabase(environment.databaseUrl, {
+  mode: environment.databaseSsl,
+  caPath: environment.databaseSslCa,
+});
 await runMigrations(db);
 const users = new PostgresUsersRepository(db);
 const themes = new PostgresThemesRepository(db);

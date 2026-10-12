@@ -1,48 +1,15 @@
 services:
-  db:
-    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
-    container_name: conjuros-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-conjuros}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-conjuros}
-    ports:
-      - '127.0.0.1:5432:5432'
-    volumes:
-      - postgres_data:/var/lib/postgresql
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 10s
-
-  cloudbeaver:
-    image: dbeaver/cloudbeaver:latest
-    container_name: conjuros-cloudbeaver
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - '127.0.0.1:8978:8978'
-    volumes:
-      - cloudbeaver_workspace:/opt/cloudbeaver/workspace
-
   api:
     build:
       context: .
       dockerfile: Dockerfile.api
     container_name: conjuros-api
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
     ports:
       - '3000:3000'
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-conjuros}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-conjuros}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      DATABASE_SSL: ${DATABASE_SSL:-}
       SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       PORT: '3000'
@@ -74,7 +41,3 @@ services:
         condition: service_healthy
     ports:
       - '5173:80'
-
-volumes:
-  postgres_data:
-  cloudbeaver_workspace:

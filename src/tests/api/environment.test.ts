@@ -11,6 +11,8 @@ const validEnvironment: Record<string, string> = {
 
 const defaultConfiguration = {
   databaseUrl,
+  databaseSsl: 'disable',
+  databaseSslCa: null,
   sessionSecret: 'a-32-character-session-secret-value',
   adminEmail: null,
   corsOrigin: 'http://localhost:5173',
@@ -42,6 +44,28 @@ describe('parseApiEnvironment', () => {
       expect(parseApiEnvironment({ ...validEnvironment, DATABASE_URL: url }).databaseUrl).toBe(url);
     },
   );
+
+  it('parses the database TLS settings', () => {
+    expect(
+      parseApiEnvironment({
+        ...validEnvironment,
+        DATABASE_SSL: 'require',
+        DATABASE_SSL_CA: '/certs/ca.pem',
+      }),
+    ).toEqual({ ...defaultConfiguration, databaseSsl: 'require', databaseSslCa: '/certs/ca.pem' });
+  });
+
+  it('treats blank database TLS settings as defaults', () => {
+    expect(
+      parseApiEnvironment({ ...validEnvironment, DATABASE_SSL: '', DATABASE_SSL_CA: '' }),
+    ).toEqual(defaultConfiguration);
+  });
+
+  it('rejects an unknown DATABASE_SSL mode', () => {
+    expect(invalidEnvironmentMessage({ ...validEnvironment, DATABASE_SSL: 'verify' })).toContain(
+      'DATABASE_SSL',
+    );
+  });
 
   it('parses an optional admin email', () => {
     expect(
