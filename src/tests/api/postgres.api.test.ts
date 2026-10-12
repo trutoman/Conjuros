@@ -3,6 +3,7 @@ import request from 'supertest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../api/app';
 import { PostgresItemsRepository } from '../../api/repositories/items.repository';
+import { PostgresPasswordResetTokensRepository } from '../../api/repositories/password-reset-tokens.repository';
 import { PostgresTagCategoriesRepository } from '../../api/repositories/tag-categories.repository';
 import { PostgresTagsRepository } from '../../api/repositories/tags.repository';
 import { PostgresThemesRepository } from '../../api/repositories/themes.repository';
@@ -10,7 +11,7 @@ import { buildSeedThemes } from '../../api/repositories/themeSeed';
 import { PostgresUsersRepository } from '../../api/repositories/users.repository';
 import { ThemesService } from '../../api/services/themes.service';
 import { setupPgliteDatabase } from './pglite';
-import { registerUser, validPassword } from './testApp';
+import { RecordingEmailSender, registerUser, validPassword } from './testApp';
 
 const database = setupPgliteDatabase();
 
@@ -27,7 +28,10 @@ async function createPostgresApp() {
     tagCategories: new PostgresTagCategoriesRepository(database.db),
     themes,
     users,
+    resetTokens: new PostgresPasswordResetTokensRepository(database.db),
+    emailSender: new RecordingEmailSender(),
     sessionSecret: 'test-session-secret',
+    appBaseUrl: 'http://localhost:5173',
   });
 }
 

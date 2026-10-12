@@ -4,7 +4,9 @@ import { parseApiEnvironment } from './config/environment';
 import { createDatabase } from './db/client';
 import { runMigrations } from './db/migrate';
 import { grantAdminRole, ensureThemesSeeded, backfillThemeIcons } from './bootstrap';
+import { createEmailSender } from './email/sender';
 import { PostgresItemsRepository } from './repositories/items.repository';
+import { PostgresPasswordResetTokensRepository } from './repositories/password-reset-tokens.repository';
 import { PostgresTagCategoriesRepository } from './repositories/tag-categories.repository';
 import { PostgresTagsRepository } from './repositories/tags.repository';
 import { PostgresThemesRepository } from './repositories/themes.repository';
@@ -28,8 +30,12 @@ const app = createApp({
   tagCategories: new PostgresTagCategoriesRepository(db),
   themes,
   users,
+  resetTokens: new PostgresPasswordResetTokensRepository(db),
+  emailSender: createEmailSender({ smtpUrl: environment.smtpUrl, mailFrom: environment.mailFrom }),
   sessionSecret: environment.sessionSecret,
   corsOrigin: environment.corsOrigin,
+  appBaseUrl: environment.appBaseUrl,
+  passwordResetTtlMinutes: environment.passwordResetTtlMinutes,
 });
 app.listen(environment.port, () =>
   console.info(`Conjuros API listening on port ${environment.port}`),

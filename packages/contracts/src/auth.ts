@@ -26,6 +26,15 @@ export const loginCredentialsSchema = z.object({
   password: loginPasswordSchema,
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: emailSchema,
+});
+
+export const passwordResetConfirmSchema = z.object({
+  token: z.string().min(1, 'Reset token is required'),
+  password: passwordSchema,
+});
+
 export const roleSchema = z.enum(['user', 'admin']);
 
 export const authenticatedUserSchema = z.object({
@@ -44,6 +53,8 @@ export const themePreferenceUpdateSchema = z.object({
 
 export type Credentials = z.infer<typeof credentialsSchema>;
 export type LoginCredentials = z.infer<typeof loginCredentialsSchema>;
+export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
+export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
 export type ThemePreference = z.infer<typeof themePreferenceSchema>;
 export type Role = z.infer<typeof roleSchema>;

@@ -63,6 +63,17 @@ npm run dev
 
 The API reads its connection from `DATABASE_URL` (`postgres://…@localhost:5432/…`), so keep it consistent with the `POSTGRES_*` values in `.env`. When startup succeeds, open [http://localhost:5173](http://localhost:5173).
 
+## Email
+
+The API sends account emails — a welcome message when an account is created by registration and a link to reset a forgotten password — through SMTP. Email is optional: when `SMTP_URL` is not set, the API logs each message to the console instead of delivering it, so local development needs no mail server.
+
+Set the following in `.env` to enable delivery:
+
+- `SMTP_URL` — an `smtp:` or `smtps:` connection URL (for example `smtp://user:password@smtp.example.com:587`).
+- `MAIL_FROM` — the sender address; required when `SMTP_URL` is set.
+- `APP_BASE_URL` — the public base URL used to build password reset links (defaults to `CORS_ORIGIN`).
+- `PASSWORD_RESET_TTL_MINUTES` — how long a reset link stays valid, in minutes (default `60`).
+
 ## Troubleshooting
 
 - **Docker unavailable**: run `npm run docker:check`; install Docker or start its daemon before running Compose.

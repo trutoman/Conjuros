@@ -42,6 +42,22 @@ export const users = pgTable('users', {
   createdAt: timestamptz().notNull(),
 });
 
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // Only the hash of the token is stored; the plaintext lives only in the email.
+    tokenHash: text().notNull().unique(),
+    expiresAt: timestamptz().notNull(),
+    usedAt: timestamptz(),
+    createdAt: timestamptz().notNull(),
+  },
+  (table) => [index('password_reset_tokens_user_id_idx').on(table.userId)],
+);
+
 const ownerId = () =>
   text()
     .notNull()
