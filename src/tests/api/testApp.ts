@@ -1,9 +1,21 @@
 import { createApp } from '../../api/app';
+import type { EmailMessage, EmailSender } from '../../api/email/sender';
 import { InMemoryItemsRepository } from '../../api/repositories/items.repository';
+import { InMemoryPasswordResetTokensRepository } from '../../api/repositories/password-reset-tokens.repository';
 import { InMemoryTagCategoriesRepository } from '../../api/repositories/tag-categories.repository';
 import { InMemoryTagsRepository } from '../../api/repositories/tags.repository';
 import { InMemoryThemesRepository } from '../../api/repositories/themes.repository';
 import { InMemoryUsersRepository } from '../../api/repositories/users.repository';
+
+export class RecordingEmailSender implements EmailSender {
+  readonly messages: EmailMessage[] = [];
+
+  async send(message: EmailMessage): Promise<void> {
+    this.messages.push(message);
+  }
+}
+
+export const testAppBaseUrl = 'http://localhost:5173';
 
 export function createTestApp() {
   const items = new InMemoryItemsRepository();
@@ -11,13 +23,27 @@ export function createTestApp() {
   const tagCategories = new InMemoryTagCategoriesRepository();
   const themes = new InMemoryThemesRepository();
   const users = new InMemoryUsersRepository();
+  const resetTokens = new InMemoryPasswordResetTokensRepository();
+  const emailSender = new RecordingEmailSender();
   return {
-    app: createApp({ items, tags, tagCategories, themes, users, sessionSecret: 'test-session-secret' }),
+    app: createApp({
+      items,
+      tags,
+      tagCategories,
+      themes,
+      users,
+      resetTokens,
+      emailSender,
+      sessionSecret: 'test-session-secret',
+      appBaseUrl: testAppBaseUrl,
+    }),
     items,
     tags,
     tagCategories,
     themes,
     users,
+    resetTokens,
+    emailSender,
   };
 }
 

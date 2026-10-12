@@ -51,6 +51,7 @@ describe('migrations', () => {
 
     expect(result.rows.map((row) => row.table_name)).toEqual([
       'collection_items',
+      'password_reset_tokens',
       'tag_categories',
       'tags',
       'themes',

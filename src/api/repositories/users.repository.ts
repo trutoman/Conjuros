@@ -22,6 +22,7 @@ export interface UsersRepository {
   findByGoogleId(googleId: string): Promise<StoredUser | null>;
   create(email: string, passwordHash: string | null): Promise<StoredUser>;
   linkGoogleId(id: string, googleId: string): Promise<StoredUser | null>;
+  updatePasswordHash(id: string, passwordHash: string): Promise<StoredUser | null>;
   updateTheme(id: string, theme: ThemePreference): Promise<StoredUser | null>;
   setRole(id: string, role: Role): Promise<StoredUser | null>;
 }
@@ -89,6 +90,15 @@ export class PostgresUsersRepository implements UsersRepository {
     }
   }
 
+  async updatePasswordHash(id: string, passwordHash: string): Promise<StoredUser | null> {
+    const [row] = await this.db
+      .update(users)
+      .set({ passwordHash })
+      .where(eq(users.id, id))
+      .returning();
+    return row ? toStoredUser(row) : null;
+  }
+
   async updateTheme(id: string, theme: ThemePreference): Promise<StoredUser | null> {
     const [row] = await this.db.update(users).set({ theme }).where(eq(users.id, id)).returning();
     return row ? toStoredUser(row) : null;
@@ -146,6 +156,14 @@ export class InMemoryUsersRepository implements UsersRepository {
       throw new AppError(409, 'CONFLICT', 'This external identity is already linked to an account');
     }
     const updated = { ...current, googleId };
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  async updatePasswordHash(id: string, passwordHash: string): Promise<StoredUser | null> {
+    const current = this.users.get(id);
+    if (!current) return null;
+    const updated = { ...current, passwordHash };
     this.users.set(id, updated);
     return updated;
   }

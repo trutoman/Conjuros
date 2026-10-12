@@ -738,6 +738,11 @@ select {
   font-size: 0.85rem;
 }
 
+.field-success {
+  color: var(--success);
+  font-size: 0.85rem;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

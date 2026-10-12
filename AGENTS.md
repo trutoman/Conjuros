@@ -37,13 +37,14 @@ npm run docker:check     # Optional: verify Docker CLI and daemon before running
 
 ## Product
 
-Conjuros lets authenticated users manage a private collection of items. An item is either a `spell` with a `command`, a `web-link` with a `url`, or a `markdown` note with `content`; all items have an owner, title, description, tags, order, and relationships. Markdown notes may optionally carry a `filename` (a plain `.md` file name, at most 64 characters, no path separators).
+Conjuros lets authenticated users manage a private collection of items. An item is either a `spell` with a `command`, a `web-link` with a `url`, or a `markdown` note with `content`; all items have an owner, title, description, tags, order, and relationships. Markdown notes may optionally carry a `filename` (a plain `.md` file name, at most 64 characters, no path separators). Accounts are email/password based; the API also sends transactional email (a welcome message on registration and password reset links) through an optional SMTP sender.
 
 ## Architecture
 
 **Monorepo structure:**
 - `src/api/` — Express API server (entry: `server.ts`)
 - `src/api/db/` — Drizzle schema, client, migration runner and SQLSTATE helper
+- `src/api/email/` — Outbound email seam (sender interface, SMTP/console senders, message builders)
 - `drizzle/` — Generated, committed SQL migrations
 - `src/web/` — React frontend (entry: `main.tsx`, served by Vite from `src/web/`)
 - `packages/contracts/` — Shared Zod schemas and types via `@conjuros/contracts`
@@ -79,6 +80,9 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - `relatedItemIds` may only refer to items owned by the same user
 - Validate enumerated tags against catalogs; normalize free-form tags
 - Accounts may have no local password (external-identity-only) and may carry at most one external provider identity; a passwordless account must fail password sign-in with the standard invalid-credentials error
+- Password reset is email-initiated: a request always answers with the same generic message (no account enumeration) and only sends a link for accounts with a local password; passwordless accounts are never reset targets
+- Reset tokens are stored only as a hash, expire after a configured lifetime, are single-use, and issuing a new token invalidates the account's outstanding tokens; a completed reset never creates a session
+- Transactional email is optional: when SMTP is not configured the API logs messages instead of delivering them, and an email failure must never fail the operation that triggered it
 
 ## Testing
 

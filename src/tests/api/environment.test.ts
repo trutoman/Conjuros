@@ -9,6 +9,18 @@ const validEnvironment: Record<string, string> = {
   SESSION_SECRET: 'a-32-character-session-secret-value',
 };
 
+const defaultConfiguration = {
+  databaseUrl,
+  sessionSecret: 'a-32-character-session-secret-value',
+  adminEmail: null,
+  corsOrigin: 'http://localhost:5173',
+  port: 3000,
+  smtpUrl: null,
+  mailFrom: null,
+  appBaseUrl: 'http://localhost:5173',
+  passwordResetTtlMinutes: 60,
+};
+
 function invalidEnvironmentMessage(environment: Record<string, string>) {
   try {
     parseApiEnvironment(environment);
@@ -21,13 +33,7 @@ function invalidEnvironmentMessage(environment: Record<string, string>) {
 
 describe('parseApiEnvironment', () => {
   it('returns validated API startup configuration', () => {
-    expect(parseApiEnvironment(validEnvironment)).toEqual({
-      databaseUrl,
-      sessionSecret: 'a-32-character-session-secret-value',
-      adminEmail: null,
-      corsOrigin: 'http://localhost:5173',
-      port: 3000,
-    });
+    expect(parseApiEnvironment(validEnvironment)).toEqual(defaultConfiguration);
   });
 
   it.each(['postgres://user:pass@localhost:5432/conjuros', 'postgresql://user:pass@db:5432/conjuros'])(
@@ -41,35 +47,83 @@ describe('parseApiEnvironment', () => {
     expect(
       parseApiEnvironment({ ...validEnvironment, ADMIN_EMAIL: 'Admin@Example.com' }),
     ).toEqual({
-      databaseUrl,
-      sessionSecret: 'a-32-character-session-secret-value',
+      ...defaultConfiguration,
       adminEmail: 'admin@example.com',
-      corsOrigin: 'http://localhost:5173',
-      port: 3000,
     });
   });
 
   it('treats an empty admin email as absent', () => {
-    expect(parseApiEnvironment({ ...validEnvironment, ADMIN_EMAIL: '' })).toEqual({
-      databaseUrl,
-      sessionSecret: 'a-32-character-session-secret-value',
-      adminEmail: null,
-      corsOrigin: 'http://localhost:5173',
-      port: 3000,
-    });
+    expect(parseApiEnvironment({ ...validEnvironment, ADMIN_EMAIL: '' })).toEqual(
+      defaultConfiguration,
+    );
   });
 
-  it('parses a configurable CORS origin', () => {
+  it('parses a configurable CORS origin and defaults the app base URL to it', () => {
     expect(
       parseApiEnvironment({ ...validEnvironment, CORS_ORIGIN: 'https://conjuros.example.com' }),
     ).toEqual({
-      databaseUrl,
-      sessionSecret: 'a-32-character-session-secret-value',
-      adminEmail: null,
+      ...defaultConfiguration,
       corsOrigin: 'https://conjuros.example.com',
-      port: 3000,
+      appBaseUrl: 'https://conjuros.example.com',
     });
   });
+
+  it('leaves email delivery disabled by default', () => {
+    const environment = parseApiEnvironment(validEnvironment);
+
+    expect(environment.smtpUrl).toBeNull();
+    expect(environment.mailFrom).toBeNull();
+    expect(environment.passwordResetTtlMinutes).toBe(60);
+  });
+
+  it('parses configured email settings', () => {
+    expect(
+      parseApiEnvironment({
+        ...validEnvironment,
+        SMTP_URL: 'smtps://user:pass@smtp.example.com:465',
+        MAIL_FROM: 'No-Reply@Example.com',
+        APP_BASE_URL: 'https://conjuros.example.com',
+        PASSWORD_RESET_TTL_MINUTES: '30',
+      }),
+    ).toEqual({
+      ...defaultConfiguration,
+      smtpUrl: 'smtps://user:pass@smtp.example.com:465',
+      mailFrom: 'no-reply@example.com',
+      appBaseUrl: 'https://conjuros.example.com',
+      passwordResetTtlMinutes: 30,
+    });
+  });
+
+  it('requires MAIL_FROM when SMTP_URL is set', () => {
+    const message = invalidEnvironmentMessage({
+      ...validEnvironment,
+      SMTP_URL: 'smtp://user:pass@smtp.example.com:587',
+    });
+
+    expect(message).toContain('MAIL_FROM');
+  });
+
+  it.each([
+    ['SMTP_URL', 'an HTTP URL', { ...validEnvironment, SMTP_URL: 'https://smtp.example.com' }],
+    ['SMTP_URL', 'not a URL', { ...validEnvironment, SMTP_URL: 'smtp.example.com:587' }],
+    ['MAIL_FROM', 'not an email', { ...validEnvironment, MAIL_FROM: 'not-an-email' }],
+    ['APP_BASE_URL', 'not a URL', { ...validEnvironment, APP_BASE_URL: 'conjuros.example.com' }],
+    [
+      'PASSWORD_RESET_TTL_MINUTES',
+      'not a positive integer',
+      { ...validEnvironment, PASSWORD_RESET_TTL_MINUTES: '0' },
+    ],
+  ])(
+    'rejects %s when it is %s without displaying configuration values',
+    (variableName, _reason, environment) => {
+      const message = invalidEnvironmentMessage(environment);
+
+      expect(message).toContain(variableName);
+      for (const value of [...Object.values(environment), databaseUrl, 'db-secret-value']) {
+        if (value.trim() !== '') expect(message).not.toContain(value);
+      }
+    },
+  );
 
   it.each([
     ['DATABASE_URL', 'a MongoDB URL', { ...validEnvironment, DATABASE_URL: 'mongodb://localhost:27017' }],
