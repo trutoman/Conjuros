@@ -16,7 +16,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/tests/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
-    exclude: ["src/tests/integration/docker-compose.test.ts"],
     hookTimeout: 30_000,
     testTimeout: 30_000,
   },

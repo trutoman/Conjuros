@@ -6,11 +6,11 @@ All project documentation, code, and code comments must be written in English.
 
 **Development:**
 ```bash
-npm run dev              # Ensure db container is healthy, free 3000/5173, then start API + frontend
-npm run dev:api          # API only via tsx watch (requires PostgreSQL on localhost:5432)
-npm run dev:db           # Prepare dev prerequisites: free 3000/5173 (stop api/web containers, fail fast if busy), then compose up --wait db
+npm run dev              # Verify 3000/5173 are free, then start API + frontend against the Supabase database
+npm run dev:api          # API only via tsx watch (requires a reachable `DATABASE_URL`)
+npm run dev:ports        # Fail fast if 3000/5173 are busy
 npm run dev:web          # Frontend only via Vite
-docker compose up -d     # Build/start all containers: db + api + web (frontend on 5173)
+docker compose up -d     # Build/start api + web containers (frontend on 5173); the database is remote Supabase
 ```
 
 **Database:**
@@ -23,16 +23,15 @@ npm run db:migrate       # Apply pending migrations to the database named by DAT
 ```bash
 npm run check            # Runs lint → test → build (Docker-independent)
 npm run lint             # ESLint
-npm run test             # Vitest (excludes Docker integration test)
+npm run test             # Vitest
 npm run test:watch       # Vitest watch mode
-npm run test:docker      # Docker persistence test only (requires Docker daemon)
 npm run build            # tsc --noEmit + vite build
 ```
 
 **Setup:**
 ```bash
-cp .env.example .env     # Create local config (set POSTGRES_PASSWORD (URL-safe), DATABASE_URL and SESSION_SECRET ≥32 chars)
-npm run docker:check     # Optional: verify Docker CLI and daemon before running npm run dev
+cp .env.example .env     # Create local config (set DATABASE_URL to the Supabase Session pooler string with a URL-encoded password, DATABASE_SSL=require and SESSION_SECRET ≥32 chars)
+npm run docker:check     # Optional: verify Docker CLI and daemon before docker compose up
 ```
 
 ## Product
@@ -90,7 +89,6 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - Unit/integration tests use in-memory repositories (`InMemoryItemsRepository`, `InMemoryUsersRepository`, etc.)
 - Repository behavior tests run the `Postgres*` repositories against an in-process PostgreSQL (PGlite) with the committed migrations applied, so `npm run test` stays Docker-independent
 - Helper: `createTestApp()` in `src/tests/api/testApp.ts` returns `{ app, items, tags, users }`
-- Vitest config excludes `docker-compose.test.ts` from default suite; run it separately via `npm run test:docker` against the real PostgreSQL container
 
 **Conventions:**
 - Use `supertest` for API tests; `@testing-library/react` for frontend

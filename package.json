@@ -8,9 +8,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm run dev:db && concurrently \"pnpm:dev:api\" \"pnpm:dev:web\"",
+    "dev": "pnpm run dev:ports && concurrently \"pnpm:dev:api\" \"pnpm:dev:web\"",
     "dev:api": "tsx watch src/api/server.ts",
-    "dev:db": "node scripts/check-docker.mjs && docker compose stop api web && node scripts/check-ports.mjs && docker compose up -d --wait --wait-timeout 120 db",
+    "dev:ports": "node scripts/check-ports.mjs",
     "dev:web": "vite",
     "build": "tsc --noEmit && vite build",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
@@ -19,7 +19,6 @@
     "db:migrate": "drizzle-kit migrate",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:docker": "vitest run --config vitest.docker.config.ts",
     "test:watch": "vitest"
   },
   "dependencies": {
