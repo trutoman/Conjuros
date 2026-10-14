@@ -23,12 +23,14 @@ jobs:
 
       - name: Build and push images
         run: |
-          az acr build -r ${{ vars.ACR_NAME }} -t conjuros-api:${{ github.sha }} -f Dockerfile.api .
-          az acr build -r ${{ vars.ACR_NAME }} -t conjuros-web:${{ github.sha }} -f Dockerfile.web .
+          az acr build -r ${{ vars.ACR_NAME }} -g ${{ vars.RESOURCE_GROUP }} \
+            -t conjuros-api:${{ github.sha }} -f Dockerfile.api .
+          az acr build -r ${{ vars.ACR_NAME }} -g ${{ vars.RESOURCE_GROUP }} \
+            -t conjuros-web:${{ github.sha }} -f Dockerfile.web .
 
       - name: Roll out new revisions
         run: |
           az containerapp update -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RESOURCE_GROUP }} \
             --container-name api --image ${{ vars.ACR_NAME }}.azurecr.io/conjuros-api:${{ github.sha }}
           az containerapp update -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RESOURCE_GROUP }} \
-            --container-name web --image ${{ vars.ACR_NAME }}.azurecr.io/conjuros-web:${{ github.sha }}
+            --container-name conjuros-web --image ${{ vars.ACR_NAME }}.azurecr.io/conjuros-web:${{ github.sha }}
