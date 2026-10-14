@@ -1,0 +1,34 @@
+name: Deploy to Azure Container Apps
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**/*.md', 'openspec/**', 'specs/**']
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push images
+        run: |
+          az acr build -r ${{ vars.ACR_NAME }} -t conjuros-api:${{ github.sha }} -f Dockerfile.api .
+          az acr build -r ${{ vars.ACR_NAME }} -t conjuros-web:${{ github.sha }} -f Dockerfile.web .
+
+      - name: Roll out new revisions
+        run: |
+          az containerapp update -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RESOURCE_GROUP }} \
+            --container-name api --image ${{ vars.ACR_NAME }}.azurecr.io/conjuros-api:${{ github.sha }}
+          az containerapp update -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RESOURCE_GROUP }} \
+            --container-name web --image ${{ vars.ACR_NAME }}.azurecr.io/conjuros-web:${{ github.sha }}
