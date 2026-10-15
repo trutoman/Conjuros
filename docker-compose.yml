@@ -36,6 +36,9 @@ services:
       dockerfile: Dockerfile.web
     container_name: conjuros-web
     restart: unless-stopped
+    environment:
+      # The API is a separate container here, so it is reached by service name.
+      API_UPSTREAM: api:3000
     depends_on:
       api:
         condition: service_healthy
