@@ -1,3 +1,8 @@
+# API_UPSTREAM is substituted at container start by the nginx image entrypoint
+# (20-envsubst-on-templates.sh). It differs per environment because "localhost"
+# means different things in each one:
+#   Azure Container Apps -> localhost:3000 (containers of a replica share the network)
+#   docker compose       -> api:3000     (the API is a separate container)
 server {
     listen 80;
     server_name _;
@@ -5,7 +10,7 @@ server {
     index index.html;
 
     location /api/ {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://${API_UPSTREAM};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
