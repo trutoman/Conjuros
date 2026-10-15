@@ -6,7 +6,7 @@ Conjuros is a private collection for spells, web links, and markdown notes. Mark
 
 ### Prerequisites
 
-- A Supabase project (the free plan works).
+- A Supabase project for development, separate from production (the free plan works); see [Development environment and releases](#development-environment-and-releases).
 - Docker Desktop or Docker Engine with its daemon running (only for the container stack).
 - Ports `3000` (API) and `5173` (frontend) available.
 
@@ -55,7 +55,33 @@ npm install
 npm run dev
 ```
 
-When startup succeeds, open [http://localhost:5173](http://localhost:5173). The database is shared with every other run that uses the same `DATABASE_URL`; use a separate Supabase project for experiments.
+When startup succeeds, open [http://localhost:5173](http://localhost:5173). The database is shared with every other run that uses the same `DATABASE_URL`; use the DEV project described below.
+
+## Development environment and releases
+
+Production runs on Azure Container Apps with its own Supabase project and is deployed automatically from every push to `main`. All local work (`docker compose` and `npm run dev`) must use a separate **DEV** Supabase project so that tests and migrations never touch production data.
+
+| | DEV (your machine) | Production (Azure) |
+|---|---|---|
+| Database | Supabase project `conjuros-dev` | Production Supabase project |
+| Where the secrets live | Local `.env` (git-ignored) | Azure Container App configuration |
+| `SESSION_SECRET` / DB password | Its own values | Its own values |
+
+### Set up the DEV database (once)
+
+1. Create a second, free Supabase project (for example `conjuros-dev`) with its own database password.
+2. Copy its **Session pooler** connection string into your local `.env` as `DATABASE_URL`, keep `DATABASE_SSL=require`, and set a `SESSION_SECRET` different from production.
+3. Start the stack (`docker compose up -d --build` or `npm run dev`). The API applies the committed migrations, so the schema is identical to production; the data is only what you create, so register a test account and add sample items.
+
+Never copy production credentials into a local `.env`.
+
+### Release routine
+
+1. Develop on a branch and run it against the DEV database. If the change adds a migration (`npm run db:generate`), apply it to DEV (it runs at API startup or with `npm run db:migrate`) and test with it.
+2. Open a pull request; the `CI` workflow runs `npm run check`.
+3. Merge to `main`. The deploy workflow runs the same checks and only then builds and rolls out the new revision.
+
+Migrations are applied automatically when the production API starts, so always test them on DEV first. Before releasing a destructive migration (dropping or rewriting columns or tables), export a backup of the production database.
 
 ## Email
 
