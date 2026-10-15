@@ -18,5 +18,5 @@
 ## 4. Verification
 
 - [x] 4.1 Confirm `npm run dev` and `docker compose up` work against the DEV database and production data is untouched
-- [ ] 4.2 Open a test PR and confirm the CI workflow runs
+- [x] 4.2 Open a test PR and confirm the CI workflow runs
 - [x] 4.3 Run `npm run check`
