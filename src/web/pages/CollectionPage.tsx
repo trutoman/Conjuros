@@ -16,6 +16,7 @@ import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Sidebar } from '../components/Sidebar';
+import { TagColumnIcon } from '../components/TagColumnIcon';
 import { ItemForm } from '../components/ItemForm';
 import { ItemCardViewer } from '../components/ItemCardViewer';
 import { Modal } from '../components/Modal';
@@ -74,10 +75,20 @@ export function CollectionPage({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const shouldForceExpandedSidebar = isNarrowViewport;
   const effectiveSidebarOpen = shouldForceExpandedSidebar ? true : isSidebarOpen;
+  const showSidebar = !isNarrowViewport || isMobileDrawerOpen;
+
+  function closeMobileDrawer() {
+    setIsMobileDrawerOpen(false);
+  }
 
   function handleToggleSidebar() {
+    if (isNarrowViewport) {
+      closeMobileDrawer();
+      return;
+    }
     setIsSidebarOpen((prev) => {
       const next = !prev;
       localStorage.setItem('conjuros_sidebar_open', String(next));
@@ -282,7 +293,22 @@ export function CollectionPage({
         <header className="topbar">
           <div className="topbar-brand">
             <p className="eyebrow">Enchantments to charm machines.</p>
-            <h1>Conjuros</h1>
+            <div className="topbar-title-row">
+              <h1>Conjuros</h1>
+              {isNarrowViewport && (
+                <button
+                  type="button"
+                  className="tags-toggle-btn topbar-tags-btn"
+                  onClick={() => setIsMobileDrawerOpen(true)}
+                  aria-expanded={isMobileDrawerOpen}
+                  aria-controls="tags-sidebar-panel"
+                  aria-label="Open tags panel"
+                >
+                  <span>Tags</span>
+                  <TagColumnIcon />
+                </button>
+              )}
+            </div>
           </div>
           <div className="topbar-signout">
             <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
@@ -293,36 +319,38 @@ export function CollectionPage({
         </header>
 
         <div className="app-shell-body">
-          <div
-            className={`app-sidebar ${effectiveSidebarOpen ? 'expanded' : 'collapsed'} ${
-              shouldForceExpandedSidebar ? 'stacked-mobile' : ''
-            }`}
-          >
-            <Sidebar
-              tags={tagsState.tags}
-              categories={categoriesState.categories.map((category) => category.name)}
-              filters={filters}
-              isOpen={effectiveSidebarOpen}
-              onToggleOpen={handleToggleSidebar}
-              onChange={setFilters}
-              onManageTags={openManageTags}
-              onManageThemes={role === 'admin' ? openManageThemes : undefined}
-              onClose={
-                shouldForceExpandedSidebar
-                  ? undefined
-                  : () => {
-                      setIsSidebarOpen(false);
-                      localStorage.setItem('conjuros_sidebar_open', 'false');
-                    }
-              }
-            />
-          </div>
-          {effectiveSidebarOpen && !shouldForceExpandedSidebar && (
+          {showSidebar && (
+            <div
+              className={`app-sidebar ${effectiveSidebarOpen ? 'expanded' : 'collapsed'} ${
+                shouldForceExpandedSidebar ? 'stacked-mobile' : ''
+              }`}
+            >
+              <Sidebar
+                tags={tagsState.tags}
+                categories={categoriesState.categories.map((category) => category.name)}
+                filters={filters}
+                isOpen={effectiveSidebarOpen}
+                onToggleOpen={handleToggleSidebar}
+                onChange={setFilters}
+                onManageTags={openManageTags}
+                onManageThemes={role === 'admin' ? openManageThemes : undefined}
+                onClose={
+                  shouldForceExpandedSidebar
+                    ? closeMobileDrawer
+                    : () => {
+                        setIsSidebarOpen(false);
+                        localStorage.setItem('conjuros_sidebar_open', 'false');
+                      }
+                }
+              />
+            </div>
+          )}
+          {showSidebar && effectiveSidebarOpen && (
             <div className="sidebar-backdrop" onClick={handleToggleSidebar} />
           )}
 
           <div className="main-content-frame">
-            {(
+            {
               <>
                 <div className="collection-subheader">
                   <button
@@ -406,7 +434,7 @@ export function CollectionPage({
                   />
                 )}
               </>
-            )}
+            }
           </div>
           {viewerItem !== undefined && viewerItem !== null && (
             <Modal

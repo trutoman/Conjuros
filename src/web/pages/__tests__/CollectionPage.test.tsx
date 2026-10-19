@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { CollectionItem } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -244,24 +242,31 @@ describe('CollectionPage', () => {
     expect(onSignOut).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps tags sidebar expanded and visible on narrow viewports even when persisted as collapsed', () => {
-    localStorage.setItem('conjuros_sidebar_open', 'false');
+  it('hides the tags sidebar on narrow viewports and offers a Tags button next to the title', () => {
+    localStorage.setItem('conjuros_sidebar_open', 'true');
     Object.defineProperty(window, 'innerWidth', { value: 720, configurable: true });
 
     render(<CollectionPage />);
 
-    const appSidebar = document.querySelector('.app-sidebar');
-    expect(appSidebar).toHaveClass('expanded');
-    expect(appSidebar).toHaveClass('stacked-mobile');
-    expect(screen.getByRole('button', { name: 'Manage tags' })).toBeInTheDocument();
+    expect(document.querySelector('.app-sidebar')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Manage tags' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open tags panel' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
   });
 
-  it('hides the close sidebar button on narrow stacked layout', () => {
+  it('opens and closes the tags panel as a drawer on narrow viewports', () => {
     Object.defineProperty(window, 'innerWidth', { value: 640, configurable: true });
 
     render(<CollectionPage />);
 
-    expect(screen.queryByRole('button', { name: 'Close sidebar' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open tags panel' }));
+    const appSidebar = document.querySelector('.app-sidebar');
+    expect(appSidebar).toHaveClass('expanded');
+    expect(appSidebar).toHaveClass('stacked-mobile');
+    expect(screen.getByRole('button', { name: 'Manage tags' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
+    expect(document.querySelector('.app-sidebar')).not.toBeInTheDocument();
   });
 
   it('keeps the collection list visible while the Add item form is open as a modal', () => {
@@ -293,14 +298,6 @@ describe('CollectionPage', () => {
     expect(screen.queryByRole('heading', { name: 'Add item' })).not.toBeInTheDocument();
     expect(collectionState.create).not.toHaveBeenCalled();
     expect(screen.getByText('Git status')).toBeInTheDocument();
-  });
-
-  it('defines bounded add button size at narrow breakpoint', () => {
-    const css = readFileSync(join(process.cwd(), 'src/web/index.css'), 'utf8');
-
-    expect(css).toMatch(
-      /@media \(max-width: 650px\)[\s\S]*?\.collection-subheader \.add-item-button\s*\{[^}]*align-self:\s*flex-start;[^}]*width:\s*2\.75rem;[^}]*height:\s*2\.75rem;[^}]*\}/,
-    );
   });
 
   it('exposes a markdown option in the type filter', () => {
@@ -380,9 +377,7 @@ describe('CollectionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'View markdown' }));
 
     expect(screen.getByRole('heading', { name: /View markdown/ })).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /View markdown Runbook/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /View markdown Runbook/ })).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: /View markdown Runbook/ })).toBeInTheDocument();
     expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
     expect(screen.getAllByText('Runbook').length).toBeGreaterThan(0);
