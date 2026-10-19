@@ -12,3 +12,4 @@ Thumbs.db
 .vscode/
 .idea/
 backup-*/
+.cloudfare_token
