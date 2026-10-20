@@ -334,11 +334,13 @@ select {
 
 .collection-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.9rem;
 }
 
 .collection-row {
   display: block;
+  min-width: 0;
   border-radius: 1rem;
   cursor: grab;
   transition:
