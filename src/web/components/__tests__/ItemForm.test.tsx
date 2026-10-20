@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { ItemForm } from '../ItemForm';
@@ -26,6 +26,10 @@ const availableTags: Tag[] = [
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
 ];
+
+function textFile(name: string, content: string) {
+  return new File([content], name, { type: 'text/plain' });
+}
 
 describe('ItemForm', () => {
   beforeEach(() => {
@@ -671,6 +675,233 @@ describe('ItemForm', () => {
       fireEvent.click(screen.getByLabelText('File'));
       expect((screen.getByLabelText('Content') as HTMLTextAreaElement).value).toBe('');
       expect(screen.queryByRole('button', { name: 'Discard draft' })).not.toBeInTheDocument();
+    });
+
+    it('renders the drop zone only for a new file item', () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      const dropZone = () => container.querySelector('.file-drop-zone');
+      const dropZoneButton = () =>
+        screen.queryByRole('button', { name: 'Drop a file here or choose a file' });
+
+      expect(dropZone()).toBeNull();
+      expect(dropZoneButton()).toBeNull();
+
+      fireEvent.click(screen.getByLabelText('Markdown'));
+      expect(dropZone()).toBeNull();
+      expect(dropZoneButton()).toBeNull();
+
+      fireEvent.click(screen.getByLabelText('Web link'));
+      expect(dropZone()).toBeNull();
+      expect(dropZoneButton()).toBeNull();
+
+      fireEvent.click(screen.getByLabelText('Spell'));
+      expect(dropZone()).toBeNull();
+      expect(dropZoneButton()).toBeNull();
+
+      fireEvent.click(screen.getByLabelText('File'));
+      expect(dropZone()).not.toBeNull();
+      expect(dropZoneButton()).toBeInTheDocument();
+    });
+
+    it('does not render the drop zone in the edit form', () => {
+      const { container } = render(
+        <ItemForm item={createFileItem()} availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+
+      expect(container.querySelector('.file-drop-zone')).toBeNull();
+      expect(
+        screen.queryByRole('button', { name: 'Drop a file here or choose a file' }),
+      ).not.toBeInTheDocument();
+      expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('deploy.log');
+      expect((screen.getByLabelText('Content') as HTMLTextAreaElement).value).toBe(
+        'Started at 09:00\nFinished ok',
+      );
+    });
+
+    it('fills filename and content when a file is dropped', async () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByLabelText('File'));
+
+      fireEvent.drop(container.querySelector('.file-drop-zone') as Element, {
+        dataTransfer: { files: [textFile('deploy.log', 'Started at 09:00\nFinished ok')] },
+      });
+
+      await waitFor(() =>
+        expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('deploy.log'),
+      );
+      expect((screen.getByLabelText('Content') as HTMLTextAreaElement).value).toBe(
+        'Started at 09:00\nFinished ok',
+      );
+    });
+
+    it('keeps the full file name with its extension', async () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByLabelText('File'));
+
+      fireEvent.drop(container.querySelector('.file-drop-zone') as Element, {
+        dataTransfer: { files: [textFile('Release.Notes.TXT', 'Notes')] },
+      });
+
+      await waitFor(() =>
+        expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe(
+          'Release.Notes.TXT',
+        ),
+      );
+    });
+
+    it('replaces the loaded file when another file is dropped', async () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByLabelText('File'));
+      const dropZone = container.querySelector('.file-drop-zone') as Element;
+
+      fireEvent.drop(dropZone, {
+        dataTransfer: { files: [textFile('first.txt', 'First content')] },
+      });
+      await waitFor(() =>
+        expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('first.txt'),
+      );
+
+      fireEvent.drop(dropZone, {
+        dataTransfer: { files: [textFile('second.txt', 'Second content')] },
+      });
+
+      await waitFor(() =>
+        expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('second.txt'),
+      );
+      expect((screen.getByLabelText('Content') as HTMLTextAreaElement).value).toBe(
+        'Second content',
+      );
+    });
+
+    it('loads a file chosen through the picker, including the same file twice', async () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByLabelText('File'));
+      const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+      const file = textFile('notes.txt', 'Picked content');
+      const read = vi.fn().mockResolvedValue('Picked content');
+      Object.defineProperty(file, 'text', { value: read });
+
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() =>
+        expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('notes.txt'),
+      );
+      expect(input.value).toBe('');
+
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+      expect((screen.getByLabelText('Content') as HTMLTextAreaElement).value).toBe(
+        'Picked content',
+      );
+    });
+
+    it('rejects multiple dropped files without changing the fields', async () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByLabelText('File'));
+      fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'keep.txt' } });
+      fireEvent.change(screen.getByLabelText('Content'), { target: { value: 'Keep me' } });
+
+      fireEvent.drop(container.querySelector('.file-drop-zone') as Element, {
+        dataTransfer: {
+          files: [textFile('one.txt', 'One'), textFile('two.txt', 'Two')],
+        },
+      });
+
+      expect(await screen.findByText('Drop a single file')).toBeInTheDocument();
+      expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('keep.txt');
+      expect((screen.getByLabelText('Content') as HTMLTextAreaElement).value).toBe('Keep me');
+    });
+
+    it('shows an error and keeps the fields when a file cannot be read', async () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByLabelText('File'));
+      fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'keep.txt' } });
+      fireEvent.change(screen.getByLabelText('Content'), { target: { value: 'Keep me' } });
+      const file = textFile('broken.txt', '');
+      Object.defineProperty(file, 'text', {
+        value: vi.fn().mockRejectedValue(new Error('read failed')),
+      });
+
+      fireEvent.drop(container.querySelector('.file-drop-zone') as Element, {
+        dataTransfer: { files: [file] },
+      });
+
+      expect(await screen.findByText('That file could not be read')).toBeInTheDocument();
+      expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('keep.txt');
+      expect((screen.getByLabelText('Content') as HTMLTextAreaElement).value).toBe('Keep me');
+    });
+
+    it('opens the picker from the keyboard and shows the drag-over state', () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByLabelText('File'));
+      const dropZone = container.querySelector('.file-drop-zone') as Element;
+      const trigger = screen.getByRole('button', { name: 'Drop a file here or choose a file' });
+      const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+      const clickSpy = vi.spyOn(input, 'click').mockImplementation(() => {});
+
+      fireEvent.keyDown(trigger, { key: 'Enter' });
+      fireEvent.keyDown(trigger, { key: ' ' });
+      expect(clickSpy).toHaveBeenCalledTimes(2);
+
+      fireEvent.dragEnter(dropZone, {
+        dataTransfer: { files: [textFile('notes.txt', 'Notes')], types: ['Files'] },
+      });
+      expect(dropZone).toHaveClass('is-dragging');
+
+      fireEvent.dragLeave(dropZone);
+      expect(dropZone).not.toHaveClass('is-dragging');
+    });
+
+    it('announces the loaded file in a live status message', async () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByLabelText('File'));
+
+      fireEvent.drop(container.querySelector('.file-drop-zone') as Element, {
+        dataTransfer: { files: [textFile('deploy.log', 'Done')] },
+      });
+
+      const status = screen.getByRole('status');
+      expect(status).toHaveAttribute('aria-live', 'polite');
+      await waitFor(() => expect(status).toHaveTextContent('Loaded deploy.log'));
+    });
+
+    it('keeps an over-long dropped filename and reports it on save', async () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByLabelText('File'));
+      const longName = `${'a'.repeat(125)}.txt`;
+
+      fireEvent.drop(container.querySelector('.file-drop-zone') as Element, {
+        dataTransfer: { files: [textFile(longName, 'Body')] },
+      });
+
+      await waitFor(() =>
+        expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe(longName),
+      );
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Long name' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+      expect(
+        screen.getByText('Filename must be a name of at most 128 characters with no path separators'),
+      ).toBeInTheDocument();
     });
   });
 });

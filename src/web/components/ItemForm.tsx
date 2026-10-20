@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { collectionItemInputSchema, collectionItemUpdateSchema, type CollectionItem, type CollectionItemInput, type CollectionItemUpdate, type ItemKind, type Tag } from '@conjuros/contracts';
 import { clearDraft, dedentSelection, handleAutoClose, handleEnter, indentSelection, loadDraft, saveDraft, type EditResult } from '../lib/markdownEditor';
 import { messageForInputError } from '../lib/itemForm';
+import { FileDropZone } from './FileDropZone';
 import { FormField } from './FormField';
 import { ItemTypeSelector } from './ItemTypeSelector';
 import { ThemeIcon } from './ThemeIcon';
@@ -152,6 +153,43 @@ export function ItemForm({
     setContent(markdownSavedContent);
   }
 
+  function handleFileLoaded(name: string, text: string) {
+    setFilename(name);
+    setContent(text);
+  }
+
+  const tagSelector = (
+    <fieldset className="item-form-tags">
+      <legend>Tags</legend>
+      {availableTags.map((tag) => {
+        const normalized = tag.tagName.toLowerCase();
+        const checked = tags.includes(normalized);
+        return (
+          <label
+            key={tag.id}
+            className="tag-filter-pill"
+            style={{
+              color: tag.color,
+              borderColor: tag.color,
+              background: `color-mix(in srgb, ${tag.color} ${checked ? 20 : 8}%, var(--surface))`,
+            }}
+          >
+            <input
+              type="checkbox"
+              aria-label={normalized}
+              checked={checked}
+              onChange={(event) => {
+                const next = event.target.checked ? [...tags, normalized] : tags.filter((candidate) => candidate !== normalized);
+                setTags([...new Set(next)]);
+              }}
+            />
+            {normalized}
+          </label>
+        );
+      })}
+    </fieldset>
+  );
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError('');
@@ -231,35 +269,14 @@ export function ItemForm({
           <textarea value={content} onChange={(event) => setContent(event.target.value)} />
         </FormField>
       )}
-      <fieldset className="item-form-tags">
-        <legend>Tags</legend>
-        {availableTags.map((tag) => {
-          const normalized = tag.tagName.toLowerCase();
-          const checked = tags.includes(normalized);
-          return (
-            <label
-              key={tag.id}
-              className="tag-filter-pill"
-              style={{
-                color: tag.color,
-                borderColor: tag.color,
-                background: `color-mix(in srgb, ${tag.color} ${checked ? 20 : 8}%, var(--surface))`,
-              }}
-            >
-              <input
-                type="checkbox"
-                aria-label={normalized}
-                checked={checked}
-                onChange={(event) => {
-                  const next = event.target.checked ? [...tags, normalized] : tags.filter((candidate) => candidate !== normalized);
-                  setTags([...new Set(next)]);
-                }}
-              />
-              {normalized}
-            </label>
-          );
-        })}
-      </fieldset>
+      {item === undefined && kind === 'file' ? (
+        <div className="item-form-footer">
+          {tagSelector}
+          <FileDropZone onFileLoaded={handleFileLoaded} />
+        </div>
+      ) : (
+        tagSelector
+      )}
       <div className="form-actions">
         <button type="submit">Save item</button>
         <button type="button" className="quiet" onClick={onCancel}>Cancel</button>
