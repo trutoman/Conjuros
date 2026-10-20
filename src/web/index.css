@@ -1070,6 +1070,87 @@ select {
   font-size: 0.75rem;
 }
 
+.item-form-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.item-form-footer .item-form-tags {
+  margin-bottom: 0;
+}
+
+.file-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 7.5rem;
+  padding: 0.75rem;
+  border: 2px dashed var(--border-strong);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.file-drop-zone.is-dragging {
+  border-color: var(--primary);
+  background: var(--page-bg-accent);
+}
+
+.file-drop-zone-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  min-height: 5.5rem;
+  padding: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
+.file-drop-zone-trigger:hover {
+  background: transparent;
+  transform: none;
+}
+
+.file-drop-zone-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--text-muted);
+}
+
+.file-drop-zone-title {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.file-drop-zone-hint {
+  font-size: 0.75rem;
+}
+
+.file-drop-zone-status {
+  min-height: 1rem;
+  margin: 0;
+  font-size: 0.75rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.file-drop-zone-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
 .color-field {
   display: flex;
   align-items: center;
@@ -1822,5 +1903,9 @@ select {
     background: rgba(0, 0, 0, 0.4);
     z-index: 1000;
     cursor: pointer;
+  }
+
+  .item-form-footer {
+    grid-template-columns: 1fr;
   }
 }
