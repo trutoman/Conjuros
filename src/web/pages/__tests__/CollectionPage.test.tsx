@@ -7,7 +7,7 @@ const reorderMock = vi.fn().mockResolvedValue(undefined);
 const collectionItems: CollectionItem[] = [
   {
     id: 'item-1',
-    kind: 'spell',
+    kind: 'command',
     title: 'Git status',
     description: '',
     tags: ['git'],
@@ -22,7 +22,7 @@ const collectionItems: CollectionItem[] = [
   },
   {
     id: 'item-2',
-    kind: 'spell',
+    kind: 'command',
     title: 'Git diff',
     description: '',
     tags: ['git'],
@@ -493,8 +493,8 @@ describe('CollectionPage', () => {
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
       {
-        id: 'item-spell',
-        kind: 'spell',
+        id: 'item-command',
+        kind: 'command',
         title: 'Git status',
         description: '',
         tags: ['git'],

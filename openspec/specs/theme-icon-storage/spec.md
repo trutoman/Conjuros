@@ -6,7 +6,7 @@ Carries the artwork (`path` + `viewBox`) for every application icon inside each 
 
 ### Requirement: Themes store the icon artwork in `iconAssets`
 
-`Theme.iconAssets` SHALL be a `Record<IconAssetKey, { path, viewBox }>` covering every `IconAssetKey` (twenty-one keys: `spell`, `web-link`, `markdown`, `file`, `copy`, `open`, `view`, `download`, `menu`, `edit`, `delete`, `confirm`, `cancel`, `expand`, `collapse`, `close`, `clear`, `search`, `sun`, `moon`, `add`). Each entry SHALL carry a non-empty `path` (the SVG `d` attribute) and a non-empty `viewBox`. The contract SHALL reject a `string[]` `iconAssets` value (legacy shape from `theme-svg-sprite-icons`) on save; on read, the API normalizes the legacy array to a keyed record.
+`Theme.iconAssets` SHALL be a `Record<IconAssetKey, { path, viewBox }>` covering every `IconAssetKey` (twenty-one keys: `command`, `web-link`, `markdown`, `file`, `copy`, `open`, `view`, `download`, `menu`, `edit`, `delete`, `confirm`, `cancel`, `expand`, `collapse`, `close`, `clear`, `search`, `sun`, `moon`, `add`). Each entry SHALL carry a non-empty `path` (the SVG `d` attribute) and a non-empty `viewBox`. The contract SHALL reject a `string[]` `iconAssets` value (legacy shape from `theme-svg-sprite-icons`) on save; on read, the API normalizes the legacy array to a keyed record.
 
 #### Scenario: A theme documents every icon's `path` and `viewBox`
 
@@ -48,8 +48,8 @@ The `ThemeForm` SHALL allow admins to edit the `path` and `viewBox` text input f
 
 #### Scenario: An admin customizes an icon's path
 
-- **WHEN** an admin edits the `path` text input for `spell` and submits the form
-- **THEN** `GET /api/themes/:id` returns the stored theme with `iconAssets.spell.path` equal to the new value
+- **WHEN** an admin edits the `path` text input for `command` and submits the form
+- **THEN** `GET /api/themes/:id` returns the stored theme with `iconAssets.command.path` equal to the new value
 
 ### Requirement: Clear icon uses the outline stroke style
 

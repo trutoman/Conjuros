@@ -38,7 +38,7 @@ describe('theme endpoints', () => {
     const names = themes.items.map((theme) => theme.name).sort();
     expect(names).toEqual(['dark', 'light']);
     const light = themes.items.find((theme) => theme.name === 'light');
-    expect(light).toMatchObject({ isDefault: true, kindColors: { spell: '#7c3aed' } });
+    expect(light).toMatchObject({ isDefault: true, kindColors: { command: '#7c3aed' } });
     expect(light?.tagColorPalette.length).toBeGreaterThan(0);
   });
 
@@ -110,7 +110,7 @@ describe('theme endpoints', () => {
         fonts: buildSeedThemes()[0].fonts,
         fontSizes: buildSeedThemes()[0].fontSizes,
         iconAssets: {
-          spell: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
+          command: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
           copy: { path: 'M10 8 H20 A2 2 0 0 1 22 10 V20', viewBox: '0 0 24 24' },
         },
         kindColors: buildSeedThemes()[0].kindColors,
@@ -176,7 +176,7 @@ describe('theme endpoints', () => {
         fonts: buildSeedThemes()[0].fonts,
         fontSizes: buildSeedThemes()[0].fontSizes,
         iconAssets: {
-          spell: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
+          command: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
         },
         kindColors: buildSeedThemes()[0].kindColors,
         tagColorPalette: ['#1A73E8', '#7C3AED', '#2563EB', '#B45309', '#0D9488'],
@@ -224,8 +224,8 @@ describe('theme endpoints', () => {
         },
         fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
         fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
-        iconAssets: ['spell', 'copy'] as unknown as Parameters<typeof context.themes.create>[0] extends infer T ? T extends { iconAssets: infer R } ? R : never : never,
-        kindColors: { spell: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+        iconAssets: ['command', 'copy'] as unknown as Parameters<typeof context.themes.create>[0] extends infer T ? T extends { iconAssets: infer R } ? R : never : never,
+        kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
         tagColorPalette: ['#1A73E8', '#7C3AED'],
         isDefault: true,
         createdAt: now,
@@ -246,7 +246,7 @@ describe('theme endpoints', () => {
       expect(active.body.theme.name).toBe('light');
       const iconAssets = active.body.theme.iconAssets;
       expect(Array.isArray(iconAssets)).toBe(false);
-      expect(iconAssets.spell).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
+      expect(iconAssets.command).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
       expect(iconAssets.copy).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
     });
 
@@ -258,7 +258,7 @@ describe('theme endpoints', () => {
       const list = await request(context.app).get('/api/themes').set('Cookie', cookie).expect(200);
       expect(list.body.total).toBe(1);
       expect(list.body.items[0].iconAssets).toMatchObject({
-        spell: { path: expect.any(String), viewBox: expect.any(String) },
+        command: { path: expect.any(String), viewBox: expect.any(String) },
         copy: { path: expect.any(String), viewBox: expect.any(String) },
       });
     });
@@ -277,7 +277,7 @@ describe('theme endpoints', () => {
       expect(typeof iconAssets).toBe('object');
       expect(Array.isArray(iconAssets)).toBe(false);
       const expectedKeys = [
-        'spell', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download',
+        'command', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download',
         'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close',
         'clear', 'search', 'sun', 'moon', 'add',
       ];

@@ -36,7 +36,7 @@ npm run docker:check     # Optional: verify Docker CLI and daemon before docker 
 
 ## Product
 
-Conjuros lets authenticated users manage a private collection of items. An item is either a `spell` with a `command`, a `web-link` with a `url`, or a `markdown` note with `content`; all items have an owner, title, description, tags, order, and relationships. Markdown notes may optionally carry a `filename` (a plain `.md` file name, at most 64 characters, no path separators). Accounts are email/password based; the API also sends transactional email (a welcome message on registration and password reset links) through an optional SMTP sender.
+Conjuros lets authenticated users manage a private collection of items. An item is either a `command` item with command text, a `web-link` with a `url`, or a `markdown` note with `content`; all items have an owner, title, description, tags, order, and relationships. Markdown notes may optionally carry a `filename` (a plain `.md` file name, at most 64 characters, no path separators). Accounts are email/password based; the API also sends transactional email (a welcome message on registration and password reset links) through an optional SMTP sender.
 
 ## Architecture
 
@@ -72,7 +72,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 ## Domain Rules
 
 - Verify item ownership before read/update/reorder/delete
-- `spell` requires `command`; store and display exact text, never execute
+- A `command` item requires command text; store and display exact text, never execute
 - `web-link` requires absolute `https:` or `http:` URL; open only after explicit user action
 - `markdown` requires `content`; render and store the exact text, never execute or transform it
 - `markdown` items may carry an optional `filename`: a plain file name only (no path separators) of at most 64 characters, always ending in `.md`; an empty or absent `filename` is stored and returned as `null`
@@ -99,7 +99,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 ## Frontend
 
 - Prioritize search, reading, and quick actions
-- Every `spell` has an accessible action to copy `command` text
+- Every command item has an accessible action to copy its `command` text
 - Every `web-link` has actions to copy URL and open it
 - `markdown` cards render a `content` slug inline and offer a "View markdown" action that opens a read-only sanitized viewer of the full note; the viewer also shows the note's optional `filename`
 - Ordering must work with pointer and keyboard; persist via API

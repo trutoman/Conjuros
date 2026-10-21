@@ -8,7 +8,7 @@ import { ICON_ASSETS } from '../../lib/iconAssets';
 import {
   createFileItem,
   createMarkdownItem,
-  createSpellItem,
+  createCommandItem,
   createTag,
   createWebLinkItem,
   denseTags,
@@ -17,10 +17,10 @@ import { getTopRowParts } from './itemCard.test-utils';
 
 const defaultIcons: ThemeIcons = { ...ICON_ASSETS } as ThemeIcons;
 
-const spell = createSpellItem();
+const command = createCommandItem();
 
 function ControlledItemCard({
-  item = spell,
+  item = command,
   onEdit = vi.fn(),
   onDelete = vi.fn(),
 }: {
@@ -41,7 +41,7 @@ function ControlledItemCard({
 }
 
 function renderItemCard({
-  item = spell,
+  item = command,
   tags,
   onEdit = vi.fn(),
   onDelete = vi.fn(),
@@ -154,12 +154,12 @@ describe('ItemCard', () => {
     expect(inlineBox?.contains(toggle)).toBe(true);
   });
 
-  it('copies the exact spell command and reports success', async () => {
+  it('copies the exact command text and reports success', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     renderItemCard();
 
-    expect(screen.getByRole('img', { name: 'Spell' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Command' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy command' }));
 
@@ -181,7 +181,7 @@ describe('ItemCard', () => {
     expect(message).toHaveClass('action-message--error');
   });
 
-  it('renders tag colors and shows only two buttons in item-actions for a spell', () => {
+  it('renders tag colors and shows only two buttons in item-actions for a command', () => {
     const { container } = renderItemCard({ tags: [createTag('git')] });
 
     expect(screen.getByText('git')).toHaveStyle({ color: '#123ABC' });
@@ -193,7 +193,7 @@ describe('ItemCard', () => {
 
   it('renders item tags in lowercase even when stored mixed-case', () => {
     renderItemCard({
-      item: createSpellItem({ tags: ['GIT'] }),
+      item: createCommandItem({ tags: ['GIT'] }),
       tags: [createTag('GIT')],
     });
 
@@ -311,7 +311,7 @@ describe('ItemCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
 
-    expect(onEdit).toHaveBeenCalledWith(spell);
+    expect(onEdit).toHaveBeenCalledWith(command);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
@@ -321,7 +321,7 @@ describe('ItemCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Item menu' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
-    expect(onDelete).toHaveBeenCalledWith(spell);
+    expect(onDelete).toHaveBeenCalledWith(command);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Confirm delete' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'Cancel delete' })).not.toBeInTheDocument();
@@ -363,7 +363,7 @@ describe('ItemCard', () => {
   it('collapses overflowing tags into a +N indicator and reveals hidden tags on hover', async () => {
     mockNarrowTopRowLayout();
     renderItemCard({
-      item: createSpellItem({ tags: denseTags.map((tag) => tag.tagName) }),
+      item: createCommandItem({ tags: denseTags.map((tag) => tag.tagName) }),
       tags: denseTags,
     });
 
@@ -377,7 +377,7 @@ describe('ItemCard', () => {
   it('reveals hidden tags on keyboard focus of +N indicator', async () => {
     mockNarrowTopRowLayout();
     renderItemCard({
-      item: createSpellItem({ tags: denseTags.map((tag) => tag.tagName) }),
+      item: createCommandItem({ tags: denseTags.map((tag) => tag.tagName) }),
       tags: denseTags,
     });
 
@@ -392,7 +392,7 @@ describe('ItemCard', () => {
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }));
 
     renderItemCard({
-      item: createSpellItem({ tags: denseTags.map((tag) => tag.tagName) }),
+      item: createCommandItem({ tags: denseTags.map((tag) => tag.tagName) }),
       tags: denseTags,
     });
 
@@ -454,8 +454,8 @@ describe('ItemCard', () => {
     expect(screen.queryByRole('button', { name: 'Item menu' })).toBeInTheDocument();
   });
 
-  it('never shows the View markdown button on spell or web-link cards', () => {
-    renderItemCard({ item: spell });
+  it('never shows the View markdown button on command or web-link cards', () => {
+    renderItemCard({ item: command });
     expect(screen.queryByRole('button', { name: 'View markdown' })).not.toBeInTheDocument();
 
     renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
@@ -479,8 +479,8 @@ describe('ItemCard', () => {
     ).toBeTruthy();
   });
 
-  it('never shows the Download markdown button on spell or web-link cards', () => {
-    renderItemCard({ item: spell });
+  it('never shows the Download markdown button on command or web-link cards', () => {
+    renderItemCard({ item: command });
     expect(screen.queryByRole('button', { name: 'Download markdown' })).not.toBeInTheDocument();
 
     renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
@@ -573,8 +573,8 @@ describe('ItemCard', () => {
       expect(screen.getByRole('button', { name: 'Item menu' })).toBeInTheDocument();
     });
 
-    it('never shows the View file button on spell, web-link, or markdown cards', () => {
-      renderItemCard({ item: spell });
+    it('never shows the View file button on command, web-link, or markdown cards', () => {
+      renderItemCard({ item: command });
       expect(screen.queryByRole('button', { name: 'View file' })).not.toBeInTheDocument();
 
       renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
@@ -600,8 +600,8 @@ describe('ItemCard', () => {
       ).toBeTruthy();
     });
 
-    it('never shows the Download file button on spell, web-link, or markdown cards', () => {
-      renderItemCard({ item: spell });
+    it('never shows the Download file button on command, web-link, or markdown cards', () => {
+      renderItemCard({ item: command });
       expect(screen.queryByRole('button', { name: 'Download file' })).not.toBeInTheDocument();
 
       renderItemCard({ item: createWebLinkItem({ url: 'https://example.com' }) });
@@ -734,7 +734,7 @@ describe('ItemCard', () => {
       const customPath = 'M1 1 H10 V10 H1 Z';
       const { container } = renderWithIcons(
         <ItemCard
-          item={createSpellItem()}
+          item={createCommandItem()}
           tags={[]}
           onEdit={() => undefined}
           onDelete={() => undefined}
@@ -753,10 +753,10 @@ describe('ItemCard', () => {
     });
 
     it('falls back to the bundled icon when the theme omits a key', () => {
-      const partial = { spell: defaultIcons.spell, view: defaultIcons.view } as ThemeIcons;
+      const partial = { command: defaultIcons.command, view: defaultIcons.view } as ThemeIcons;
       const { container } = renderWithIcons(
         <ItemCard
-          item={createSpellItem()}
+          item={createCommandItem()}
           tags={[]}
           onEdit={() => undefined}
           onDelete={() => undefined}

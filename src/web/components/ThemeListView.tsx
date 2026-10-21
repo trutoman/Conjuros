@@ -19,7 +19,7 @@ export function ThemeListView({
         {themes.map((theme) => (
           <li key={theme.id} className="theme-list-row">
             <span className="theme-list-preview" aria-hidden="true">
-              {theme.kindColors.spell}
+              {theme.kindColors.command}
             </span>
             <div className="theme-list-info">
               <strong>{theme.label}</strong>

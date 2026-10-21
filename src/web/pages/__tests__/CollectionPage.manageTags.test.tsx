@@ -8,7 +8,7 @@ const collectionState = {
   items: [
     {
       id: 'item-1',
-      kind: 'spell',
+      kind: 'command',
       title: 'Git status',
       description: '',
       tags: ['git'],

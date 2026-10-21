@@ -29,12 +29,12 @@ const implementations = [
 
 const baseQuery: CollectionQuery = { limit: 25, skip: 0, sort: 'order', tagFilterMode: 'all' };
 
-function spell(
+function command(
   title: string,
-  overrides: Partial<Extract<CollectionItemInput, { kind: 'spell' }>> = {},
+  overrides: Partial<Extract<CollectionItemInput, { kind: 'command' }>> = {},
 ): CollectionItemInput {
   return {
-    kind: 'spell',
+    kind: 'command',
     title,
     tags: [],
     relatedItemIds: [],
@@ -113,7 +113,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       const { add, owner } = await setup();
 
       const created = [
-        await add(owner, spell('cast', { description: 'A spell', tags: ['magic'] })),
+        await add(owner, command('cast', { description: 'A command', tags: ['magic'] })),
         await add(owner, link('site')),
         await add(owner, note('notes')),
         await add(owner, file('data')),
@@ -128,7 +128,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
           filename,
         })),
       ).toEqual([
-        { kind: 'spell', command: 'echo cast', url: null, content: null, filename: null },
+        { kind: 'command', command: 'echo cast', url: null, content: null, filename: null },
         {
           kind: 'web-link',
           command: null,
@@ -140,7 +140,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
         { kind: 'file', command: null, url: null, content: 'body of data', filename: 'data.txt' },
       ]);
       expect(created[0]).toMatchObject({
-        description: 'A spell',
+        description: 'A command',
         tags: ['magic'],
         order: 1,
         ownerId: owner,
@@ -152,7 +152,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       const { add, items, owner } = await setup();
       const created = await add(
         owner,
-        spell('cast', { tags: ['a', 'b'], relatedItemIds: ['x', 'y'] }),
+        command('cast', { tags: ['a', 'b'], relatedItemIds: ['x', 'y'] }),
       );
 
       expect(await items.findOwned(created.id, owner)).toEqual(created);
@@ -164,8 +164,8 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       const { items, owner, other, seed } = await setup();
 
       expect(await items.nextOrder(owner)).toBe(1);
-      await seed(owner, [spell('a'), spell('b')]);
-      await seed(other, [spell('c')]);
+      await seed(owner, [command('a'), command('b')]);
+      await seed(other, [command('c')]);
 
       expect(await items.nextOrder(owner)).toBe(3);
       expect(await items.nextOrder(other)).toBe(2);
@@ -173,7 +173,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
 
     it('replaces the stored fields of an item, including its kind', async () => {
       const { items, owner, seed } = await setup();
-      const [created] = await seed(owner, [spell('cast')]);
+      const [created] = await seed(owner, [command('cast')]);
       const edited = {
         ...created,
         kind: 'web-link' as const,
@@ -192,7 +192,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
 
     it('deletes an owned item exactly once', async () => {
       const { items, owner, seed } = await setup();
-      const [created] = await seed(owner, [spell('cast')]);
+      const [created] = await seed(owner, [command('cast')]);
 
       expect(await items.delete(created.id, owner)).toBe(true);
       expect(await items.delete(created.id, owner)).toBe(false);
@@ -202,10 +202,10 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('finds owned items by ids and by tags', async () => {
       const { items, owner, other, seed } = await setup();
       const [first, second] = await seed(owner, [
-        spell('a', { tags: ['x', 'y'] }),
-        spell('b', { tags: ['x'] }),
+        command('a', { tags: ['x', 'y'] }),
+        command('b', { tags: ['x'] }),
       ]);
-      const [theirs] = await seed(other, [spell('c', { tags: ['x', 'y'] })]);
+      const [theirs] = await seed(other, [command('c', { tags: ['x', 'y'] })]);
 
       const byIds = await items.findOwnedByIds([first.id, second.id, theirs.id, 'missing'], owner);
       const byTags = await items.findOwnedByTags(owner, ['x', 'y']);
@@ -220,8 +220,8 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
   describe('ownership isolation', () => {
     it('never returns, lists or changes the items of another owner', async () => {
       const { items, owner, other, seed } = await setup();
-      const [mine] = await seed(owner, [spell('mine', { tags: ['x'] })]);
-      await seed(other, [spell('theirs', { tags: ['x'] })]);
+      const [mine] = await seed(owner, [command('mine', { tags: ['x'] })]);
+      await seed(other, [command('theirs', { tags: ['x'] })]);
 
       expect(await items.findOwned(mine.id, other)).toBeNull();
       expect(await items.findOwnedByIds([mine.id], other)).toEqual([]);
@@ -240,7 +240,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
   describe('list', () => {
     it('filters by kind', async () => {
       const { owner, seed, titles } = await setup();
-      await seed(owner, [spell('cast'), link('site'), note('notes'), file('data')]);
+      await seed(owner, [command('cast'), link('site'), note('notes'), file('data')]);
 
       expect(await titles(owner, { kind: 'web-link' })).toEqual(['site']);
       expect(await titles(owner, { kind: 'file' })).toEqual(['data']);
@@ -249,10 +249,10 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('filters by tags requiring all of them or any of them', async () => {
       const { owner, seed, titles } = await setup();
       await seed(owner, [
-        spell('both', { tags: ['a', 'b'] }),
-        spell('only-a', { tags: ['a'] }),
-        spell('only-b', { tags: ['b'] }),
-        spell('none', { tags: ['c'] }),
+        command('both', { tags: ['a', 'b'] }),
+        command('only-a', { tags: ['a'] }),
+        command('only-b', { tags: ['b'] }),
+        command('none', { tags: ['c'] }),
       ]);
 
       expect(await titles(owner, { tags: ['a', 'b'], tagFilterMode: 'all' })).toEqual(['both']);
@@ -267,13 +267,13 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('searches title, description, command, url, content and tags case-insensitively', async () => {
       const { owner, seed, titles } = await setup();
       await seed(owner, [
-        spell('one', { command: 'Docker Compose Up' }),
+        command('one', { command: 'Docker Compose Up' }),
         link('two', { url: 'https://example.com/Registry' }),
         note('three', { content: 'Kubernetes notes' }),
-        spell('four', { description: 'Terraform plan' }),
-        spell('Five Title'),
-        spell('six', { tags: ['ansible'] }),
-        spell('seven'),
+        command('four', { description: 'Terraform plan' }),
+        command('Five Title'),
+        command('six', { tags: ['ansible'] }),
+        command('seven'),
       ]);
 
       expect(await titles(owner, { search: 'compose' })).toEqual(['one']);
@@ -287,11 +287,11 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('matches the wildcard characters of the search text literally', async () => {
       const { owner, seed, titles } = await setup();
       await seed(owner, [
-        spell('percent', { description: '100% done' }),
-        spell('plain', { description: '1000 items' }),
-        spell('underscore', { description: 'file_name' }),
-        spell('other', { description: 'fileXname' }),
-        spell('slash', { description: 'C:\\temp\\dir' }),
+        command('percent', { description: '100% done' }),
+        command('plain', { description: '1000 items' }),
+        command('underscore', { description: 'file_name' }),
+        command('other', { description: 'fileXname' }),
+        command('slash', { description: 'C:\\temp\\dir' }),
       ]);
 
       expect(await titles(owner, { search: '100%' })).toEqual(['percent']);
@@ -303,13 +303,13 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('combines the kind, tag and search filters', async () => {
       const { owner, seed, titles } = await setup();
       await seed(owner, [
-        spell('match', { tags: ['a'], command: 'deploy now' }),
-        spell('wrong-search', { tags: ['a'], command: 'other' }),
+        command('match', { tags: ['a'], command: 'deploy now' }),
+        command('wrong-search', { tags: ['a'], command: 'other' }),
         link('wrong-kind', { tags: ['a'], url: 'https://example.com/deploy' }),
-        spell('wrong-tag', { tags: ['b'], command: 'deploy now' }),
+        command('wrong-tag', { tags: ['b'], command: 'deploy now' }),
       ]);
 
-      expect(await titles(owner, { kind: 'spell', tags: ['a'], search: 'deploy' })).toEqual([
+      expect(await titles(owner, { kind: 'command', tags: ['a'], search: 'deploy' })).toEqual([
         'match',
       ]);
     });
@@ -317,9 +317,9 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('sorts by order, title and last update (newest first)', async () => {
       const { items, owner, seed } = await setup();
       const [charlie, alpha, bravo] = await seed(owner, [
-        spell('charlie'),
-        spell('alpha'),
-        spell('bravo'),
+        command('charlie'),
+        command('alpha'),
+        command('bravo'),
       ]);
       await items.replace({ ...charlie, updatedAt: '2026-01-01T00:00:00.000Z' });
       await items.replace({ ...alpha, updatedAt: '2026-01-03T00:00:00.000Z' });
@@ -336,7 +336,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       const { items, owner, seed } = await setup();
       await seed(
         owner,
-        ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((title) => spell(title)),
+        ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((title) => command(title)),
       );
 
       const page = await items.list(owner, { ...baseQuery, limit: 3, skip: 3 });
@@ -352,7 +352,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       const { items, owner, seed, inOrder } = await setup();
       const [, , third] = await seed(
         owner,
-        ['a', 'b', 'c', 'd', 'e'].map((title) => spell(title)),
+        ['a', 'b', 'c', 'd', 'e'].map((title) => command(title)),
       );
 
       const moved = await items.reorder(third.id, owner, 1);
@@ -367,7 +367,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       const { items, owner, seed, inOrder } = await setup();
       const [first] = await seed(
         owner,
-        ['a', 'b', 'c', 'd', 'e'].map((title) => spell(title)),
+        ['a', 'b', 'c', 'd', 'e'].map((title) => command(title)),
       );
 
       const moved = await items.reorder(first.id, owner, 99);
@@ -380,7 +380,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       const { items, owner, seed, inOrder } = await setup();
       const [first] = await seed(
         owner,
-        ['a', 'b', 'c', 'd'].map((title) => spell(title)),
+        ['a', 'b', 'c', 'd'].map((title) => command(title)),
       );
 
       await items.reorder(first.id, owner, 3);
@@ -390,8 +390,8 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
 
     it('returns null for an unknown item and leaves other owners untouched', async () => {
       const { items, owner, other, seed } = await setup();
-      const [, second] = await seed(owner, [spell('a'), spell('b')]);
-      const [theirs] = await seed(other, [spell('x'), spell('y')]);
+      const [, second] = await seed(owner, [command('a'), command('b')]);
+      const [theirs] = await seed(other, [command('x'), command('y')]);
       const before = await items.findOwned(theirs.id, other);
 
       expect(await items.reorder('missing', owner, 1)).toBeNull();
@@ -405,11 +405,11 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('removes a tag from every item of the owner only', async () => {
       const { items, owner, other, seed } = await setup();
       const [first, second, third] = await seed(owner, [
-        spell('a', { tags: ['docs', 'keep'] }),
-        spell('b', { tags: ['docs'] }),
-        spell('c', { tags: ['keep'] }),
+        command('a', { tags: ['docs', 'keep'] }),
+        command('b', { tags: ['docs'] }),
+        command('c', { tags: ['keep'] }),
       ]);
-      const [theirs] = await seed(other, [spell('d', { tags: ['docs'] })]);
+      const [theirs] = await seed(other, [command('d', { tags: ['docs'] })]);
 
       const updated = await items.removeTagFromOwnerItems(owner, 'docs');
 
@@ -422,7 +422,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
 
     it('returns zero when no item carries the tag', async () => {
       const { items, owner, seed } = await setup();
-      await seed(owner, [spell('a', { tags: ['keep'] })]);
+      await seed(owner, [command('a', { tags: ['keep'] })]);
 
       expect(await items.removeTagFromOwnerItems(owner, 'docs')).toBe(0);
     });
@@ -430,10 +430,10 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('renames a tag on every item of the owner only', async () => {
       const { items, owner, other, seed } = await setup();
       const [first, second] = await seed(owner, [
-        spell('a', { tags: ['old', 'keep'] }),
-        spell('b', { tags: ['other'] }),
+        command('a', { tags: ['old', 'keep'] }),
+        command('b', { tags: ['other'] }),
       ]);
-      const [theirs] = await seed(other, [spell('c', { tags: ['old'] })]);
+      const [theirs] = await seed(other, [command('c', { tags: ['old'] })]);
 
       const updated = await items.renameTagForOwnerItems(owner, 'old', 'new');
 
@@ -446,8 +446,8 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('does not leave the same tag twice on an item when renaming onto an existing tag', async () => {
       const { items, owner, seed } = await setup();
       const [first, second] = await seed(owner, [
-        spell('a', { tags: ['a', 'b'] }),
-        spell('b', { tags: ['b', 'x', 'a'] }),
+        command('a', { tags: ['a', 'b'] }),
+        command('b', { tags: ['b', 'x', 'a'] }),
       ]);
 
       const updated = await items.renameTagForOwnerItems(owner, 'a', 'b');
@@ -459,7 +459,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
 
     it('does nothing when the new name equals the old one', async () => {
       const { items, owner, seed } = await setup();
-      const [first] = await seed(owner, [spell('a', { tags: ['same'] })]);
+      const [first] = await seed(owner, [command('a', { tags: ['same'] })]);
 
       expect(await items.renameTagForOwnerItems(owner, 'same', 'same')).toBe(0);
       expect(await items.findOwned(first.id, owner)).toEqual(first);

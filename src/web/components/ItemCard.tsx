@@ -33,7 +33,7 @@ export function ItemCard({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const tagColors = new Map(tags.map((tag) => [tag.tagName, tag.color]));
-  const isSpell = item.kind === 'spell';
+  const isCommand = item.kind === 'command';
   const contentValue = item.command ?? item.url ?? item.content ?? '';
   const inlineContent =
     item.kind === 'markdown'
@@ -41,7 +41,7 @@ export function ItemCard({
       : item.kind === 'file'
         ? plainTextSlug(item.content ?? '')
         : contentValue;
-  const kindLabel = isSpell ? 'Spell' : item.kind === 'web-link' ? 'Web link' : item.kind === 'file' ? 'File' : 'Markdown';
+  const kindLabel = isCommand ? 'Command' : item.kind === 'web-link' ? 'Web link' : item.kind === 'file' ? 'File' : 'Markdown';
 
   const supportsHover = useMemo(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -184,11 +184,11 @@ export function ItemCard({
             className={`item-type-badge kind-${item.kind}`}
             aria-label={kindLabel}
           >
-            {item.kind === 'spell' ? (
+            {item.kind === 'command' ? (
               <ThemeIcon
-                label="Spell"
-                title="Spell"
-                name="spell"
+                label="Command"
+                title="Command"
+                name="command"
               />
             ) : item.kind === 'web-link' ? (
               <ThemeIcon
@@ -282,7 +282,7 @@ export function ItemCard({
           </div>
         </div>
         <div className="item-actions" aria-label="Item actions">
-          {isSpell && (
+          {isCommand && (
             <button
               type="button"
               className="icon-action"

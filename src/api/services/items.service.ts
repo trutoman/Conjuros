@@ -72,7 +72,7 @@ export class ItemsService {
               description: update.description ?? current.description ?? undefined,
               tags: update.tags ?? current.tags,
               relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
-              ...(kind === 'spell'
+              ...(kind === 'command'
                 ? { command: update.command ?? current.command }
                 : { url: update.url ?? current.url }),
             });
@@ -86,7 +86,7 @@ export class ItemsService {
       description: candidate.description ?? null,
       tags: candidate.tags,
       relatedItemIds: candidate.relatedItemIds,
-      command: candidate.kind === 'spell' ? candidate.command : null,
+      command: candidate.kind === 'command' ? candidate.command : null,
       url: candidate.kind === 'web-link' ? candidate.url : null,
       content: textLike ? candidate.content : null,
       filename: textLike ? candidate.filename || null : null,

@@ -31,7 +31,7 @@ const colorFields = [
   'shadow',
 ] as const;
 
-const kindColorFields = ['spell', 'webLink', 'markdown', 'file'] as const;
+const kindColorFields = ['command', 'webLink', 'markdown', 'file'] as const;
 
 type ColorValues = Record<string, string>;
 

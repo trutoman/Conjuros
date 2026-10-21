@@ -87,7 +87,7 @@ export const collectionItems = pgTable(
     check(
       'collection_items_kind_fields_check',
       sql`(
-        (${table.kind} = 'spell' AND ${table.command} IS NOT NULL AND ${table.url} IS NULL AND ${table.content} IS NULL AND ${table.filename} IS NULL)
+        (${table.kind} = 'command' AND ${table.command} IS NOT NULL AND ${table.url} IS NULL AND ${table.content} IS NULL AND ${table.filename} IS NULL)
         OR (${table.kind} = 'web-link' AND ${table.url} IS NOT NULL AND ${table.command} IS NULL AND ${table.content} IS NULL AND ${table.filename} IS NULL)
         OR (${table.kind} IN ('markdown', 'file') AND ${table.content} IS NOT NULL AND ${table.command} IS NULL AND ${table.url} IS NULL)
       )`,

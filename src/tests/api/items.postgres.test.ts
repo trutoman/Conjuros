@@ -11,8 +11,8 @@ const database = setupPgliteDatabase();
 
 const baseQuery: CollectionQuery = { limit: 25, skip: 0, sort: 'order', tagFilterMode: 'all' };
 
-function spell(title: string, tags: string[] = []): CollectionItemInput {
-  return { kind: 'spell', title, tags, relatedItemIds: [], command: `echo ${title}` };
+function command(title: string, tags: string[] = []): CollectionItemInput {
+  return { kind: 'command', title, tags, relatedItemIds: [], command: `echo ${title}` };
 }
 
 async function setup() {
@@ -25,7 +25,7 @@ async function setup() {
   }
   async function seed(titles: string[]) {
     const created = [];
-    for (const title of titles) created.push(await add(spell(title)));
+    for (const title of titles) created.push(await add(command(title)));
     return created;
   }
 
@@ -63,8 +63,8 @@ describe('PostgresItemsRepository', () => {
 
     it('matches the wildcard characters of the search text literally inside tags', async () => {
       const { items, owner, add } = await setup();
-      await add(spell('one', ['a_b', '100%']));
-      await add(spell('two', ['axb', '1000']));
+      await add(command('one', ['a_b', '100%']));
+      await add(command('two', ['axb', '1000']));
 
       const titles = async (search: string) =>
         (await items.list(owner, { ...baseQuery, search })).items.map((item) => item.title);
@@ -76,8 +76,8 @@ describe('PostgresItemsRepository', () => {
     it('filters on tags that contain array and SQL metacharacters', async () => {
       const { items, owner, add } = await setup();
       const awkward = ["x'), ('y", '{a,b}', 'has,comma', '"quoted"', 'back\\slash'];
-      await add(spell('awkward', awkward));
-      await add(spell('plain', ['plain']));
+      await add(command('awkward', awkward));
+      await add(command('plain', ['plain']));
 
       const all = await items.list(owner, { ...baseQuery, tags: awkward, tagFilterMode: 'all' });
       const any = await items.list(owner, {
@@ -122,7 +122,7 @@ describe('PostgresItemsRepository', () => {
       const { items, owner, add, seed } = await setup();
       const [, second] = await seed(['a', 'b', 'c', 'd']);
       await items.delete(second.id, owner);
-      await add(spell('e'));
+      await add(command('e'));
       const positions = (await items.list(owner, baseQuery)).items.map((item) => item.order);
       expect(positions).toEqual([1, 3, 4, 4]);
 
@@ -155,7 +155,7 @@ describe('PostgresItemsRepository', () => {
     it('rejects an item for an owner without an account', async () => {
       const { items } = await setup();
 
-      const state = await sqlStateOf(items.create('missing-owner', spell('a'), 1));
+      const state = await sqlStateOf(items.create('missing-owner', command('a'), 1));
 
       expect(state).toBe(FOREIGN_KEY_VIOLATION);
     });
@@ -207,8 +207,8 @@ describe('PostgresItemsRepository', () => {
   describe('tag cascades', () => {
     it('touches only the items that carry the tag', async () => {
       const { items, owner, add } = await setup();
-      const carrying = await add(spell('a', ['docs']));
-      const bystander = await add(spell('b', ['keep']));
+      const carrying = await add(command('a', ['docs']));
+      const bystander = await add(command('b', ['keep']));
 
       await items.renameTagForOwnerItems(owner, 'docs', 'guides');
       await items.removeTagFromOwnerItems(owner, 'keep');

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { normalizeTagName, tagNameSchema } from './tags';
 
-export const itemKinds = ['spell', 'web-link', 'markdown', 'file'] as const;
+export const itemKinds = ['command', 'web-link', 'markdown', 'file'] as const;
 
 export const itemKindSchema = z.enum(itemKinds);
 export const itemIdSchema = z.string().min(1).max(128);
@@ -19,9 +19,9 @@ const commonItemFields = {
   relatedItemIds: z.array(itemIdSchema).max(20).transform((ids) => [...new Set(ids)]),
 };
 
-export const spellInputSchema = z
+export const commandInputSchema = z
   .object({
-    kind: z.literal('spell'),
+    kind: z.literal('command'),
     ...commonItemFields,
     command: z.string().min(1).max(10_000),
   })
@@ -89,7 +89,7 @@ export const fileUpdateCandidateSchema = fileInputSchema
   .extend({ filename: fileFilenameUpdateSchema });
 
 export const collectionItemInputSchema = z.discriminatedUnion('kind', [
-  spellInputSchema,
+  commandInputSchema,
   webLinkInputSchema,
   markdownInputSchema,
   fileInputSchema,
@@ -108,14 +108,14 @@ export const collectionItemUpdateSchema = z
     content: markdownInputSchema.shape.content.optional(),
   })
   .superRefine((value, context) => {
-    if (value.kind === 'spell' && value.url !== undefined) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Spell updates cannot include a URL' });
+    if (value.kind === 'command' && value.url !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Command updates cannot include a URL' });
     }
-    if (value.kind === 'spell' && value.content !== undefined) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Spell updates cannot include content' });
+    if (value.kind === 'command' && value.content !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Command updates cannot include content' });
     }
-    if (value.kind === 'spell' && value.filename !== undefined) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Spell updates cannot include a filename' });
+    if (value.kind === 'command' && value.filename !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Command updates cannot include a filename' });
     }
     if (value.kind === 'web-link' && value.command !== undefined) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'Web-link updates cannot include a command' });

@@ -23,7 +23,7 @@ function itemRow(ownerId: string, overrides: Partial<typeof collectionItems.$inf
   return {
     id: 'item-1',
     ownerId,
-    kind: 'spell' as const,
+    kind: 'command' as const,
     title: 'Title',
     command: 'echo hi',
     order: 1,
@@ -155,8 +155,8 @@ describe('database integrity rules', () => {
   });
 
   it.each([
-    ['a spell without a command', { kind: 'spell' as const, command: null }],
-    ['a spell that also holds a url', { kind: 'spell' as const, url: 'https://example.com' }],
+    ['a command without a command', { kind: 'command' as const, command: null }],
+    ['a command that also holds a url', { kind: 'command' as const, url: 'https://example.com' }],
     [
       'a web-link that also holds content',
       { kind: 'web-link' as const, command: null, url: 'https://example.com', content: '# Note' },
@@ -181,7 +181,7 @@ describe('database integrity rules', () => {
     const ownerId = await insertUser('user-a');
 
     await handle.db.insert(collectionItems).values([
-      itemRow(ownerId, { id: 'spell' }),
+      itemRow(ownerId, { id: 'command' }),
       itemRow(ownerId, {
         id: 'link',
         kind: 'web-link',

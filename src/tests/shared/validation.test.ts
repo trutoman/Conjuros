@@ -2,6 +2,7 @@ import {
   collectionItemInputSchema,
   collectionItemSchema,
   collectionItemUpdateSchema,
+  collectionQuerySchema,
   fileUpdateCandidateSchema,
   markdownUpdateCandidateSchema,
   normalizeTags,
@@ -11,10 +12,10 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('collection item contracts', () => {
-  it('preserves spell commands exactly as entered', () => {
+  it('preserves command text exactly as entered', () => {
     const command = '  git status && echo "ready"  ';
     const parsed = collectionItemInputSchema.parse({
-      kind: 'spell',
+      kind: 'command',
       title: 'Status',
       description: '',
       tags: ['Git'],
@@ -22,8 +23,22 @@ describe('collection item contracts', () => {
       command,
     });
 
-    if (parsed.kind !== 'spell') throw new Error('Expected a spell');
+    if (parsed.kind !== 'command') throw new Error('Expected a command');
     expect(parsed.command).toBe(command);
+  });
+
+  it('rejects the former spell kind in inputs and filters', () => {
+    expect(
+      collectionItemInputSchema.safeParse({
+        kind: 'spell',
+        title: 'Legacy',
+        tags: [],
+        relatedItemIds: [],
+        command: 'echo legacy',
+      }).success,
+    ).toBe(false);
+    expect(collectionQuerySchema.safeParse({ kind: 'spell' }).success).toBe(false);
+    expect(collectionQuerySchema.safeParse({ kind: 'command' }).success).toBe(true);
   });
 
   it('requires absolute HTTP URLs for web links', () => {
@@ -121,7 +136,7 @@ describe('collection item contracts', () => {
     ).toBe(false);
   });
 
-  it('preserves long markdown content beyond the spell command limit', () => {
+  it('preserves long markdown content beyond the command text limit', () => {
     const longContent = Array.from({ length: 2_500 }, () => 'lorem').join(' ');
     const parsed = collectionItemInputSchema.parse({
       kind: 'markdown',
@@ -145,7 +160,7 @@ describe('collection item contracts', () => {
       collectionItemUpdateSchema.safeParse({ kind: 'markdown', url: 'https://example.com' }).success,
     ).toBe(false);
     expect(
-      collectionItemUpdateSchema.safeParse({ kind: 'spell', content: 'note' }).success,
+      collectionItemUpdateSchema.safeParse({ kind: 'command', content: 'note' }).success,
     ).toBe(false);
     expect(
       collectionItemUpdateSchema.safeParse({ kind: 'web-link', content: 'note' }).success,
@@ -269,7 +284,7 @@ describe('collection item contracts', () => {
   it('rejects a filename on non-markdown items', () => {
     expect(
       collectionItemInputSchema.safeParse({
-        kind: 'spell',
+        kind: 'command',
         title: 'Status',
         description: '',
         tags: [],
@@ -289,7 +304,7 @@ describe('collection item contracts', () => {
         filename: 'docs.md',
       }).success,
     ).toBe(false);
-    expect(collectionItemUpdateSchema.safeParse({ kind: 'spell', filename: 'spin.md' }).success).toBe(
+    expect(collectionItemUpdateSchema.safeParse({ kind: 'command', filename: 'spin.md' }).success).toBe(
       false,
     );
     expect(

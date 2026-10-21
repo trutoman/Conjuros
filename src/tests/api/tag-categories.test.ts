@@ -95,8 +95,8 @@ describe('tag category entity', () => {
       .post('/api/items')
       .set('Cookie', cookie)
       .send({
-        kind: 'spell',
-        title: 'Busy spell',
+        kind: 'command',
+        title: 'Busy command',
         description: '',
         tags: ['busy.tag'],
         relatedItemIds: [],

@@ -1,9 +1,9 @@
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 
-export function createSpellItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
+export function createCommandItem(overrides: Partial<CollectionItem> = {}): CollectionItem {
   return {
-    id: 'spell-1',
-    kind: 'spell',
+    id: 'command-1',
+    kind: 'command',
     title: 'Status',
     description: 'Check repository state',
     tags: ['git'],
