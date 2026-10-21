@@ -36,11 +36,11 @@ const theme: Theme = {
     mono: '0.75rem',
   },
   iconAssets: {
-    spell: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
+    command: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
     copy: { path: 'M10 8 H20 A2 2 0 0 1 22 10 V20', viewBox: '0 0 24 24' },
   },
   kindColors: {
-    spell: '#7c3aed',
+    command: '#7c3aed',
     webLink: '#2563eb',
     markdown: '#b45309',
     file: '#0d9488',
@@ -58,7 +58,7 @@ describe('applyTheme', () => {
 
     expect(root.style.getPropertyValue('--page-bg')).toBe('#f7faf8');
     expect(root.style.getPropertyValue('--primary')).toBe('#4f46e5');
-    expect(root.style.getPropertyValue('--spell')).toBe('#7c3aed');
+    expect(root.style.getPropertyValue('--command')).toBe('#7c3aed');
     expect(root.style.getPropertyValue('--link')).toBe('#2563eb');
     expect(root.style.getPropertyValue('--font-display')).toBe("'Cinzel', serif");
     expect(root.style.getPropertyValue('--font-size-heading')).toBe('2.65rem');

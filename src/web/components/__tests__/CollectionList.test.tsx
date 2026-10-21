@@ -5,7 +5,7 @@ import { CollectionList } from '../CollectionList';
 const items = [
   {
     id: 'first',
-    kind: 'spell' as const,
+    kind: 'command' as const,
     title: 'First',
     description: '',
     tags: [],
@@ -20,7 +20,7 @@ const items = [
   },
   {
     id: 'second',
-    kind: 'spell' as const,
+    kind: 'command' as const,
     title: 'Second',
     description: '',
     tags: [],

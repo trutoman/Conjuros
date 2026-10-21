@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const MESSAGES = {
   titleRequired: 'Title is required',
-  commandRequired: 'Command is required for a spell',
+  commandRequired: 'Command is required',
   contentRequired: 'Content is required for a markdown note',
   filenameRequired: 'Filename is required for a markdown note',
   filenameInvalid: 'Filename must be a name of at most 64 characters ending in .md, with no path separators',
@@ -38,7 +38,7 @@ export function messageForInputError(
 ): string | null {
   if (isEmptyOrWhitespace(payload.title)) return MESSAGES.titleRequired;
 
-  if (payload.kind === 'spell') {
+  if (payload.kind === 'command') {
     if (isEmptyOrWhitespace(payload.command)) return MESSAGES.commandRequired;
     return result.success ? null : MESSAGES.generic;
   }

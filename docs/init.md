@@ -4,9 +4,9 @@
 
 **Conjuros** is a personal web application for saving, organizing, and finding command shortcuts and related web links. The API is necessary, but the product is defined by a person's experience managing their collection in the frontend.
 
-Each user can sign in and access only their collection items. A spell contains a command or tool configuration; a link contains a related URL. Both may include explanatory information and tags that enable quick classification and retrieval. Users can create, read, edit, delete, reorder, and copy their items with one click.
+Each user can sign in and access only their collection items. A command item stores a command or tool configuration; a link contains a related URL. Both may include explanatory information and tags that enable quick classification and retrieval. Users can create, read, edit, delete, reorder, and copy their items with one click.
 
-The first goal is not to build many endpoints: it is to let someone find the right spell or link and copy its exact text or open its URL quickly and confidently.
+The first goal is not to build many endpoints: it is to let someone find the right command or link and copy its exact text or open its URL quickly and confidently.
 
 ```text
 Browser
@@ -42,7 +42,7 @@ PostgreSQL
 
 ## 3. Domain Model
 
-The collection is the main aggregate. An item can be a spell or a web link; both have an owner, organization, order, and relationships in common. Design its rules and contracts first, then organize endpoints and screens around it.
+The collection is the main aggregate. An item can be a command or a web link; both have an owner, organization, order, and relationships in common. Design its rules and contracts first, then organize endpoints and screens around it.
 
 ### User
 
@@ -70,8 +70,8 @@ type CollectionItemBase = {
   updatedAt: Date;
 };
 
-type Spell = CollectionItemBase & {
-  type: "spell";
+type Command = CollectionItemBase & {
+  type: "command";
   command: string;
 };
 
@@ -80,7 +80,7 @@ type WebLink = CollectionItemBase & {
   url: string;
 };
 
-type CollectionItem = Spell | WebLink;
+type CollectionItem = Command | WebLink;
 
 type CollectionItemTag = {
   value: string;
@@ -91,12 +91,12 @@ type CollectionItemTag = {
 Initial rules:
 
 - Every collection item belongs to exactly one owner.
-- A `spell` requires `command`, is kept as text, and is never executed by the application.
+- A `command` item requires command text, is kept as text, and is never executed by the application.
 - A `web-link` requires `url`, which must be a valid absolute URL with an `https:` or `http:` protocol. The application only opens it after an explicit user action.
-- `title` must describe the spell or link purpose and make it easier to find.
+- `title` must describe the command or link purpose and make it easier to find.
 - `environment`, `shell`, and `category` tags are validated against defined catalogs. `free` tags may be normalized free text.
 - `position` defines the common manual order of all items in each user's list.
-- `relatedItemIds` may only include items owned by the same user and lets spells and links be related without duplicating attributes.
+- `relatedItemIds` may only include items owned by the same user and lets commands and links be related without duplicating attributes.
 - The private list, search, reordering, and every edit are limited to the authenticated owner.
 
 Do not store the order as an array of IDs inside the user: `position` per item supports pagination, filtering, and more direct updates. For the first MVP it can be an integer; when reordering, recalculate the affected positions in a validated operation. If the list becomes very large later, migrate to fractional positions.
@@ -113,13 +113,13 @@ users: { email } UNIQUE
 
 ## 4. Core Frontend Experience
 
-The collection screen is the center of the product, not a secondary page after the API. It must show a clear mixed list of spells and links, visible search, and quick actions to copy, open, edit, and order.
+The collection screen is the center of the product, not a secondary page after the API. It must show a clear mixed list of commands and links, visible search, and quick actions to copy, open, edit, and order.
 
 Required flows:
 
 1. **Sign in:** the user enters and sees only their collection items.
-2. **Create spell:** enter a title, command, optional description, and tags. It appears in the collection after saving.
-3. **Save link:** enter a title, URL, optional description, and tags. It can be related to one or more spells in the user's own collection.
+2. **Create command:** enter a title, command text, optional description, and tags. It appears in the collection after saving.
+3. **Save link:** enter a title, URL, optional description, and tags. It can be related to one or more commands in the user's own collection.
 4. **Read, copy, and open:** users can read the complete command or configuration and copy its exact text to the clipboard with one click. For a link, they can copy the URL or explicitly open it in a new tab. The interface immediately confirms whether a copy succeeded or failed.
 5. **Search and filter:** search must match title, command, URL, description, and tags. Type, enumerated-tag, and free-text filters combine predictably.
 6. **Order:** users can move items by drag and drop or keyboard; the common order is saved.
@@ -144,7 +144,7 @@ type CollectionQuery = {
 Recommended behavior:
 
 - `text` searches title, command, URL, description, and every tag.
-- When used, the `types` filter limits results to spells, web links, or both.
+- When used, the `types` filter limits results to commands, web links, or both.
 - Values within one filter category use OR logic; different categories use AND logic.
 - Manual ordering remains active only when no alternative sort is selected.
 - Search is local only when the collection is already loaded and small; for large collections, the API paginates and filters in PostgreSQL.
@@ -318,12 +318,12 @@ Create VS Code tasks to start the API, frontend, PostgreSQL, tests, and linting.
 
 ## Product
 Conjuros lets authenticated users manage a private collection of items. An item is
-either a `spell` with a `command` or a `web-link` with a `url`; both have an owner,
+either a `command` item with command text or a `web-link` with a `url`; both have an owner,
 title, description, tags, order, and relationships.
 
 ## Domain Rules
 - On private routes, verify that an item belongs to the authenticated user before reading, updating, reordering, or deleting it.
-- A `spell` requires `command`; store and display its exact text, and never execute it.
+- A `command` item requires command text; store and display its exact text, and never execute it.
 - A `web-link` requires an absolute `https:` or `http:` URL; only open it after an explicit user action.
 - `relatedItemIds` may only refer to items owned by the same user.
 - Validate enumerated tags against their catalogs; normalize and validate free-form tags.
@@ -339,7 +339,7 @@ title, description, tags, order, and relationships.
 
 ## Frontend
 - Prioritize search, reading, and quick actions for collection items.
-- Every visible `spell` has an accessible action to copy the exact `command` text and report success or failure.
+- Every visible command item has an accessible action to copy its exact command text and report success or failure.
 - Every visible `web-link` has accessible actions to copy its URL and explicitly open it.
 - The common ordering must work with pointer and keyboard input, and must persist.
 - Include loading, empty, no-results, and error states.
@@ -374,7 +374,7 @@ There is no need to multiply agents. Create four roles with clear boundaries and
 
 Responsibilities:
 
-- **`collection-feature`**: implements vertical changes for spells and web links, including contracts, API, persistence, and associated tests.
+- **`collection-feature`**: implements vertical changes for commands and web links, including contracts, API, persistence, and associated tests.
 - **`frontend-experience`**: implements and reviews screens, search, filters, ordering, accessibility, states, and frontend tests. It does not modify authorization rules or PostgreSQL schemas without an explicit requirement.
 - **`test-reviewer`**: finds domain edge cases and filter, ordering, and permission regressions.
 - **`security-reviewer`**: reviews authentication, user isolation, secrets, validation, and destructive operations.
@@ -450,13 +450,13 @@ A skill groups knowledge applied on demand, not global rules. Example for `.gith
 ```md
 ---
 name: collection-domain
-description: "Use when implementing or changing spells, web links, tags, relationships, manual ordering, or ownership permissions."
+description: "Use when implementing or changing commands, web links, tags, relationships, manual ordering, or ownership permissions."
 ---
 
 # Collection Domain
 
 - Every item has an owner and private routes must verify it before operating.
-- A `spell` has `command`, which is stored and displayed without ever being executed.
+- A `command` item has command text, which is stored and displayed without ever being executed.
 - A `web-link` has an absolute `https:` or `http:` URL and opens only after an explicit action.
 - Enumerated tags are validated against catalogs and free-form tags are normalized.
 - Manual ordering is based on `position` per user.
@@ -490,7 +490,7 @@ Implementation
 - Update contracts and domain rules when necessary.
 - Implement API, persistence, and/or UI within its ownership boundary.
 - Add risk-proportionate tests.
-- Verify that copying a spell or link preserves the exact text and communicates the result to the user.
+- Verify that copying a command or link preserves the exact text and communicates the result to the user.
 
 Verification
 - npm run build
@@ -513,7 +513,7 @@ Build vertically, starting with a small experience that works end to end:
 1. Configure the monorepo, local PostgreSQL, strict TypeScript, linting, and tests.
 2. Create `GET /health` and the React skeleton with a protected collection route.
 3. Implement registration, sign-in, sign-out, and per-user data isolation.
-4. Define Zod contracts and the collection module: create, list, get, edit, and delete spells and web links.
+4. Define Zod contracts and the collection module: create, list, get, edit, and delete commands and web links.
 5. Build the collection screen: reading, copying commands and URLs, and creating or editing items.
 6. Implement combinable search and filters while retaining state in the URL.
 7. Add accessible manual ordering and position persistence.
@@ -527,8 +527,8 @@ Once the structure, `AGENTS.md`, and base contracts exist, use a prompt focused 
 ```text
 Read AGENTS.md and applicable instructions. Implement the first vertical Conjuros flow:
 
-- An authenticated user can create a spell with a title, command, optional description, and tags.
-- They can list only their own spells.
+- An authenticated user can create a command item with a title, command text, optional description, and tags.
+- They can list only their own commands.
 - The collection screen shows title, tags, and command, and lets users copy the exact `command` value to the clipboard with one click, with success or error confirmation.
 - Validate inputs with shared Zod contracts.
 - Add HTTP tests for ownership, invalid data, and the correct flow.

@@ -118,7 +118,7 @@ export class InMemoryItemsRepository implements ItemsRepository {
       tags: input.tags,
       relatedItemIds: input.relatedItemIds,
       order,
-      command: input.kind === 'spell' ? input.command : null,
+      command: input.kind === 'command' ? input.command : null,
       url: input.kind === 'web-link' ? input.url : null,
       content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
       filename:
@@ -309,7 +309,7 @@ export class PostgresItemsRepository implements ItemsRepository {
         tags: input.tags,
         relatedItemIds: input.relatedItemIds,
         order,
-        command: input.kind === 'spell' ? input.command : null,
+        command: input.kind === 'command' ? input.command : null,
         url: input.kind === 'web-link' ? input.url : null,
         content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
         filename:

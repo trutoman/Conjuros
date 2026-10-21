@@ -401,7 +401,7 @@ export function CollectionPage({
                       }
                     >
                       <option value="">All types</option>
-                      <option value="spell">Spells</option>
+                      <option value="command">Commands</option>
                       <option value="web-link">Web links</option>
                       <option value="markdown">Markdown</option>
                       <option value="file">Files</option>

@@ -22,7 +22,7 @@ export function ItemForm({
 }) {
   const formId = item?.id ?? 'add';
   const markdownSavedContent = item?.content ?? '';
-  const [kind, setKind] = useState<ItemKind>(item?.kind ?? 'spell');
+  const [kind, setKind] = useState<ItemKind>(item?.kind ?? 'command');
   const textKind = kind === 'markdown' || kind === 'file';
   const [title, setTitle] = useState(item?.title ?? '');
   const [description, setDescription] = useState(item?.description ?? '');
@@ -199,7 +199,7 @@ export function ItemForm({
       tags,
       relatedItemIds: [],
       ...(textKind ? {} : { description }),
-      ...(kind === 'spell' ? { command: content } : kind === 'web-link' ? { url: content } : { content, filename }),
+      ...(kind === 'command' ? { command: content } : kind === 'web-link' ? { url: content } : { content, filename }),
     };
     const result = item
       ? collectionItemUpdateSchema.safeParse(payload)
@@ -265,7 +265,7 @@ export function ItemForm({
           <textarea value={content} onChange={(event) => setContent(event.target.value)} />
         </FormField>
       ) : (
-        <FormField label={kind === 'spell' ? 'Command' : 'URL'} error={error}>
+        <FormField label={kind === 'command' ? 'Command' : 'URL'} error={error}>
           <textarea value={content} onChange={(event) => setContent(event.target.value)} />
         </FormField>
       )}

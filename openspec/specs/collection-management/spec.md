@@ -5,14 +5,14 @@
 This capability covers the core private collection experience for authenticated users, including creating, reading, updating, deleting, searching, and ordering items.
 ## Requirements
 
-- Users must be able to manage a private collection of spells and web links owned by their account.
+- Users must be able to manage a private collection of commands and web links owned by their account.
 - Item ownership must be enforced for all read, update, reorder, and delete operations.
 - Users must be able to search and filter collection contents by relevant dimensions.
 - Users must be able to persist and retrieve item ordering.
 
 ### Requirement: Item form tag selector sits below the command field
 
-In the item form, the tag selector SHALL render after the kind-specific field and before the action buttons. The visible field order SHALL be: item type selector, Title, then the kind-specific fields, tag selector, action buttons. For a `spell` item the kind-specific fields are Description then Command; for a `web-link` item they are Description then URL; for a `markdown` item they are an optional Filename input then the Content panes, and the form SHALL NOT render a Description field.
+In the item form, the tag selector SHALL render after the kind-specific field and before the action buttons. The visible field order SHALL be: item type selector, Title, then the kind-specific fields, tag selector, action buttons. For a `command` item the kind-specific fields are Description then Command; for a `web-link` item they are Description then URL; for a `markdown` item they are an optional Filename input then the Content panes, and the form SHALL NOT render a Description field.
 
 #### Scenario: Add form shows kind-specific field above tags
 
@@ -95,7 +95,7 @@ The item form (Add item and Edit item) SHALL display a borderless, floating clos
 
 ### Requirement: Markdown items store extensive content
 
-Users SHALL be able to create and edit items of kind `markdown`. A `markdown` item SHALL store its body in a `content` field holding the raw Markdown source as a single string with no enforced upper length limit. A `markdown` item MAY carry a `description`, but it is optional: when none is provided, the API SHALL return `description` as `null`. When an item is `markdown`, the API SHALL return `command` and `url` as `null`; when an item is `spell` or `web-link`, `content` SHALL be returned as `null`.
+Users SHALL be able to create and edit items of kind `markdown`. A `markdown` item SHALL store its body in a `content` field holding the raw Markdown source as a single string with no enforced upper length limit. A `markdown` item MAY carry a `description`, but it is optional: when none is provided, the API SHALL return `description` as `null`. When an item is `markdown`, the API SHALL return `command` and `url` as `null`; when an item is `command` or `web-link`, `content` SHALL be returned as `null`.
 
 #### Scenario: Create a markdown item with content
 
@@ -130,18 +130,18 @@ Users SHALL be able to create and edit items of kind `markdown`. A `markdown` it
 
 #### Scenario: Long markdown content is preserved
 
-- **WHEN** a user creates or edits a `markdown` item with content much longer than the spell `command` limit
+- **WHEN** a user creates or edits a `markdown` item with content much longer than the command text limit
 - **THEN** the full content is stored and returned without truncation
 
 ### Requirement: Type filter includes markdown items
 
-The collection "Type" filter SHALL offer a `Markdown` option alongside `Spells` and `Web links`. Selecting it SHALL show only items of kind `markdown`.
+The collection "Type" filter SHALL offer a `Markdown` option alongside `Commands` and `Web links`. Selecting it SHALL show only items of kind `markdown`.
 
 #### Scenario: Filter the collection by markdown
 
 - **WHEN** a user selects the `Markdown` type filter
 - **THEN** the collection shows only items of kind `markdown`
-- **AND** spell and web-link items are hidden
+- **AND** command and web-link items are hidden
 
 #### Scenario: Clear the type filter shows all types
 
@@ -198,7 +198,7 @@ The item form for a `markdown` item SHALL render the Content field as a 50/50 ve
 
 ### Requirement: Item form shows friendly field validation messages
 
-When a user saves an item from the item form and validation fails, the form SHALL display a friendly, field-specific error message instead of the raw validation library message. For a `markdown` item, an empty or whitespace-only title SHALL report "Title is required", an empty or whitespace-only content SHALL report "Content is required for a markdown note", a missing `filename` SHALL report "Filename is required for a markdown note", and an invalid `filename` SHALL report "Filename must be a name of at most 64 characters ending in .md, with no path separators". For a `spell` item, an empty or whitespace-only command SHALL report "Command is required for a spell". For a `web-link` item, a URL that is not an absolute `http` or `https` URL SHALL report "URL must use the http or https protocol". Any other validation failure SHALL display a generic message rather than the raw validation library text.
+When a user saves an item from the item form and validation fails, the form SHALL display a friendly, field-specific error message instead of the raw validation library message. For a `markdown` item, an empty or whitespace-only title SHALL report "Title is required", an empty or whitespace-only content SHALL report "Content is required for a markdown note", a missing `filename` SHALL report "Filename is required for a markdown note", and an invalid `filename` SHALL report "Filename must be a name of at most 64 characters ending in .md, with no path separators". For a `command` item, an empty or whitespace-only command SHALL report "Command is required". For a `web-link` item, a URL that is not an absolute `http` or `https` URL SHALL report "URL must use the http or https protocol". Any other validation failure SHALL display a generic message rather than the raw validation library text.
 
 #### Scenario: Markdown form reports an empty title
 
@@ -236,10 +236,10 @@ When a user saves an item from the item form and validation fails, the form SHAL
 - **THEN** the form shows the message "Filename must be a name of at most 64 characters ending in .md, with no path separators"
 - **AND** the item is not submitted
 
-#### Scenario: Spell form reports a whitespace-only command
+#### Scenario: Command form reports a whitespace-only command
 
-- **WHEN** a user saves a `spell` item with a command containing only spaces
-- **THEN** the form shows the message "Command is required for a spell"
+- **WHEN** a user saves a `command` item with a command containing only spaces
+- **THEN** the form shows the message "Command is required"
 - **AND** the item is not submitted
 
 #### Scenario: Web-link form reports an invalid URL
@@ -256,7 +256,7 @@ When a user saves an item from the item form and validation fails, the form SHAL
 
 ### Requirement: Markdown items require a filename on creation
 
-A new `markdown` item SHALL include a `filename` field holding a plain file name for the note. `filename` SHALL be a trimmed, non-empty string of at most 64 characters, SHALL contain no path separators (`/` or `\`), and SHALL end with the `.md` extension (case-insensitive). Submitting a `markdown` item without a `filename` SHALL be rejected. A `filename` that violates the rules SHALL also be rejected. Once created, a `markdown` item's `filename` MAY be updated and MAY be cleared, in which case the item remains readable and its `filename` is returned as `null`; items whose documents predate the requirement are likewise returned with a `null` `filename`. Items of kind `spell` or `web-link` SHALL NOT carry a `filename`; it SHALL be returned as `null` for them, and submitting a `filename` on such an item SHALL be rejected.
+A new `markdown` item SHALL include a `filename` field holding a plain file name for the note. `filename` SHALL be a trimmed, non-empty string of at most 64 characters, SHALL contain no path separators (`/` or `\`), and SHALL end with the `.md` extension (case-insensitive). Submitting a `markdown` item without a `filename` SHALL be rejected. A `filename` that violates the rules SHALL also be rejected. Once created, a `markdown` item's `filename` MAY be updated and MAY be cleared, in which case the item remains readable and its `filename` is returned as `null`; items whose documents predate the requirement are likewise returned with a `null` `filename`. Items of kind `command` or `web-link` SHALL NOT carry a `filename`; it SHALL be returned as `null` for them, and submitting a `filename` on such an item SHALL be rejected.
 
 #### Scenario: Create a markdown item with a filename
 
@@ -294,7 +294,7 @@ A new `markdown` item SHALL include a `filename` field holding a plain file name
 
 #### Scenario: Reject a filename on a non-markdown item
 
-- **WHEN** a user submits a `spell` or `web-link` item carrying a `filename` field
+- **WHEN** a user submits a `command` or `web-link` item carrying a `filename` field
 - **THEN** the submission is rejected with a validation error
 - **AND** no item is stored
 
@@ -314,7 +314,7 @@ While a file is dragged over the drop zone, the drop zone SHALL show a visible d
 
 #### Scenario: Drop zone is hidden for other kinds
 
-- **WHEN** a user opens the Add item form and selects `Spell`, `Web link`, or `Markdown`
+- **WHEN** a user opens the Add item form and selects `Command`, `Web link`, or `Markdown`
 - **THEN** no file drop zone is rendered
 
 #### Scenario: Drop zone is hidden in the edit form
@@ -385,3 +385,37 @@ While a file is dragged over the drop zone, the drop zone SHALL show a visible d
 - **THEN** the name is placed in the Filename field
 - **AND** saving the item reports the existing friendly file filename validation message
 
+### Requirement: Collection item kind uses command
+
+The collection SHALL identify command items with the item kind `command`. Creating or updating an item of kind `command` SHALL store its executable text in the `command` field, and the API SHALL return `url`, `content`, and `filename` as `null` for that kind. Requests that use the former `spell` kind SHALL be rejected with a validation error, and existing items stored with the former `spell` kind SHALL be returned as kind `command` after the database migration.
+
+#### Scenario: Create a command item
+
+- **WHEN** a user submits a new item with kind `command`, a title, and command text
+- **THEN** the item is stored with kind `command`
+- **AND** the response contains the command text exactly as submitted
+- **AND** the response returns `url`, `content`, and `filename` as `null`
+
+#### Scenario: Reject the former spell kind
+
+- **WHEN** a client submits a new item with kind `spell`
+- **THEN** the request is rejected with a validation error
+- **AND** no item is stored
+
+#### Scenario: Stored spell items become command items
+
+- **WHEN** the database is upgraded and contains an item whose stored kind was `spell`
+- **THEN** the item is returned with kind `command`
+- **AND** its command text is unchanged
+
+#### Scenario: Filter the collection by command
+
+- **WHEN** a user selects the `Command` type filter
+- **THEN** the collection shows only items of kind `command`
+- **AND** web-link, markdown, and file items are hidden
+
+#### Scenario: Command form chooses the command kind
+
+- **WHEN** a user opens the Add item form and selects the `Command` item type
+- **THEN** the form submits the item with kind `command`
+- **AND** the Command field supplies the stored command text

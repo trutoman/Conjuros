@@ -1,7 +1,7 @@
 import type { IconAssetKey } from '@conjuros/contracts';
 
 export const ICON_ASSETS: Record<IconAssetKey, { path: string; viewBox: string }> = {
-  spell: {
+  command: {
     path: 'M15 4V2 M15 16v-2 M8 9h2 M20 9h2 M17.8 11.8 L19 13 M17.8 6.2 L19 5 M3 21l9-9 M12.2 6.2 L11 5',
     viewBox: '0 0 24 24',
   },

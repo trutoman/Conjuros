@@ -43,8 +43,8 @@ describe('messageForInputError', () => {
     expect(message).toBe(MESSAGES.contentRequired);
   });
 
-  it('reports a whitespace-only command as "Command is required for a spell"', () => {
-    const message = messageFor({ kind: 'spell', title: 'Spell', command: '   ' });
+  it('reports a whitespace-only command as "Command is required"', () => {
+    const message = messageFor({ kind: 'command', title: 'Command', command: '   ' });
     expect(message).toBe(MESSAGES.commandRequired);
   });
 
@@ -131,7 +131,7 @@ describe('messageForInputError', () => {
   });
 
   it('falls back to the generic message for unexpected failures', () => {
-    const message = messageFor({ kind: 'spell', title: 'Long', command: 'ok', tags: 'not-an-array' });
+    const message = messageFor({ kind: 'command', title: 'Long', command: 'ok', tags: 'not-an-array' });
     expect(message).toBe(MESSAGES.generic);
   });
 
@@ -140,7 +140,7 @@ describe('messageForInputError', () => {
       { kind: 'markdown', title: '', content: 'Body' },
       { kind: 'markdown', title: 'Note', content: '   ' },
       { kind: 'markdown', title: 'Note', content: 'Body', filename: 'bad-name' },
-      { kind: 'spell', title: 'Spell', command: '   ' },
+      { kind: 'command', title: 'Command', command: '   ' },
       { kind: 'web-link', title: 'Link', url: 'ftp://example.com' },
     ];
     for (const payload of cases) {

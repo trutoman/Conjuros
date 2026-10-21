@@ -171,7 +171,7 @@ describe('tag endpoints', () => {
       .post('/api/items')
       .set('Cookie', otherCookie)
       .send({
-        kind: 'spell',
+        kind: 'command',
         title: 'Invalid tag association',
         description: '',
         tags: ['private.tag'],
@@ -192,8 +192,8 @@ describe('tag endpoints', () => {
       .post('/api/items')
       .set('Cookie', cookie)
       .send({
-        kind: 'spell',
-        title: 'Tagged spell',
+        kind: 'command',
+        title: 'Tagged command',
         description: '',
         tags: ['old.tag', 'keep.tag'],
         relatedItemIds: [],
@@ -233,8 +233,8 @@ describe('tag endpoints', () => {
       .post('/api/items')
       .set('Cookie', cookie)
       .send({
-        kind: 'spell',
-        title: 'Tagged spell',
+        kind: 'command',
+        title: 'Tagged command',
         description: '',
         tags: ['old.tag'],
         relatedItemIds: [],
@@ -287,8 +287,8 @@ describe('tag endpoints', () => {
       .post('/api/items')
       .set('Cookie', cookie)
       .send({
-        kind: 'spell',
-        title: 'Tagged spell',
+        kind: 'command',
+        title: 'Tagged command',
         description: '',
         tags: ['status.tag', 'work'],
         relatedItemIds: [],

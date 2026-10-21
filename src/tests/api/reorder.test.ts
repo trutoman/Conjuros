@@ -10,7 +10,7 @@ describe('PATCH /api/items/:id/reorder', () => {
       .post('/api/items')
       .set('Cookie', cookie)
       .send({
-        kind: 'spell',
+        kind: 'command',
         title: 'First',
         description: '',
         tags: [],
@@ -21,7 +21,7 @@ describe('PATCH /api/items/:id/reorder', () => {
       .post('/api/items')
       .set('Cookie', cookie)
       .send({
-        kind: 'spell',
+        kind: 'command',
         title: 'Second',
         description: '',
         tags: [],
@@ -51,7 +51,7 @@ describe('PATCH /api/items/:id/reorder', () => {
       .post('/api/items')
       .set('Cookie', ownerCookie)
       .send({
-        kind: 'spell',
+        kind: 'command',
         title: 'Owner item',
         description: '',
         tags: [],

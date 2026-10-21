@@ -123,8 +123,8 @@ describe('legacy iconAssets shape migration', () => {
       },
       fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
-      iconAssets: ['spell', 'copy'] as unknown as StoredTheme['iconAssets'],
-      kindColors: { spell: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+      iconAssets: ['command', 'copy'] as unknown as StoredTheme['iconAssets'],
+      kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
       isDefault: true,
       createdAt: now,
@@ -143,7 +143,7 @@ describe('legacy iconAssets shape migration', () => {
     const { iconAssets } = context.theme;
     expect(Array.isArray(iconAssets)).toBe(false);
     expect(typeof iconAssets).toBe('object');
-    expect(iconAssets.spell).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
+    expect(iconAssets.command).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
     expect(iconAssets.copy).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
   });
 
@@ -154,7 +154,7 @@ describe('legacy iconAssets shape migration', () => {
     const { items } = await service.list(query);
     const light = items.find((theme) => theme.name === 'light')!;
     expect(light.iconAssets).toMatchObject({
-      spell: { path: expect.any(String), viewBox: expect.any(String) },
+      command: { path: expect.any(String), viewBox: expect.any(String) },
       copy: { path: expect.any(String), viewBox: expect.any(String) },
     });
   });
@@ -165,11 +165,11 @@ describe('legacy iconAssets shape migration', () => {
 
     const { items } = await service.list(query);
     const light = items.find((theme) => theme.name === 'light')!;
-    const spell = light.iconAssets.spell;
-    expect(spell).toBeDefined();
-    const spellPath = spell?.path ?? '';
-    expect(spellPath).toBeTruthy();
-    expect(spellPath).toMatch(/^[Mm]/);
+    const command = light.iconAssets.command;
+    expect(command).toBeDefined();
+    const commandPath = command?.path ?? '';
+    expect(commandPath).toBeTruthy();
+    expect(commandPath).toMatch(/^[Mm]/);
   });
 });
 
@@ -201,8 +201,8 @@ describe('iconAssets backfill', () => {
       },
       fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
-      iconAssets: ['spell', 'copy'] as unknown as StoredTheme['iconAssets'],
-      kindColors: { spell: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+      iconAssets: ['command', 'copy'] as unknown as StoredTheme['iconAssets'],
+      kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
       isDefault: true,
       createdAt: now,
@@ -240,10 +240,10 @@ describe('iconAssets backfill', () => {
       fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
       iconAssets: {
-        spell: { path: 'CUSTOM_SPELL_PATH', viewBox: '0 0 24 24' },
+        command: { path: 'CUSTOM_COMMAND_PATH', viewBox: '0 0 24 24' },
         copy: { path: 'CUSTOM_COPY_PATH', viewBox: '0 0 24 24' },
       } as unknown as StoredTheme['iconAssets'],
-      kindColors: { spell: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+      kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
       isDefault: true,
       createdAt: now,
@@ -262,7 +262,7 @@ describe('iconAssets backfill', () => {
     const stored = await themes.findById('theme-light-legacy-array');
     expect(stored).not.toBeNull();
     const iconAssets = stored!.iconAssets as Record<string, { path: string; viewBox: string }>;
-    const expectedKeys = ['spell', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download', 'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'clear', 'search', 'sun', 'moon', 'add'];
+    const expectedKeys = ['command', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download', 'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'clear', 'search', 'sun', 'moon', 'add'];
     for (const key of expectedKeys) {
       expect(iconAssets[key]).toBeDefined();
       expect(iconAssets[key].path).toBe(ICON_ASSETS[key as keyof typeof ICON_ASSETS].path);
@@ -279,7 +279,7 @@ describe('iconAssets backfill', () => {
 
     const stored = await themes.findById('theme-light-partial');
     const iconAssets = stored!.iconAssets as Record<string, { path: string; viewBox: string }>;
-    expect(iconAssets.spell.path).toBe('CUSTOM_SPELL_PATH');
+    expect(iconAssets.command.path).toBe('CUSTOM_COMMAND_PATH');
     expect(iconAssets.copy.path).toBe('CUSTOM_COPY_PATH');
     expect(iconAssets.close).toBeDefined();
     expect(iconAssets.clear).toMatchObject({

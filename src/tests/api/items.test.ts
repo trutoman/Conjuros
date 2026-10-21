@@ -15,7 +15,7 @@ describe('GET /api/items', () => {
       .post('/api/items')
       .set('Cookie', ownerCookie)
       .send({
-        kind: 'spell',
+        kind: 'command',
         title: 'Git status',
         description: 'Check state',
         tags: ['git'],
@@ -57,7 +57,7 @@ describe('GET /api/items', () => {
       .post('/api/items')
       .set('Cookie', cookie)
       .send({
-        kind: 'spell',
+        kind: 'command',
         title: 'Both tags',
         description: '',
         tags: ['git', 'docs'],
@@ -69,7 +69,7 @@ describe('GET /api/items', () => {
       .post('/api/items')
       .set('Cookie', cookie)
       .send({
-        kind: 'spell',
+        kind: 'command',
         title: 'Git only',
         description: '',
         tags: ['git'],
@@ -102,7 +102,7 @@ describe('GET /api/items', () => {
       .post('/api/items')
       .set('Cookie', ownerCookie)
       .send({
-        kind: 'spell',
+        kind: 'command',
         title: 'Owner only',
         description: '',
         tags: [],
@@ -259,7 +259,7 @@ describe('markdown collection items', () => {
       .post('/api/items')
       .set('Cookie', cookie)
       .send({
-        kind: 'spell',
+        kind: 'command',
         title: 'Status',
         tags: [],
         relatedItemIds: [],

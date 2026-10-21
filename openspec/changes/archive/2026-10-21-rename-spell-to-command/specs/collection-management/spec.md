@@ -1,0 +1,316 @@
+## MODIFIED Requirements
+
+### Requirement: Item form tag selector sits below the command field
+
+In the item form, the tag selector SHALL render after the kind-specific field and before the action buttons. The visible field order SHALL be: item type selector, Title, then the kind-specific fields, tag selector, action buttons. For a `command` item the kind-specific fields are Description then Command; for a `web-link` item they are Description then URL; for a `markdown` item they are an optional Filename input then the Content panes, and the form SHALL NOT render a Description field.
+
+#### Scenario: Add form shows kind-specific field above tags
+
+- **WHEN** a user opens the Add item form
+- **THEN** the kind-specific field renders above the tag selector
+- **AND** the tag selector renders directly above the action buttons
+
+#### Scenario: Edit form shows kind-specific field above tags
+
+- **WHEN** a user opens the Edit item form
+- **THEN** the kind-specific field renders above the tag selector
+- **AND** the tag selector renders directly above the action buttons
+
+#### Scenario: Markdown form omits the Description field
+
+- **WHEN** a user opens the Add or Edit item form for a `markdown` item
+- **THEN** no Description field is rendered
+- **AND** the Filename input renders below Title and the Content panes render below it
+
+#### Scenario: Markdown form shows the Filename field before Content
+
+- **WHEN** a user opens the Add item form for a `markdown` item
+- **THEN** a Filename input renders below Title
+- **AND** the Content panes render below the Filename input
+
+#### Scenario: Filename input is editable and bound to the item value
+
+- **WHEN** a user opens the Edit item form for a `markdown` item that has a `filename`
+- **THEN** the Filename input is pre-filled with that `filename`
+- **AND** the user can edit and save it
+
+### Requirement: Markdown items store extensive content
+
+Users SHALL be able to create and edit items of kind `markdown`. A `markdown` item SHALL store its body in a `content` field holding the raw Markdown source as a single string with no enforced upper length limit. A `markdown` item MAY carry a `description`, but it is optional: when none is provided, the API SHALL return `description` as `null`. When an item is `markdown`, the API SHALL return `command` and `url` as `null`; when an item is `command` or `web-link`, `content` SHALL be returned as `null`.
+
+#### Scenario: Create a markdown item with content
+
+- **WHEN** a user submits a new item with kind `markdown`, a title, and a `content` value containing extensive Markdown text
+- **THEN** the item is stored with kind `markdown`
+- **AND** the response includes the full `content` text exactly as submitted
+- **AND** the item has `command` and `url` as `null`
+
+#### Scenario: Create a markdown item without a description
+
+- **WHEN** a user submits a new item with kind `markdown`, a title, and a `content` value but no `description`
+- **THEN** the item is stored with kind `markdown`
+- **AND** the response returns `description` as `null`
+
+#### Scenario: Existing items without a content field remain readable
+
+- **WHEN** an item was stored before the `content` field existed (no `content` in the document)
+- **THEN** the item loads without validation errors
+- **AND** the item is returned with `content` as `null`
+
+#### Scenario: Edit a markdown item updates its content
+
+- **WHEN** a user edits a `markdown` item and changes its `content`
+- **THEN** the item's stored `content` is replaced by the new value
+- **AND** the item remains of kind `markdown`
+
+#### Scenario: Reject switching kind to a mismatched field
+
+- **WHEN** a user updates an item to kind `markdown` while also sending `command` or `url`
+- **THEN** the update is rejected with a validation error
+- **AND** the item is not changed
+
+#### Scenario: Long markdown content is preserved
+
+- **WHEN** a user creates or edits a `markdown` item with content much longer than the command text limit
+- **THEN** the full content is stored and returned without truncation
+
+### Requirement: Type filter includes markdown items
+
+The collection "Type" filter SHALL offer a `Markdown` option alongside `Commands` and `Web links`. Selecting it SHALL show only items of kind `markdown`.
+
+#### Scenario: Filter the collection by markdown
+
+- **WHEN** a user selects the `Markdown` type filter
+- **THEN** the collection shows only items of kind `markdown`
+- **AND** command and web-link items are hidden
+
+#### Scenario: Clear the type filter shows all types
+
+- **WHEN** a user clears the `Markdown` type filter
+- **THEN** items of all kinds are shown again
+
+### Requirement: Item form shows friendly field validation messages
+
+When a user saves an item from the item form and validation fails, the form SHALL display a friendly, field-specific error message instead of the raw validation library message. For a `markdown` item, an empty or whitespace-only title SHALL report "Title is required", an empty or whitespace-only content SHALL report "Content is required for a markdown note", a missing `filename` SHALL report "Filename is required for a markdown note", and an invalid `filename` SHALL report "Filename must be a name of at most 64 characters ending in .md, with no path separators". For a `command` item, an empty or whitespace-only command SHALL report "Command is required". For a `web-link` item, a URL that is not an absolute `http` or `https` URL SHALL report "URL must use the http or https protocol". Any other validation failure SHALL display a generic message rather than the raw validation library text.
+
+#### Scenario: Markdown form reports an empty title
+
+- **WHEN** a user saves a `markdown` item with an empty title and valid content
+- **THEN** the form shows the message "Title is required"
+- **AND** the item is not submitted
+
+#### Scenario: Markdown form reports a whitespace-only title
+
+- **WHEN** a user saves a `markdown` item with a title containing only spaces and valid content
+- **THEN** the form shows the message "Title is required"
+- **AND** the item is not submitted
+
+#### Scenario: Markdown form reports whitespace-only content
+
+- **WHEN** a user saves a `markdown` item with a valid title and content containing only spaces
+- **THEN** the form shows the message "Content is required for a markdown note"
+- **AND** the item is not submitted
+
+#### Scenario: Markdown form reports empty content
+
+- **WHEN** a user saves a `markdown` item with a valid title and empty content
+- **THEN** the form shows the message "Content is required for a markdown note"
+- **AND** the item is not submitted
+
+#### Scenario: Markdown form reports a missing filename
+
+- **WHEN** a user saves a `markdown` item with a valid title and content but a blank `filename`
+- **THEN** the form shows the message "Filename is required for a markdown note"
+- **AND** the item is not submitted
+
+#### Scenario: Markdown form reports an invalid filename
+
+- **WHEN** a user saves a `markdown` item whose `filename` exceeds 64 characters, contains a slash (`/`), or does not end in `.md`
+- **THEN** the form shows the message "Filename must be a name of at most 64 characters ending in .md, with no path separators"
+- **AND** the item is not submitted
+
+#### Scenario: Command form reports a whitespace-only command
+
+- **WHEN** a user saves a `command` item with a command containing only spaces
+- **THEN** the form shows the message "Command is required"
+- **AND** the item is not submitted
+
+#### Scenario: Web-link form reports an invalid URL
+
+- **WHEN** a user saves a `web-link` item with a URL that does not use the `http` or `https` protocol
+- **THEN** the form shows the message "URL must use the http or https protocol"
+- **AND** the item is not submitted
+
+#### Scenario: Raw validation message is never shown
+
+- **WHEN** a user saves an item and validation fails for any field
+- **THEN** the form never displays the raw validation library message (for example, "String must contain at least 1 character(s)")
+- **AND** the error is always a friendly field-specific or generic message
+
+### Requirement: Markdown items require a filename on creation
+
+A new `markdown` item SHALL include a `filename` field holding a plain file name for the note. `filename` SHALL be a trimmed, non-empty string of at most 64 characters, SHALL contain no path separators (`/` or `\`), and SHALL end with the `.md` extension (case-insensitive). Submitting a `markdown` item without a `filename` SHALL be rejected. A `filename` that violates the rules SHALL also be rejected. Once created, a `markdown` item's `filename` MAY be updated and MAY be cleared, in which case the item remains readable and its `filename` is returned as `null`; items whose documents predate the requirement are likewise returned with a `null` `filename`. Items of kind `command` or `web-link` SHALL NOT carry a `filename`; it SHALL be returned as `null` for them, and submitting a `filename` on such an item SHALL be rejected.
+
+#### Scenario: Create a markdown item with a filename
+
+- **WHEN** a user submits a new item with kind `markdown`, a title, content, and the filename `"notes.md"`
+- **THEN** the new markdown item is stored with its `filename` set to `"notes.md"`
+- **AND** the stored item's `url` is `null`
+
+#### Scenario: Create a markdown item without a filename
+
+- **WHEN** a user submits a new item with kind `markdown`, a title, and content, but no `filename`
+- **THEN** the item is rejected with a validation error
+- **AND** no markdown item is stored
+
+#### Scenario: Existing items without a filename field remain readable
+
+- **WHEN** a stored markdown item's document has no `filename` field
+- **THEN** the item is returned with `filename` set to `null`
+- **AND** the item's `content` is readable in the viewer
+
+#### Scenario: Edit a markdown item updates its filename
+
+- **WHEN** a user edits a markdown item and changes its existing `filename` from `"notes.md"` to `"ideas.md"`
+- **THEN** the item's `filename` is updated to `"ideas.md"`
+
+#### Scenario: Empty filename clears the field
+
+- **WHEN** a user edits a markdown item and submits an empty `filename` (for example, `""`)
+- **THEN** the item's `filename` is `null`
+- **AND** the item remains readable with no `filename` set
+
+#### Scenario: Reject an invalid filename
+
+- **WHEN** a user submits a markdown item whose `filename` exceeds 64 characters, is empty or whitespace-only, contains a slash (`/`), or does not end in `.md`
+- **THEN** the submission is rejected with a validation error
+
+#### Scenario: Reject a filename on a non-markdown item
+
+- **WHEN** a user submits a `command` or `web-link` item carrying a `filename` field
+- **THEN** the submission is rejected with a validation error
+- **AND** no item is stored
+
+### Requirement: Add item form offers a file drop zone for file items
+
+When the Add item form has kind `file`, it SHALL render a file drop zone beside the tag selector, using the space to the right of the tag pills. The drop zone SHALL accept a single file dragged from the operating system and SHALL also be operable by pointer and keyboard to open a native file picker. It SHALL NOT render for any other item kind, and it SHALL NOT render in the Edit item form.
+
+On receiving a file, the drop zone SHALL set the form's `filename` field to the file's full name including its extension and SHALL set the form's `content` field to the file's text decoded as UTF-8. Both fields SHALL remain editable after loading, and a later drop SHALL replace the previously loaded name and content.
+
+While a file is dragged over the drop zone, the drop zone SHALL show a visible drag-over state. After a successful load, it SHALL expose an accessible status message naming the loaded file. If the file cannot be read, or if more than one file is dropped, it SHALL show a friendly error message and SHALL leave the current filename and content unchanged. File name validation SHALL continue to use the existing `file` item rules when the form is saved.
+
+#### Scenario: Drop zone appears for a new file item
+
+- **WHEN** a user opens the Add item form and selects the `File` item type
+- **THEN** a file drop zone renders beside the tag selector
+- **AND** the drop zone is visible without opening any additional view
+
+#### Scenario: Drop zone is hidden for other kinds
+
+- **WHEN** a user opens the Add item form and selects `Command`, `Web link`, or `Markdown`
+- **THEN** no file drop zone is rendered
+
+#### Scenario: Drop zone is hidden in the edit form
+
+- **WHEN** a user opens the Edit item form for a `file` item
+- **THEN** no file drop zone is rendered
+- **AND** the Filename and Content fields show the stored values
+
+#### Scenario: Dropping a text file fills the fields
+
+- **WHEN** a user drags a file named `deploy.log` containing `Started at 09:00\nFinished ok` over the drop zone and drops it
+- **THEN** the Filename field contains `deploy.log`
+- **AND** the Content field contains `Started at 09:00\nFinished ok`
+- **AND** the text is preserved exactly, including line breaks
+
+#### Scenario: The full file name with its extension is used
+
+- **WHEN** a user drops a file named `Release.Notes.TXT`
+- **THEN** the Filename field contains `Release.Notes.TXT`
+- **AND** the name is neither shortened nor stripped of its extension
+
+#### Scenario: A loaded file can be replaced by another drop
+
+- **WHEN** a file has already populated the Filename and Content fields
+- **AND** the user drops a second file
+- **THEN** the Filename field contains the second file's name
+- **AND** the Content field contains the second file's text
+
+#### Scenario: Choosing a file through the picker fills the fields
+
+- **WHEN** a user activates the drop zone and chooses a file in the native picker
+- **THEN** the Filename field contains the chosen file's full name
+- **AND** the Content field contains the chosen file's text
+
+#### Scenario: Drop zone is keyboard operable
+
+- **WHEN** a keyboard user focuses the drop zone and activates it
+- **THEN** the native file picker opens
+- **AND** the drop zone exposes an accessible name describing that it loads a file
+
+#### Scenario: Drag-over state is visible
+
+- **WHEN** a user drags a file over the drop zone
+- **THEN** the drop zone shows a visible drag-over state
+- **AND** the state clears when the file is dropped or the drag leaves the drop zone
+
+#### Scenario: Loaded file is announced
+
+- **WHEN** a file is successfully loaded into the form
+- **THEN** the drop zone exposes a status message containing the file's name
+- **AND** the status message is available to assistive technology
+
+#### Scenario: Multiple files are rejected
+
+- **WHEN** a user drops more than one file on the drop zone
+- **THEN** the drop zone shows a friendly message explaining that only one file can be loaded
+- **AND** the Filename and Content fields keep their previous values
+
+#### Scenario: Unreadable file shows an error
+
+- **WHEN** a dropped or chosen file cannot be read as text
+- **THEN** the drop zone shows a friendly error message
+- **AND** the Filename and Content fields keep their previous values
+
+#### Scenario: Dropped file name still follows file item rules
+
+- **WHEN** a dropped file name exceeds 128 characters or is otherwise not a valid `file` item filename
+- **THEN** the name is placed in the Filename field
+- **AND** saving the item reports the existing friendly file filename validation message
+
+## ADDED Requirements
+
+### Requirement: Collection item kind uses command
+
+The collection SHALL identify command items with the item kind `command`. Creating or updating an item of kind `command` SHALL store its executable text in the `command` field, and the API SHALL return `url`, `content`, and `filename` as `null` for that kind. Requests that use the former `spell` kind SHALL be rejected with a validation error, and existing items stored with the former `spell` kind SHALL be returned as kind `command` after the database migration.
+
+#### Scenario: Create a command item
+
+- **WHEN** a user submits a new item with kind `command`, a title, and command text
+- **THEN** the item is stored with kind `command`
+- **AND** the response contains the command text exactly as submitted
+- **AND** the response returns `url`, `content`, and `filename` as `null`
+
+#### Scenario: Reject the former spell kind
+
+- **WHEN** a client submits a new item with kind `spell`
+- **THEN** the request is rejected with a validation error
+- **AND** no item is stored
+
+#### Scenario: Stored spell items become command items
+
+- **WHEN** the database is upgraded and contains an item whose stored kind was `spell`
+- **THEN** the item is returned with kind `command`
+- **AND** its command text is unchanged
+
+#### Scenario: Filter the collection by command
+
+- **WHEN** a user selects the `Command` type filter
+- **THEN** the collection shows only items of kind `command`
+- **AND** web-link, markdown, and file items are hidden
+
+#### Scenario: Command form chooses the command kind
+
+- **WHEN** a user opens the Add item form and selects the `Command` item type
+- **THEN** the form submits the item with kind `command`
+- **AND** the Command field supplies the stored command text

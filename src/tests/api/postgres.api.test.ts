@@ -101,8 +101,8 @@ describe('API over PostgreSQL repositories', () => {
     );
     expectNoPersistenceFields(categories.body);
 
-    const spell = await postItem(app, cookie, {
-      kind: 'spell',
+    const command = await postItem(app, cookie, {
+      kind: 'command',
       title: 'Deploy',
       command: 'npm run deploy',
       tags: ['backend'],
@@ -119,7 +119,7 @@ describe('API over PostgreSQL repositories', () => {
       filename: 'notes.md',
     }).expect(201);
 
-    expect(spell.body).toMatchObject({
+    expect(command.body).toMatchObject({
       description: null,
       url: null,
       content: null,
@@ -128,7 +128,7 @@ describe('API over PostgreSQL repositories', () => {
     });
     expect(link.body).toMatchObject({ command: null, content: null, filename: null, order: 2 });
     expect(note.body).toMatchObject({ command: null, url: null, filename: 'notes.md', order: 3 });
-    for (const created of [spell, link, note]) {
+    for (const created of [command, link, note]) {
       expect(created.body.createdAt).toMatch(isoTimestamp);
       expect(created.body.updatedAt).toMatch(isoTimestamp);
       expectNoPersistenceFields(created.body);
@@ -187,7 +187,7 @@ describe('API over PostgreSQL repositories', () => {
       .send({ tagName: 'services' })
       .expect(200);
     const renamed = await request(app)
-      .get(`/api/items/${spell.body.id}`)
+      .get(`/api/items/${command.body.id}`)
       .set('Cookie', cookie)
       .expect(200);
     expect(renamed.body.tags).toEqual(['services']);
@@ -198,7 +198,7 @@ describe('API over PostgreSQL repositories', () => {
     // Deleting a tag removes it from the items that carry it.
     await request(app).delete(`/api/tags/${tag.body.id}`).set('Cookie', cookie).expect(204);
     const untagged = await request(app)
-      .get(`/api/items/${spell.body.id}`)
+      .get(`/api/items/${command.body.id}`)
       .set('Cookie', cookie)
       .expect(200);
     expect(untagged.body.tags).toEqual([]);
@@ -218,7 +218,7 @@ describe('API over PostgreSQL repositories', () => {
     const ownerCookie = await registerUser(request, app, 'owner@example.com');
     const otherCookie = await registerUser(request, app, 'other@example.com');
     const item = await postItem(app, ownerCookie, {
-      kind: 'spell',
+      kind: 'command',
       title: 'Private',
       command: 'secret',
     }).expect(201);

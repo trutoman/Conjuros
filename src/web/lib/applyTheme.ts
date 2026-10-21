@@ -19,7 +19,7 @@ export function applyTheme(root: HTMLElement, theme: Theme | null): void {
     style.removeProperty('--primary');
     style.removeProperty('--primary-strong');
     style.removeProperty('--accent-soft');
-    style.removeProperty('--spell');
+    style.removeProperty('--command');
     style.removeProperty('--link');
     style.removeProperty('--markdown');
     style.removeProperty('--file');
@@ -52,7 +52,7 @@ export function applyTheme(root: HTMLElement, theme: Theme | null): void {
   style.setProperty('--primary', colors.primary);
   style.setProperty('--primary-strong', colors.primaryStrong);
   style.setProperty('--accent-soft', colors.accentSoft);
-  style.setProperty('--spell', kindColors.spell);
+  style.setProperty('--command', kindColors.command);
   style.setProperty('--link', kindColors.webLink);
   style.setProperty('--markdown', kindColors.markdown);
   style.setProperty('--file', kindColors.file);

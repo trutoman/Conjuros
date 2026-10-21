@@ -35,11 +35,11 @@ describe('ItemForm', () => {
   beforeEach(() => {
     localStorage.clear();
   });
-  it('shows inline validation when a spell has no command', () => {
+  it('shows inline validation when a command has no command', () => {
     render(<ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My spell' } });
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My command' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
-    expect(screen.getByText('Command is required for a spell')).toBeInTheDocument();
+    expect(screen.getByText('Command is required')).toBeInTheDocument();
   });
 
   it('shows a single Tags label as the fieldset legend', () => {
@@ -76,7 +76,7 @@ describe('ItemForm', () => {
   it('renders the command field above the tag selector and above the buttons', () => {
     render(<ItemForm availableTags={availableTags} onSubmit={vi.fn()} onCancel={vi.fn()} />);
 
-    const commandField = screen.getByLabelText('Command');
+    const commandField = screen.getByRole('textbox', { name: 'Command' });
     const tagFieldset = document.querySelector('.item-form-tags');
     const actions = document.querySelector('.form-actions');
 
@@ -126,7 +126,7 @@ describe('ItemForm', () => {
     fireEvent.click(screen.getByLabelText('Markdown'));
     expect(screen.getByLabelText('Filename')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText('Spell'));
+    fireEvent.click(screen.getByRole('radio', { name: 'Command' }));
     expect(screen.queryByLabelText('Filename')).not.toBeInTheDocument();
   });
 
@@ -264,15 +264,17 @@ describe('ItemForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('shows inline validation for a whitespace-only spell command', () => {
+  it('shows inline validation for a whitespace-only command', () => {
     const onSubmit = vi.fn();
     render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
 
-    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My spell' } });
-    fireEvent.change(screen.getByLabelText('Command'), { target: { value: '   ' } });
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'My command' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Command' }), {
+      target: { value: '   ' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
 
-    expect(screen.getByText('Command is required for a spell')).toBeInTheDocument();
+    expect(screen.getByText('Command is required')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -696,7 +698,7 @@ describe('ItemForm', () => {
       expect(dropZone()).toBeNull();
       expect(dropZoneButton()).toBeNull();
 
-      fireEvent.click(screen.getByLabelText('Spell'));
+      fireEvent.click(screen.getByRole('radio', { name: 'Command' }));
       expect(dropZone()).toBeNull();
       expect(dropZoneButton()).toBeNull();
 

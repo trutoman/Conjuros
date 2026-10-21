@@ -62,14 +62,14 @@ export const themeFontSizesSchema = z.object({
 });
 
 export const themeKindColorsSchema = z.object({
-  spell: hexColorTokenSchema,
+  command: hexColorTokenSchema,
   webLink: hexColorTokenSchema,
   markdown: hexColorTokenSchema,
   file: hexColorTokenSchema,
 });
 
 export const iconAssetKeys = [
-  'spell',
+  'command',
   'web-link',
   'markdown',
   'file',
