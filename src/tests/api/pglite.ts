@@ -18,7 +18,7 @@ export async function createPgliteDatabase() {
 
 export async function resetDatabase(db: Database) {
   await db.execute(
-    sql`TRUNCATE TABLE users, collection_items, tags, tag_categories, themes, password_reset_tokens CASCADE`,
+    sql`TRUNCATE TABLE users, collection_items, attachments, tags, tag_categories, themes, password_reset_tokens CASCADE`,
   );
 }
 

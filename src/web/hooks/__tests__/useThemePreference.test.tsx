@@ -32,7 +32,13 @@ const lightTheme: Theme = {
   iconAssets: {
     command: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
   },
-  kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+  kindColors: {
+    command: '#7c3aed',
+    webLink: '#2563eb',
+    markdown: '#b45309',
+    file: '#0d9488',
+    attachment: '#be123c',
+  },
   tagColorPalette: ['#1A73E8'],
   isDefault: true,
   createdAt: '2026-01-01T00:00:00.000Z',

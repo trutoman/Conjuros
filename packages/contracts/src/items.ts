@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { normalizeTagName, tagNameSchema } from './tags';
 
-export const itemKinds = ['command', 'web-link', 'markdown', 'file'] as const;
+export const itemKinds = ['command', 'web-link', 'markdown', 'file', 'attachment'] as const;
 
 export const itemKindSchema = z.enum(itemKinds);
 export const itemIdSchema = z.string().min(1).max(128);
@@ -88,11 +88,24 @@ export const fileUpdateCandidateSchema = fileInputSchema
   .omit({ filename: true })
   .extend({ filename: fileFilenameUpdateSchema });
 
+export const attachmentInputSchema = z
+  .object({
+    kind: z.literal('attachment'),
+    ...commonItemFields,
+    filename: fileFilenameSchema.optional(),
+  })
+  .strict();
+
+export const attachmentUpdateCandidateSchema = attachmentInputSchema
+  .omit({ filename: true })
+  .extend({ filename: fileFilenameUpdateSchema });
+
 export const collectionItemInputSchema = z.discriminatedUnion('kind', [
   commandInputSchema,
   webLinkInputSchema,
   markdownInputSchema,
   fileInputSchema,
+  attachmentInputSchema,
 ]);
 
 export const collectionItemUpdateSchema = z
@@ -106,6 +119,7 @@ export const collectionItemUpdateSchema = z
     url: webLinkInputSchema.shape.url.optional(),
     filename: anyFilenameUpdateSchema.optional(),
     content: markdownInputSchema.shape.content.optional(),
+    storagePath: z.never().optional(),
   })
   .superRefine((value, context) => {
     if (value.kind === 'command' && value.url !== undefined) {
@@ -138,6 +152,15 @@ export const collectionItemUpdateSchema = z
     if (value.kind === 'file' && value.url !== undefined) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'File updates cannot include a URL' });
     }
+    if (value.kind === 'attachment' && value.command !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Attachment updates cannot include a command' });
+    }
+    if (value.kind === 'attachment' && value.url !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Attachment updates cannot include a URL' });
+    }
+    if (value.kind === 'attachment' && value.content !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Attachment updates cannot include content' });
+    }
   });
 
 export const collectionItemSchema = z.object({
@@ -152,6 +175,7 @@ export const collectionItemSchema = z.object({
   url: z.string().url().nullable(),
   content: z.string().nullable(),
   filename: z.string().nullable(),
+  storagePath: z.string().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

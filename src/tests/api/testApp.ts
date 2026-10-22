@@ -1,11 +1,13 @@
 import { createApp } from '../../api/app';
 import type { EmailMessage, EmailSender } from '../../api/email/sender';
+import { InMemoryAttachmentsRepository } from '../../api/repositories/attachments.repository';
 import { InMemoryItemsRepository } from '../../api/repositories/items.repository';
 import { InMemoryPasswordResetTokensRepository } from '../../api/repositories/password-reset-tokens.repository';
 import { InMemoryTagCategoriesRepository } from '../../api/repositories/tag-categories.repository';
 import { InMemoryTagsRepository } from '../../api/repositories/tags.repository';
 import { InMemoryThemesRepository } from '../../api/repositories/themes.repository';
 import { InMemoryUsersRepository } from '../../api/repositories/users.repository';
+import { InMemoryAttachmentStorage, type AttachmentStorage } from '../../api/storage/storage';
 
 export class RecordingEmailSender implements EmailSender {
   readonly messages: EmailMessage[] = [];
@@ -17,8 +19,11 @@ export class RecordingEmailSender implements EmailSender {
 
 export const testAppBaseUrl = 'http://localhost:5173';
 
-export function createTestApp() {
+export function createTestApp(options: { storage?: AttachmentStorage | null; maxBytes?: number } = {}) {
   const items = new InMemoryItemsRepository();
+  const attachments = new InMemoryAttachmentsRepository(items);
+  const storage =
+    options.storage === undefined ? new InMemoryAttachmentStorage() : options.storage;
   const tags = new InMemoryTagsRepository();
   const tagCategories = new InMemoryTagCategoriesRepository();
   const themes = new InMemoryThemesRepository();
@@ -28,6 +33,9 @@ export function createTestApp() {
   return {
     app: createApp({
       items,
+      attachments,
+      attachmentStorage: storage,
+      attachmentMaxBytes: options.maxBytes,
       tags,
       tagCategories,
       themes,
@@ -38,6 +46,8 @@ export function createTestApp() {
       appBaseUrl: testAppBaseUrl,
     }),
     items,
+    attachments,
+    storage,
     tags,
     tagCategories,
     themes,

@@ -2,7 +2,7 @@
 
 Lets the themes API continue to serve theme documents that were stored before the `iconAssets` shape changed from a `string[]` of keys to a keyed record of icon definitions, by normalizing the legacy shape on read.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Legacy `iconAssets` key arrays are normalized on read
 
@@ -66,3 +66,26 @@ Theme documents upgraded from the previous vocabulary SHALL use the `command` ke
 
 - **WHEN** a stored theme document contains both `command` and `spell` keys
 - **THEN** the value under `command` is preserved
+
+### Requirement: Existing themes gain attachment visual keys
+
+When the attachment item kind is introduced, every stored theme SHALL gain an `attachment` entry in both `kindColors` and `iconAssets`. A theme missing `kindColors.attachment` SHALL receive the bundled default attachment color. A theme missing `iconAssets.attachment` SHALL receive the bundled attachment artwork through the icon backfill. Existing attachment colors or artwork SHALL be preserved and SHALL NOT be overwritten.
+
+#### Scenario: A stored theme gains the attachment kind color
+
+- **WHEN** a stored theme document has no `kindColors.attachment`
+- **THEN** the migrated document contains `kindColors.attachment`
+- **AND** its value is the bundled default attachment color
+- **AND** the other kind colors are unchanged
+
+#### Scenario: A stored theme gains the attachment icon
+
+- **WHEN** a stored theme document has no `iconAssets.attachment`
+- **THEN** the icon backfill adds `iconAssets.attachment`
+- **AND** the entry contains the bundled attachment `path` and `viewBox`
+- **AND** the other icon entries are unchanged
+
+#### Scenario: Existing attachment visual values are preserved
+
+- **WHEN** a stored theme already has `kindColors.attachment` or a custom `iconAssets.attachment`
+- **THEN** the migration and backfill leave those values unchanged

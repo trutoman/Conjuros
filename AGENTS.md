@@ -36,7 +36,7 @@ npm run docker:check     # Optional: verify Docker CLI and daemon before docker 
 
 ## Product
 
-Conjuros lets authenticated users manage a private collection of items. An item is either a `command` item with command text, a `web-link` with a `url`, or a `markdown` note with `content`; all items have an owner, title, description, tags, order, and relationships. Markdown notes may optionally carry a `filename` (a plain `.md` file name, at most 64 characters, no path separators). Accounts are email/password based; the API also sends transactional email (a welcome message on registration and password reset links) through an optional SMTP sender.
+Conjuros lets authenticated users manage a private collection of items. An item is either a `command` item with command text, a `web-link` with a `url`, a `markdown` note or `file` with `content`, or an `attachment` with an optional `filename` whose file lives in a private Supabase Storage bucket with metadata in the `attachments` table; all items have an owner, title, description, tags, order, and relationships. Markdown notes may optionally carry a `filename` (a plain `.md` file name, at most 64 characters, no path separators). `storagePath` on an attachment points at the stored object and is written only by the attachments repository. Accounts are email/password based; the API also sends transactional email (a welcome message on registration and password reset links) through an optional SMTP sender.
 
 ## Architecture
 
@@ -44,6 +44,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - `src/api/` — Express API server (entry: `server.ts`)
 - `src/api/db/` — Drizzle schema, client, migration runner and SQLSTATE helper
 - `src/api/email/` — Outbound email seam (sender interface, SMTP/console senders, message builders)
+- `src/api/storage/` — Attachment storage seam (Supabase/in-memory implementations, error translation, file signature detection)
 - `drizzle/` — Generated, committed SQL migrations
 - `src/web/` — React frontend (entry: `main.tsx`, served by Vite from `src/web/`)
 - `packages/contracts/` — Shared Zod schemas and types via `@conjuros/contracts`
@@ -76,6 +77,12 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - `web-link` requires absolute `https:` or `http:` URL; open only after explicit user action
 - `markdown` requires `content`; render and store the exact text, never execute or transform it
 - `markdown` items may carry an optional `filename`: a plain file name only (no path separators) of at most 64 characters, always ending in `.md`; an empty or absent `filename` is stored and returned as `null`
+- `attachment` items require a title, may carry an optional `filename`, and keep `content`, `command`, and `url` as `null`; their file lives in Storage with metadata in `attachments`, and `storagePath` mirrors the object path written by the attachments repository
+- Attachment objects live at `{user_id}/{uuid}.{ext}`, where the extension comes from the validated MIME type, never from the client file name; the original name is kept only in PostgreSQL
+- Uploads are validated on the server for size, MIME type, and file signature, and a rejected upload creates neither an object nor a row
+- Storage is reached only by the API with a server-side service-role key; the browser never receives that key and never talks to Storage directly
+- Storage failures map to `AppError` codes (`413 FILE_TOO_LARGE`, `415 UNSUPPORTED_FILE_TYPE`, `503 STORAGE_NOT_CONFIGURED` / `STORAGE_UNAVAILABLE`, `404 NOT_FOUND`); raw Storage messages are logged, never returned
+- A failed upload or replacement must leave the item, its `attachments` row, and its previous object untouched; changing the kind of an item that still stores a file is a conflict
 - `relatedItemIds` may only refer to items owned by the same user
 - Validate enumerated tags against catalogs; normalize free-form tags
 - Accounts may have no local password (external-identity-only) and may carry at most one external provider identity; a passwordless account must fail password sign-in with the standard invalid-credentials error
@@ -102,6 +109,8 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - Every command item has an accessible action to copy its `command` text
 - Every `web-link` has actions to copy URL and open it
 - `markdown` cards render a `content` slug inline and offer a "View markdown" action that opens a read-only sanitized viewer of the full note; the viewer also shows the note's optional `filename`
+- `attachment` cards show the filename and a "View attachment" action; the viewer shows metadata and switches between "File stored" and "No file stored yet". When `storagePath` is set, both the card and the viewer offer "Download attachment", which asks the API for a short-lived signed URL
+- The add and edit forms both show the attachment drop zone; the file is staged in the browser, the item is saved first, and the upload follows, keeping the form open on the saved item when it fails
 - Ordering must work with pointer and keyboard; persist via API
 - Include loading, empty, no-results, and error states
 - Do not add components, libraries, or animations without a specific need
@@ -112,8 +121,9 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - Parallel operations: `Promise.all()` or `Promise.allSettled()`
 - Dependency injection: `createApp(dependencies)` in `app.ts`
 - Paginate all list endpoints (default max 50)
-- Status codes: 200, 201, 400, 401, 403, 404, 409 (semantic, not generic)
+- Status codes: 200, 201, 400, 401, 403, 404, 409 (semantic, not generic); uploads also use 413 and 415, and unavailable dependencies use 503
 - Error handling: raise `AppError`; never use empty `try/catch`
+- Third-party seams (email, Storage) translate their own failures into `AppError`, log the raw detail server-side, and never return it to the client
 
 ## Quality
 

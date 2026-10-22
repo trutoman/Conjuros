@@ -124,7 +124,7 @@ describe('legacy iconAssets shape migration', () => {
       fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
       iconAssets: ['command', 'copy'] as unknown as StoredTheme['iconAssets'],
-      kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+      kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488', attachment: '#be123c' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
       isDefault: true,
       createdAt: now,
@@ -202,7 +202,7 @@ describe('iconAssets backfill', () => {
       fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
       iconAssets: ['command', 'copy'] as unknown as StoredTheme['iconAssets'],
-      kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+      kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488', attachment: '#be123c' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
       isDefault: true,
       createdAt: now,
@@ -243,7 +243,7 @@ describe('iconAssets backfill', () => {
         command: { path: 'CUSTOM_COMMAND_PATH', viewBox: '0 0 24 24' },
         copy: { path: 'CUSTOM_COPY_PATH', viewBox: '0 0 24 24' },
       } as unknown as StoredTheme['iconAssets'],
-      kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+      kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488', attachment: '#be123c' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
       isDefault: true,
       createdAt: now,
@@ -262,7 +262,7 @@ describe('iconAssets backfill', () => {
     const stored = await themes.findById('theme-light-legacy-array');
     expect(stored).not.toBeNull();
     const iconAssets = stored!.iconAssets as Record<string, { path: string; viewBox: string }>;
-    const expectedKeys = ['command', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download', 'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'clear', 'search', 'sun', 'moon', 'add'];
+    const expectedKeys = ['command', 'web-link', 'markdown', 'file', 'attachment', 'copy', 'open', 'view', 'download', 'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'clear', 'search', 'sun', 'moon', 'add'];
     for (const key of expectedKeys) {
       expect(iconAssets[key]).toBeDefined();
       expect(iconAssets[key].path).toBe(ICON_ASSETS[key as keyof typeof ICON_ASSETS].path);
@@ -295,9 +295,9 @@ describe('iconAssets backfill', () => {
     expect(ICON_ASSETS.clear.viewBox).toBe('0 0 24 24');
     expect(ICON_ASSETS.clear.path.startsWith('m11.9 13.5')).toBe(true);
     expect(JSON.stringify(ICON_ASSETS.clear)).not.toContain('#');
-    // Uniform grid + shared `.icon` styling ⇒ same visual weight for every icon.
-    for (const entry of Object.values(ICON_ASSETS)) {
-      expect(entry.viewBox).toBe('0 0 24 24');
+    // The attachment glyph uses the supplied 960-grid artwork with a scaled stroke.
+    for (const [key, entry] of Object.entries(ICON_ASSETS)) {
+      expect(entry.viewBox).toBe(key === 'attachment' ? '0 -960 960 960' : '0 0 24 24');
     }
   });
 

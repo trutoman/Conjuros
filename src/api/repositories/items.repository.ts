@@ -57,6 +57,7 @@ function matchesQuery(item: StoredCollectionItem, query: CollectionQuery): boole
     item.command ?? '',
     item.url ?? '',
     item.content ?? '',
+    item.filename ?? '',
     ...item.tags,
   ]
     .join(' ')
@@ -122,7 +123,10 @@ export class InMemoryItemsRepository implements ItemsRepository {
       url: input.kind === 'web-link' ? input.url : null,
       content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
       filename:
-        input.kind === 'markdown' || input.kind === 'file' ? (input.filename ?? null) : null,
+        input.kind === 'markdown' || input.kind === 'file' || input.kind === 'attachment'
+          ? (input.filename ?? null)
+          : null,
+      storagePath: null,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -189,7 +193,7 @@ export class InMemoryItemsRepository implements ItemsRepository {
   }
 }
 
-function toStoredItem(row: typeof collectionItems.$inferSelect): StoredCollectionItem {
+export function toStoredItem(row: typeof collectionItems.$inferSelect): StoredCollectionItem {
   return {
     id: row.id,
     ownerId: row.ownerId,
@@ -203,6 +207,7 @@ function toStoredItem(row: typeof collectionItems.$inferSelect): StoredCollectio
     url: row.url,
     content: row.content,
     filename: row.filename,
+    storagePath: row.storagePath,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -231,6 +236,7 @@ function listCondition(ownerId: string, query: CollectionQuery) {
         ilike(collectionItems.command, pattern),
         ilike(collectionItems.url, pattern),
         ilike(collectionItems.content, pattern),
+        ilike(collectionItems.filename, pattern),
         sql`EXISTS (SELECT 1 FROM unnest(${collectionItems.tags}) AS candidate(tag) WHERE candidate.tag ILIKE ${pattern})`,
       ),
     );
@@ -313,7 +319,10 @@ export class PostgresItemsRepository implements ItemsRepository {
         url: input.kind === 'web-link' ? input.url : null,
         content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
         filename:
-          input.kind === 'markdown' || input.kind === 'file' ? (input.filename ?? null) : null,
+          input.kind === 'markdown' || input.kind === 'file' || input.kind === 'attachment'
+            ? (input.filename ?? null)
+            : null,
+        storagePath: null,
         createdAt: timestamp,
         updatedAt: timestamp,
       })
@@ -335,6 +344,7 @@ export class PostgresItemsRepository implements ItemsRepository {
         url: item.url,
         content: item.content,
         filename: item.filename,
+        storagePath: item.storagePath,
         createdAt: new Date(item.createdAt),
         updatedAt: new Date(item.updatedAt),
       })

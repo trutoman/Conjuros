@@ -8,6 +8,8 @@ Each user can sign in and access only their collection items. A command item sto
 
 The first goal is not to build many endpoints: it is to let someone find the right command or link and copy its exact text or open its URL quickly and confidently.
 
+Attachments represent a future file reference stored in Supabase Storage. The item type, metadata form, card, viewer, and database column exist now; upload, download, and the storage path population are intentionally deferred.
+
 ```text
 Browser
    |

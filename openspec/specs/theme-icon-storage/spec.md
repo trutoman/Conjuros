@@ -2,11 +2,11 @@
 
 Carries the artwork (`path` + `viewBox`) for every application icon inside each theme document, so the database owns the icon shapes per theme and the frontend renders each icon from the active theme's stored data.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Themes store the icon artwork in `iconAssets`
 
-`Theme.iconAssets` SHALL be a `Record<IconAssetKey, { path, viewBox }>` covering every `IconAssetKey` (twenty-one keys: `command`, `web-link`, `markdown`, `file`, `copy`, `open`, `view`, `download`, `menu`, `edit`, `delete`, `confirm`, `cancel`, `expand`, `collapse`, `close`, `clear`, `search`, `sun`, `moon`, `add`). Each entry SHALL carry a non-empty `path` (the SVG `d` attribute) and a non-empty `viewBox`. The contract SHALL reject a `string[]` `iconAssets` value (legacy shape from `theme-svg-sprite-icons`) on save; on read, the API normalizes the legacy array to a keyed record.
+`Theme.iconAssets` SHALL be a `Record<IconAssetKey, { path, viewBox }>` covering every `IconAssetKey` (twenty-two keys: `command`, `web-link`, `markdown`, `file`, `attachment`, `copy`, `open`, `view`, `download`, `menu`, `edit`, `delete`, `confirm`, `cancel`, `expand`, `collapse`, `close`, `clear`, `search`, `sun`, `moon`, `add`). Each entry SHALL carry a non-empty `path` (the SVG `d` attribute) and a non-empty `viewBox`. The contract SHALL reject a `string[]` `iconAssets` value (legacy shape from `theme-svg-sprite-icons`) on save; on read, the API normalizes the legacy array to a keyed record.
 
 #### Scenario: A theme documents every icon's `path` and `viewBox`
 
@@ -25,6 +25,12 @@ Carries the artwork (`path` + `viewBox`) for every application icon inside each 
 - **WHEN** a stored theme document lacks the `clear` key
 - **THEN** the API normalizes the document on read by adding `clear` from the bundled defaults
 - **AND** the `clear` entry carries a valid `path` and `viewBox`
+
+#### Scenario: A theme carries the attachment glyph
+
+- **WHEN** a stored theme document includes the `attachment` icon key
+- **THEN** `iconAssets.attachment` carries a non-empty `path` and `viewBox`
+- **AND** the attachment card renders that artwork
 
 ### Requirement: Icons render from the active theme's stored iconAssets
 
@@ -51,6 +57,12 @@ The `ThemeForm` SHALL allow admins to edit the `path` and `viewBox` text input f
 - **WHEN** an admin edits the `path` text input for `command` and submits the form
 - **THEN** `GET /api/themes/:id` returns the stored theme with `iconAssets.command.path` equal to the new value
 
+#### Scenario: An admin edits the attachment artwork
+
+- **WHEN** an admin edits the `path` text input for `attachment` and submits the form
+- **THEN** `GET /api/themes/:id` returns the stored theme with `iconAssets.attachment.path` equal to the new value
+- **AND** the attachment card renders the custom path
+
 ### Requirement: Clear icon uses the outline stroke style
 
 The `clear` icon artwork SHALL follow the application icon style: visible marks drawn with strokes, no filled silhouette, no hardcoded color, rendered at the same dimensions as the other icons. Its `path` SHALL be an outline stroke-style redrawing of the requested clear-filter artwork on a `0 0 24 24` viewBox, and the sidebar `clear` button SHALL render it via `<ThemeIcon name="clear" />` from the active theme's stored record.
@@ -65,10 +77,3 @@ The `clear` icon artwork SHALL follow the application icon style: visible marks 
 
 - **WHEN** the active theme changes
 - **THEN** the `clear` button icon immediately displays the new theme's `iconAssets.clear` path and viewBox
-
-## DELETED Requirements
-
-### Requirement: Icons render via SVG `<symbol>` + `<use>` sprite
-
-**Reason**: The user wants each theme to carry the artwork in the database. The sprite was an optimization that decoupled rendering from the network round-trip but left the database out of the picture; the requirement now is that the active theme's stored record drives every rendered icon.
-**Migration**: The SVG sprite is removed (`src/web/components/Sprite.tsx` is deleted, the `<Sprite />` mount in `App.tsx` is removed). `<ThemeIcon>` renders an inline `<svg><path d={stored.path} /></svg>` from the active theme's keyed record instead.

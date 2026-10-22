@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { CollectionItem } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
@@ -17,6 +17,7 @@ const collectionItems: CollectionItem[] = [
     url: null,
     content: null,
     filename: null,
+    storagePath: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
@@ -32,6 +33,7 @@ const collectionItems: CollectionItem[] = [
     url: null,
     content: null,
     filename: null,
+    storagePath: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
@@ -46,6 +48,8 @@ const collectionState = {
   update: vi.fn(),
   remove: vi.fn(),
   reorder: reorderMock,
+  uploadAttachment: vi.fn(),
+  removeAttachment: vi.fn(),
 };
 
 const tagsState = {
@@ -320,6 +324,16 @@ describe('CollectionPage', () => {
     expect(options).toContain('Files');
   });
 
+  it('exposes an attachment option in the type filter', () => {
+    render(<CollectionPage />);
+
+    const select = screen.getByLabelText('Type');
+    const options = Array.from(select.querySelectorAll('option')).map(
+      (option) => option.textContent,
+    );
+    expect(options).toContain('Attachments');
+  });
+
   it('renders markdown items inline with a View markdown action', () => {
     collectionState.items = [
       {
@@ -334,6 +348,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -366,6 +381,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -397,6 +413,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -430,6 +447,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -459,6 +477,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -489,6 +508,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -504,6 +524,7 @@ describe('CollectionPage', () => {
         url: null,
         content: null,
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -517,5 +538,62 @@ describe('CollectionPage', () => {
 
     expect(screen.getAllByText('Runbook').length).toBeGreaterThan(0);
     expect(screen.queryByText('Git status')).not.toBeInTheDocument();
+  });
+
+  describe('attachment files', () => {
+    const savedAttachment = {
+      ...collectionItems[0],
+      id: 'att-1',
+      kind: 'attachment' as const,
+      title: 'Contract',
+      command: null,
+      filename: 'contract.pdf',
+    };
+
+    function stageAttachment() {
+      fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'Attachment' }));
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Contract' } });
+      const file = new File(['%PDF-1.4'], 'contract.pdf', { type: 'application/pdf' });
+      fireEvent.drop(document.querySelector('.attachment-drop-zone') as Element, {
+        dataTransfer: { files: [file] },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+    }
+
+    it('saves the item first and then uploads the staged file', async () => {
+      collectionState.create.mockReset().mockResolvedValue(savedAttachment);
+      collectionState.uploadAttachment.mockReset().mockResolvedValue(savedAttachment);
+      render(<CollectionPage />);
+
+      stageAttachment();
+
+      await waitFor(() =>
+        expect(collectionState.uploadAttachment).toHaveBeenCalledWith({
+          id: 'att-1',
+          file: expect.any(File),
+        }),
+      );
+      expect(collectionState.create).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'attachment', title: 'Contract', filename: 'contract.pdf' }),
+      );
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: /item/i })).not.toBeInTheDocument(),
+      );
+    });
+
+    it('keeps the saved item open for a retry when the upload fails', async () => {
+      collectionState.create.mockReset().mockResolvedValue(savedAttachment);
+      collectionState.uploadAttachment.mockReset().mockRejectedValue(new Error('Boom'));
+      render(<CollectionPage />);
+
+      stageAttachment();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'The item was saved, but its file could not be updated: Boom',
+      );
+      expect(screen.getByRole('heading', { name: 'Edit item' })).toBeInTheDocument();
+      expect(collectionState.create).toHaveBeenCalledTimes(1);
+    });
   });
 });

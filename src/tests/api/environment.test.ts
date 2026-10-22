@@ -21,6 +21,10 @@ const defaultConfiguration = {
   mailFrom: null,
   appBaseUrl: 'http://localhost:5173',
   passwordResetTtlMinutes: 60,
+  supabaseUrl: null,
+  supabaseServiceRoleKey: null,
+  attachmentBucket: 'attachments',
+  attachmentMaxBytes: 52_428_800,
 };
 
 function invalidEnvironmentMessage(environment: Record<string, string>) {
@@ -180,5 +184,31 @@ describe('parseApiEnvironment', () => {
     });
 
     expect(message).toContain('DATABASE_URL');
+  });
+
+  it('reads the optional Storage configuration', () => {
+    expect(
+      parseApiEnvironment({
+        ...validEnvironment,
+        SUPABASE_URL: 'https://project.supabase.co',
+        SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+        ATTACHMENT_BUCKET: 'files',
+        ATTACHMENT_MAX_BYTES: '1048576',
+      }),
+    ).toMatchObject({
+      supabaseUrl: 'https://project.supabase.co',
+      supabaseServiceRoleKey: 'service-role-secret',
+      attachmentBucket: 'files',
+      attachmentMaxBytes: 1_048_576,
+    });
+  });
+
+  it('rejects a half-configured Storage pair without leaking values', () => {
+    const message = invalidEnvironmentMessage({
+      ...validEnvironment,
+      SUPABASE_URL: 'https://project.supabase.co',
+    });
+    expect(message).toContain('SUPABASE_SERVICE_ROLE_KEY');
+    expect(message).not.toContain('project.supabase.co');
   });
 });

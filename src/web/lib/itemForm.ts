@@ -70,5 +70,12 @@ export function messageForInputError(
     return result.success ? null : MESSAGES.generic;
   }
 
+  if (payload.kind === 'attachment') {
+    if (typeof payload.filename === 'string' && payload.filename.trim() !== '' && !isValidFileFilename(payload.filename)) {
+      return MESSAGES.fileFilenameInvalid;
+    }
+    return result.success ? null : MESSAGES.generic;
+  }
+
   return result.success ? null : MESSAGES.generic;
 }

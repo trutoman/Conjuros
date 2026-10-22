@@ -378,6 +378,121 @@ describe('file collection items', () => {
     await request(app).delete(`/api/items/${created.body.id}`).set('Cookie', cookie).expect(204);
   });
 
+  describe('attachment collection items', () => {
+    it('creates, updates, searches, and filters attachment metadata', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'owner@example.com');
+
+    const created = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'attachment',
+        title: 'Quarterly report',
+        description: 'Q3 results',
+        tags: [],
+        relatedItemIds: [],
+        filename: 'report.pdf',
+      })
+      .expect(201);
+    expect(created.body).toMatchObject({
+      kind: 'attachment',
+      description: 'Q3 results',
+      filename: 'report.pdf',
+      command: null,
+      url: null,
+      content: null,
+      storagePath: null,
+    });
+
+    const withoutFile = await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({ kind: 'attachment', title: 'No file yet', tags: [], relatedItemIds: [] })
+      .expect(201);
+    expect(withoutFile.body.filename).toBeNull();
+
+    await request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'attachment',
+        title: 'Bad',
+        tags: [],
+        relatedItemIds: [],
+        filename: 'bad.pdf',
+        storagePath: 'private/path.pdf',
+      })
+      .expect(400);
+
+    for (const textField of [
+      { command: 'echo nope' },
+      { url: 'https://example.com' },
+      { content: 'text' },
+    ]) {
+      await request(app)
+        .post('/api/items')
+        .set('Cookie', cookie)
+        .send({ kind: 'attachment', title: 'Bad', tags: [], relatedItemIds: [], ...textField })
+        .expect(400);
+    }
+
+    const renamed = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', cookie)
+      .send({ filename: 'final.pdf' })
+      .expect(200);
+    expect(renamed.body.filename).toBe('final.pdf');
+
+    const search = await request(app)
+      .get('/api/items?search=final')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(search.body.items.map((item: { id: string }) => item.id)).toContain(created.body.id);
+
+    const filter = await request(app)
+      .get('/api/items?kind=attachment')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(filter.body.items.every((item: { kind: string }) => item.kind === 'attachment')).toBe(true);
+    expect(filter.body.total).toBe(2);
+  });
+
+  it('blocks cross-user access to an attachment', async () => {
+    const { app } = createTestApp();
+    const ownerCookie = await registerUser(request, app, 'owner@example.com');
+    const otherCookie = await registerUser(request, app, 'other@example.com');
+
+    const created = await request(app)
+      .post('/api/items')
+      .set('Cookie', ownerCookie)
+      .send({
+        kind: 'attachment',
+        title: 'Private attachment',
+        tags: [],
+        relatedItemIds: [],
+        filename: 'private.pdf',
+      })
+      .expect(201);
+
+    const getResponse = await request(app)
+      .get(`/api/items/${created.body.id}`)
+      .set('Cookie', otherCookie);
+    expect([403, 404]).toContain(getResponse.status);
+
+    const patchResponse = await request(app)
+      .patch(`/api/items/${created.body.id}`)
+      .set('Cookie', otherCookie)
+      .send({ title: 'Hijacked' });
+    expect([403, 404]).toContain(patchResponse.status);
+
+    const deleteResponse = await request(app)
+      .delete(`/api/items/${created.body.id}`)
+      .set('Cookie', otherCookie);
+    expect([403, 404]).toContain(deleteResponse.status);
+  });
+  });
+
   it('deletes a file item and blocks cross-user access', async () => {
     const { app } = createTestApp();
     const ownerCookie = await registerUser(request, app, 'owner@example.com');

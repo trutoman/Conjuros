@@ -225,7 +225,7 @@ describe('theme endpoints', () => {
         fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
         fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
         iconAssets: ['command', 'copy'] as unknown as Parameters<typeof context.themes.create>[0] extends infer T ? T extends { iconAssets: infer R } ? R : never : never,
-        kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488' },
+        kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488', attachment: '#be123c' },
         tagColorPalette: ['#1A73E8', '#7C3AED'],
         isDefault: true,
         createdAt: now,
@@ -277,7 +277,7 @@ describe('theme endpoints', () => {
       expect(typeof iconAssets).toBe('object');
       expect(Array.isArray(iconAssets)).toBe(false);
       const expectedKeys = [
-        'command', 'web-link', 'markdown', 'file', 'copy', 'open', 'view', 'download',
+        'command', 'web-link', 'markdown', 'file', 'attachment', 'copy', 'open', 'view', 'download',
         'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close',
         'clear', 'search', 'sun', 'moon', 'add',
       ];

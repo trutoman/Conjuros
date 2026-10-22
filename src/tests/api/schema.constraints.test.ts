@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { describe, expect, it } from 'vitest';
 import { migrationsFolder } from '../../api/db/migrate';
-import { collectionItems, tagCategories, tags, themes, users } from '../../api/db/schema';
+import { attachments, collectionItems, tagCategories, tags, themes, users } from '../../api/db/schema';
 import { CHECK_VIOLATION, FOREIGN_KEY_VIOLATION, UNIQUE_VIOLATION } from '../../api/db/sqlstate';
 import { buildSeedThemes } from '../../api/repositories/themeSeed';
 import { sqlStateOf, setupPgliteDatabase } from './pglite';
@@ -50,6 +50,7 @@ describe('migrations', () => {
     );
 
     expect(result.rows.map((row) => row.table_name)).toEqual([
+      'attachments',
       'collection_items',
       'password_reset_tokens',
       'tag_categories',
@@ -167,6 +168,8 @@ describe('database integrity rules', () => {
       { kind: 'markdown' as const, command: null, content: null },
     ],
     ['a file item that holds a command', { kind: 'file' as const, content: 'text' }],
+    ['an attachment that holds a command', { kind: 'attachment' as const, command: 'echo' }],
+    ['an attachment that holds content', { kind: 'attachment' as const, command: null, content: 'text' }],
   ])('rejects %s', async (_label, overrides) => {
     const ownerId = await insertUser('user-a');
 
@@ -196,9 +199,15 @@ describe('database integrity rules', () => {
         filename: 'note.md',
       }),
       itemRow(ownerId, { id: 'file', kind: 'file', command: null, content: 'text' }),
+      itemRow(ownerId, {
+        id: 'attachment',
+        kind: 'attachment',
+        command: null,
+        filename: 'report.pdf',
+      }),
     ]);
 
-    expect(await handle.db.select().from(collectionItems)).toHaveLength(4);
+    expect(await handle.db.select().from(collectionItems)).toHaveLength(5);
   });
 
   it.each([
@@ -286,5 +295,90 @@ describe('database integrity rules', () => {
     );
 
     expect(state).toBe(UNIQUE_VIOLATION);
+  });
+});
+
+describe('attachments table', () => {
+  async function seedAttachmentItem() {
+    const ownerId = await insertUser('user-a');
+    await handle.db.insert(collectionItems).values(
+      itemRow(ownerId, { id: 'item-1', kind: 'attachment', command: null }),
+    );
+    return ownerId;
+  }
+
+  function attachmentRow(
+    ownerId: string,
+    overrides: Partial<typeof attachments.$inferInsert> = {},
+  ) {
+    return {
+      id: 'attachment-1',
+      userId: ownerId,
+      itemId: 'item-1',
+      bucketId: 'attachments',
+      objectPath: `${ownerId}/file-1.pdf`,
+      originalFilename: 'report.pdf',
+      mimeType: 'application/pdf',
+      sizeBytes: 1024,
+      createdAt: now,
+      ...overrides,
+    } satisfies typeof attachments.$inferInsert;
+  }
+
+  it('stores one file per item with a unique object path', async () => {
+    const ownerId = await seedAttachmentItem();
+    await handle.db.insert(attachments).values(attachmentRow(ownerId));
+
+    const sameItem = await sqlStateOf(
+      handle.db.insert(attachments).values(
+        attachmentRow(ownerId, { id: 'attachment-2', objectPath: `${ownerId}/file-2.pdf` }),
+      ),
+    );
+
+    expect(sameItem).toBe(UNIQUE_VIOLATION);
+  });
+
+  it('rejects a duplicate object path', async () => {
+    const ownerId = await seedAttachmentItem();
+    await handle.db.insert(collectionItems).values(
+      itemRow(ownerId, { id: 'item-2', kind: 'attachment', command: null, order: 2 }),
+    );
+    await handle.db.insert(attachments).values(attachmentRow(ownerId));
+
+    const state = await sqlStateOf(
+      handle.db.insert(attachments).values(
+        attachmentRow(ownerId, { id: 'attachment-2', itemId: 'item-2' }),
+      ),
+    );
+
+    expect(state).toBe(UNIQUE_VIOLATION);
+  });
+
+  it.each([
+    ['an object path outside the owner folder', { objectPath: 'someone-else/file.pdf' }],
+    ['a zero size', { sizeBytes: 0 }],
+  ])('rejects %s', async (_label, overrides) => {
+    const ownerId = await seedAttachmentItem();
+
+    const state = await sqlStateOf(
+      handle.db.insert(attachments).values(attachmentRow(ownerId, overrides)),
+    );
+
+    expect(state).toBe(CHECK_VIOLATION);
+  });
+
+  it('is removed with its item and with its owner', async () => {
+    const ownerId = await seedAttachmentItem();
+    await handle.db.insert(attachments).values(attachmentRow(ownerId));
+
+    await handle.db.delete(collectionItems);
+    expect(await handle.db.select().from(attachments)).toHaveLength(0);
+
+    await handle.db.insert(collectionItems).values(
+      itemRow(ownerId, { id: 'item-1', kind: 'attachment', command: null }),
+    );
+    await handle.db.insert(attachments).values(attachmentRow(ownerId));
+    await handle.db.delete(users);
+    expect(await handle.db.select().from(attachments)).toHaveLength(0);
   });
 });

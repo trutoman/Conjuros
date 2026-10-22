@@ -44,6 +44,7 @@ const theme: Theme = {
     webLink: '#2563eb',
     markdown: '#b45309',
     file: '#0d9488',
+    attachment: '#be123c',
   },
   tagColorPalette: ['#1A73E8', '#7C3AED'],
   isDefault: true,
@@ -60,6 +61,7 @@ describe('applyTheme', () => {
     expect(root.style.getPropertyValue('--primary')).toBe('#4f46e5');
     expect(root.style.getPropertyValue('--command')).toBe('#7c3aed');
     expect(root.style.getPropertyValue('--link')).toBe('#2563eb');
+    expect(root.style.getPropertyValue('--attachment')).toBe('#be123c');
     expect(root.style.getPropertyValue('--font-display')).toBe("'Cinzel', serif");
     expect(root.style.getPropertyValue('--font-size-heading')).toBe('2.65rem');
   });

@@ -4,10 +4,16 @@ import DOMPurify from 'dompurify';
 import { collectionItemInputSchema, collectionItemUpdateSchema, type CollectionItem, type CollectionItemInput, type CollectionItemUpdate, type ItemKind, type Tag } from '@conjuros/contracts';
 import { clearDraft, dedentSelection, handleAutoClose, handleEnter, indentSelection, loadDraft, saveDraft, type EditResult } from '../lib/markdownEditor';
 import { messageForInputError } from '../lib/itemForm';
+import { AttachmentDropZone } from './AttachmentDropZone';
 import { FileDropZone } from './FileDropZone';
 import { FormField } from './FormField';
 import { ItemTypeSelector } from './ItemTypeSelector';
 import { ThemeIcon } from './ThemeIcon';
+
+export interface ItemFormExtras {
+  attachmentFile?: File | null;
+  removeStoredFile?: boolean;
+}
 
 export function ItemForm({
   item,
@@ -17,17 +23,23 @@ export function ItemForm({
 }: {
   item?: CollectionItem;
   availableTags: Tag[];
-  onSubmit: (input: CollectionItemInput | CollectionItemUpdate) => Promise<unknown> | void;
+  onSubmit: (
+    input: CollectionItemInput | CollectionItemUpdate,
+    extras?: ItemFormExtras,
+  ) => Promise<unknown> | void;
   onCancel: () => void;
 }) {
   const formId = item?.id ?? 'add';
   const markdownSavedContent = item?.content ?? '';
   const [kind, setKind] = useState<ItemKind>(item?.kind ?? 'command');
   const textKind = kind === 'markdown' || kind === 'file';
+  const isAttachment = kind === 'attachment';
   const [title, setTitle] = useState(item?.title ?? '');
   const [description, setDescription] = useState(item?.description ?? '');
   const [tags, setTags] = useState<string[]>(item?.tags ?? []);
   const [filename, setFilename] = useState(item?.filename ?? '');
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [removeStoredFile, setRemoveStoredFile] = useState(false);
   const [content, setContent] = useState(() => {
     const base = item?.command ?? item?.url ?? item?.content ?? '';
     return item?.kind === 'markdown' ? loadDraft(formId) ?? base : base;
@@ -158,6 +170,13 @@ export function ItemForm({
     setContent(text);
   }
 
+  function handleAttachmentSelected(file: File) {
+    setFilename(file.name);
+    setAttachmentFile(file);
+    setRemoveStoredFile(false);
+    setError('');
+  }
+
   const tagSelector = (
     <fieldset className="item-form-tags">
       <legend>Tags</legend>
@@ -199,7 +218,15 @@ export function ItemForm({
       tags,
       relatedItemIds: [],
       ...(textKind ? {} : { description }),
-      ...(kind === 'command' ? { command: content } : kind === 'web-link' ? { url: content } : { content, filename }),
+      ...(kind === 'command'
+        ? { command: content }
+        : kind === 'web-link'
+          ? { url: content }
+          : kind === 'attachment'
+            ? item === undefined && filename.trim() === ''
+              ? {}
+              : { filename }
+            : { content, filename }),
     };
     const result = item
       ? collectionItemUpdateSchema.safeParse(payload)
@@ -210,7 +237,17 @@ export function ItemForm({
       return;
     }
     if (!result.success) return;
-    await onSubmit(result.data);
+    const extras: ItemFormExtras = {
+      attachmentFile: isAttachment ? attachmentFile : null,
+      removeStoredFile: isAttachment && removeStoredFile,
+    };
+    try {
+      if (extras.attachmentFile || extras.removeStoredFile) await onSubmit(result.data, extras);
+      else await onSubmit(result.data);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not save item');
+      return;
+    }
     clearDraft(formId);
     dirtyRef.current = false;
     setHasDraft(false);
@@ -229,6 +266,32 @@ export function ItemForm({
       )}
       {textKind && (
         <FormField label="Filename"><input value={filename} onChange={(event) => setFilename(event.target.value)} /></FormField>
+      )}
+      {isAttachment && (
+        <FormField label="Filename" error={error}>
+          <input value={filename} onChange={(event) => setFilename(event.target.value)} />
+        </FormField>
+      )}
+      {isAttachment && item?.storagePath && (
+        <div className="form-field attachment-stored-file">
+          <span>
+            {removeStoredFile
+              ? 'The stored file will be removed when you save.'
+              : attachmentFile
+                ? 'The stored file will be replaced when you save.'
+                : 'A file is stored for this attachment.'}
+          </span>
+          <button
+            type="button"
+            className="quiet"
+            onClick={() => {
+              setRemoveStoredFile((current) => !current);
+              setAttachmentFile(null);
+            }}
+          >
+            {removeStoredFile ? 'Keep file' : 'Remove file'}
+          </button>
+        </div>
       )}
       {kind === 'markdown' ? (
         <div className="form-field">
@@ -264,15 +327,19 @@ export function ItemForm({
         <FormField label="Content" error={error}>
           <textarea value={content} onChange={(event) => setContent(event.target.value)} />
         </FormField>
-      ) : (
+      ) : isAttachment ? null : (
         <FormField label={kind === 'command' ? 'Command' : 'URL'} error={error}>
           <textarea value={content} onChange={(event) => setContent(event.target.value)} />
         </FormField>
       )}
-      {item === undefined && kind === 'file' ? (
+      {(item === undefined && kind === 'file') || isAttachment ? (
         <div className="item-form-footer">
           {tagSelector}
-          <FileDropZone onFileLoaded={handleFileLoaded} />
+          {kind === 'file' ? (
+            <FileDropZone onFileLoaded={handleFileLoaded} />
+          ) : (
+            <AttachmentDropZone onFileSelected={handleAttachmentSelected} />
+          )}
         </div>
       ) : (
         tagSelector

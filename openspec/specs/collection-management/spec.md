@@ -12,7 +12,7 @@ This capability covers the core private collection experience for authenticated 
 
 ### Requirement: Item form tag selector sits below the command field
 
-In the item form, the tag selector SHALL render after the kind-specific field and before the action buttons. The visible field order SHALL be: item type selector, Title, then the kind-specific fields, tag selector, action buttons. For a `command` item the kind-specific fields are Description then Command; for a `web-link` item they are Description then URL; for a `markdown` item they are an optional Filename input then the Content panes, and the form SHALL NOT render a Description field.
+In the item form, the tag selector SHALL render after the kind-specific field and before the action buttons. The visible field order SHALL be: item type selector, Title, then the kind-specific fields, tag selector, action buttons. For a `command` item the kind-specific fields are Description then Command; for a `web-link` item they are Description then URL; for a `markdown` item they are an optional Filename input then the Content panes; for a `file` item they are an optional Filename input then a single Content textarea; for an `attachment` item they are Description, an optional Filename input, and an attachment drop area, with no Content field. The form SHALL NOT render a Description field for `markdown` or `file` items.
 
 #### Scenario: Add form shows kind-specific field above tags
 
@@ -43,6 +43,19 @@ In the item form, the tag selector SHALL render after the kind-specific field an
 - **WHEN** a user opens the Edit item form for a `markdown` item that has a `filename`
 - **THEN** the Filename input is pre-filled with that `filename`
 - **AND** the user can edit and save it
+
+#### Scenario: File form shows its fields without a Description
+
+- **WHEN** a user opens the Add or Edit item form for a `file` item
+- **THEN** no Description field is rendered
+- **AND** the Filename input renders below Title and the single Content textarea renders below it
+
+#### Scenario: Attachment form shows its fields without Content
+
+- **WHEN** a user opens the Add item form for an `attachment` item
+- **THEN** the Description and Filename fields render below Title
+- **AND** the attachment drop area renders below them
+- **AND** no Content field is rendered
 
 ### Requirement: Item form tag selector uses a single label
 
@@ -135,17 +148,23 @@ Users SHALL be able to create and edit items of kind `markdown`. A `markdown` it
 
 ### Requirement: Type filter includes markdown items
 
-The collection "Type" filter SHALL offer a `Markdown` option alongside `Commands` and `Web links`. Selecting it SHALL show only items of kind `markdown`.
+The collection "Type" filter SHALL offer `Commands`, `Web links`, `Markdown`, `Files`, and `Attachments` options. Selecting an option SHALL show only items of that kind.
 
 #### Scenario: Filter the collection by markdown
 
 - **WHEN** a user selects the `Markdown` type filter
 - **THEN** the collection shows only items of kind `markdown`
-- **AND** command and web-link items are hidden
+- **AND** command, web-link, file, and attachment items are hidden
+
+#### Scenario: Filter the collection by attachment
+
+- **WHEN** a user selects the `Attachments` type filter
+- **THEN** the collection shows only items of kind `attachment`
+- **AND** command, web-link, markdown, and file items are hidden
 
 #### Scenario: Clear the type filter shows all types
 
-- **WHEN** a user clears the `Markdown` type filter
+- **WHEN** a user clears the type filter
 - **THEN** items of all kinds are shown again
 
 ### Requirement: Search covers markdown content
@@ -198,7 +217,7 @@ The item form for a `markdown` item SHALL render the Content field as a 50/50 ve
 
 ### Requirement: Item form shows friendly field validation messages
 
-When a user saves an item from the item form and validation fails, the form SHALL display a friendly, field-specific error message instead of the raw validation library message. For a `markdown` item, an empty or whitespace-only title SHALL report "Title is required", an empty or whitespace-only content SHALL report "Content is required for a markdown note", a missing `filename` SHALL report "Filename is required for a markdown note", and an invalid `filename` SHALL report "Filename must be a name of at most 64 characters ending in .md, with no path separators". For a `command` item, an empty or whitespace-only command SHALL report "Command is required". For a `web-link` item, a URL that is not an absolute `http` or `https` URL SHALL report "URL must use the http or https protocol". Any other validation failure SHALL display a generic message rather than the raw validation library text.
+When a user saves an item from the item form and validation fails, the form SHALL display a friendly, field-specific error message instead of the raw validation library message. For a `markdown` item, an empty or whitespace-only title SHALL report "Title is required", an empty or whitespace-only content SHALL report "Content is required for a markdown note", a missing `filename` SHALL report "Filename is required for a markdown note", and an invalid `filename` SHALL report "Filename must be a name of at most 64 characters ending in .md, with no path separators". For a `command` item, an empty or whitespace-only command SHALL report "Command is required". For a `web-link` item, a URL that is not an absolute `http` or `https` URL SHALL report "URL must use the http or https protocol". For an `attachment` item, an empty or whitespace-only title SHALL report "Title is required" and an invalid non-empty `filename` SHALL report "Filename must be a name of at most 128 characters with no path separators"; an absent or blank `filename` SHALL NOT report an error. Any other validation failure SHALL display a generic message rather than the raw validation library text.
 
 #### Scenario: Markdown form reports an empty title
 
@@ -247,6 +266,24 @@ When a user saves an item from the item form and validation fails, the form SHAL
 - **WHEN** a user saves a `web-link` item with a URL that does not use the `http` or `https` protocol
 - **THEN** the form shows the message "URL must use the http or https protocol"
 - **AND** the item is not submitted
+
+#### Scenario: Attachment form reports an empty title
+
+- **WHEN** a user saves an `attachment` item with an empty title
+- **THEN** the form shows the message "Title is required"
+- **AND** the item is not submitted
+
+#### Scenario: Attachment form reports an invalid filename
+
+- **WHEN** a user saves an `attachment` item whose non-empty `filename` exceeds 128 characters or contains a slash (`/`)
+- **THEN** the form shows the message "Filename must be a name of at most 128 characters with no path separators"
+- **AND** the item is not submitted
+
+#### Scenario: Attachment form accepts an absent filename
+
+- **WHEN** a user saves an `attachment` item with a valid title and no `filename`
+- **THEN** the form does not report a filename error
+- **AND** the item is submitted
 
 #### Scenario: Raw validation message is never shown
 
@@ -419,3 +456,117 @@ The collection SHALL identify command items with the item kind `command`. Creati
 - **WHEN** a user opens the Add item form and selects the `Command` item type
 - **THEN** the form submits the item with kind `command`
 - **AND** the Command field supplies the stored command text
+
+### Requirement: Attachment items store a file reference
+
+Users SHALL be able to create and edit items of kind `attachment`. An attachment item SHALL carry a `title`, optional `description`, tags, related items, and an optional `filename` naming the attached file. It SHALL expose a nullable `storagePath` read field that is `null` while the item has no stored file and holds the Storage object path of the file once one is stored through the attachment storage endpoints; the API SHALL reject a client-provided storage path in item create and update requests. An attachment item SHALL return `command`, `url`, and `content` as `null`; content SHALL remain hidden and disabled until a later change enables it. An attachment item MAY exist without a stored file. An attachment item that has a stored file SHALL NOT change to another kind until its file is removed; such an update SHALL be rejected with a conflict error.
+
+#### Scenario: Create an attachment with metadata
+
+- **WHEN** a user submits a new item with kind `attachment`, a title, a description, and the filename `"report.pdf"`
+- **THEN** the item is stored with kind `attachment`
+- **AND** the response includes the title, description, and filename
+- **AND** the response returns `storagePath`, `command`, `url`, and `content` as `null`
+
+#### Scenario: Create an attachment without a file
+
+- **WHEN** a user submits a new item with kind `attachment` and a title but no filename
+- **THEN** the item is stored with kind `attachment`
+- **AND** the response returns `filename` as `null`
+
+#### Scenario: Edit an attachment filename
+
+- **WHEN** a user edits an attachment and changes its `filename` from `"draft.pdf"` to `"final.pdf"`
+- **THEN** the stored `filename` becomes `"final.pdf"`
+- **AND** the item remains of kind `attachment`
+
+#### Scenario: Reject a client-provided storage path
+
+- **WHEN** a client submits an attachment with a `storagePath` value
+- **THEN** the request is rejected with a validation error
+- **AND** no storage reference is stored
+
+#### Scenario: Reject text fields on an attachment
+
+- **WHEN** a client submits an attachment carrying `command`, `url`, or `content`
+- **THEN** the request is rejected with a validation error
+- **AND** the item is not stored or changed
+
+#### Scenario: A stored file populates the storage path
+
+- **WHEN** a file is stored for an attachment item
+- **THEN** the item's `storagePath` is the non-null object path of that file
+- **AND** an item list or read returns the same `storagePath`
+
+#### Scenario: Changing the kind of an item with a stored file is rejected
+
+- **WHEN** a user changes an attachment item that has a stored file to another kind
+- **THEN** the update is rejected with a conflict error
+- **AND** the item and its stored file are unchanged
+
+### Requirement: Add item form offers an attachment drop zone
+
+When the item form has kind `attachment`, it SHALL render an attachment drop zone beside the tag selector, in both the Add and Edit forms, using the same visual surface and interaction model as the file drop zone. The zone SHALL accept a single file dragged from the operating system or chosen through the native picker, SHALL set the form's `filename` field to the file's full name including its extension, and SHALL keep the selected file staged without reading its body. A file whose type is not allowed or whose size exceeds the maximum SHALL be refused by the zone with a friendly message and SHALL NOT replace the staged file. When the form is saved, the item SHALL be saved first and the staged file SHALL then be uploaded to that item; if the upload fails, the item SHALL remain saved and the form SHALL show the upload error. When editing an attachment that has a stored file, the form SHALL offer a `Remove file` option that, once saved, removes the stored file. The zone SHALL NOT render for any other item kind. Dropping more than one file SHALL show the shared single-file error and leave the staged file unchanged.
+
+#### Scenario: Attachment drop zone appears in add and edit
+
+- **WHEN** a user opens the Add item form and selects `Attachment`, or opens an existing attachment for editing
+- **THEN** an attachment drop zone renders beside the tag selector
+- **AND** the zone uses the same visual surface as the file drop zone
+
+#### Scenario: Attachment drop zone is hidden for other kinds
+
+- **WHEN** a user selects `Command`, `Web link`, `Markdown`, or `File`
+- **THEN** no attachment drop zone is rendered
+
+#### Scenario: Dropping a file stages it and fills the filename
+
+- **WHEN** a user drops a file named `report.pdf` on the attachment drop zone
+- **THEN** the Filename field contains `report.pdf`
+- **AND** the file body is not read in the browser
+- **AND** the Content field remains absent
+
+#### Scenario: Saving uploads the staged file
+
+- **WHEN** a user saves an attachment form that has a staged file
+- **THEN** the item is saved and the staged file is uploaded to it
+- **AND** the saved attachment shows a stored file
+
+#### Scenario: Attachment can be saved without a file
+
+- **WHEN** a user saves an attachment with a title but no staged file
+- **THEN** the item is saved with no upload
+- **AND** no storage reference is created
+
+#### Scenario: Unsupported or oversized files are refused
+
+- **WHEN** a user drops a file whose type is not allowed or whose size exceeds the maximum
+- **THEN** the zone shows a friendly message naming the problem
+- **AND** the previously staged file and filename are unchanged
+
+#### Scenario: Upload failure keeps the saved item
+
+- **WHEN** the item is saved but the upload of the staged file fails
+- **THEN** the item remains saved
+- **AND** the form shows the upload error so the user can retry
+
+#### Scenario: Removing the stored file
+
+- **WHEN** a user edits an attachment with a stored file, chooses `Remove file`, and saves
+- **THEN** the stored file is removed
+- **AND** the item remains with no stored file
+
+#### Scenario: Multiple files are rejected by the attachment drop zone
+
+- **WHEN** a user drops more than one file on the attachment drop zone
+- **THEN** the zone shows the shared single-file message
+- **AND** the staged file and Filename field keep their previous values
+
+### Requirement: Search covers attachment filenames
+
+Collection search SHALL match `attachment` items by their `filename` in addition to title, description, and tags.
+
+#### Scenario: Search finds an attachment by filename
+
+- **WHEN** a user searches for text that appears inside an attachment's `filename`
+- **THEN** that attachment item is included in the search results

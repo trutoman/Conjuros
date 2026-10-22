@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { emailSchema } from '@conjuros/contracts';
+import { attachmentMaxBytes, emailSchema } from '@conjuros/contracts';
 
 const nonBlankString = z.string().trim().min(1);
 
@@ -49,10 +49,21 @@ const apiEnvironmentSchema = z
       blankToUndefined,
       z.coerce.number().int().positive().optional(),
     ),
+    SUPABASE_URL: z.preprocess(blankToUndefined, z.string().trim().url().optional()),
+    SUPABASE_SERVICE_ROLE_KEY: z.preprocess(blankToUndefined, nonBlankString.optional()),
+    ATTACHMENT_BUCKET: z.preprocess(blankToUndefined, nonBlankString.optional()),
+    ATTACHMENT_MAX_BYTES: z.preprocess(
+      blankToUndefined,
+      z.coerce.number().int().positive().optional(),
+    ),
   })
   .refine((data) => !(data.SMTP_URL && !data.MAIL_FROM), {
     message: 'MAIL_FROM is required when SMTP_URL is set',
     path: ['MAIL_FROM'],
+  })
+  .refine((data) => !data.SUPABASE_URL === !data.SUPABASE_SERVICE_ROLE_KEY, {
+    message: 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together',
+    path: ['SUPABASE_SERVICE_ROLE_KEY'],
   });
 
 export interface ApiEnvironment {
@@ -67,6 +78,10 @@ export interface ApiEnvironment {
   mailFrom: string | null;
   appBaseUrl: string;
   passwordResetTtlMinutes: number;
+  supabaseUrl: string | null;
+  supabaseServiceRoleKey: string | null;
+  attachmentBucket: string;
+  attachmentMaxBytes: number;
 }
 
 export function parseApiEnvironment(
@@ -92,5 +107,9 @@ export function parseApiEnvironment(
     mailFrom: parsed.data.MAIL_FROM ?? null,
     appBaseUrl: parsed.data.APP_BASE_URL ?? parsed.data.CORS_ORIGIN ?? 'http://localhost:5173',
     passwordResetTtlMinutes: parsed.data.PASSWORD_RESET_TTL_MINUTES ?? 60,
+    supabaseUrl: parsed.data.SUPABASE_URL ?? null,
+    supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY ?? null,
+    attachmentBucket: parsed.data.ATTACHMENT_BUCKET ?? 'attachments',
+    attachmentMaxBytes: parsed.data.ATTACHMENT_MAX_BYTES ?? attachmentMaxBytes,
   };
 }

@@ -66,6 +66,7 @@ export const themeKindColorsSchema = z.object({
   webLink: hexColorTokenSchema,
   markdown: hexColorTokenSchema,
   file: hexColorTokenSchema,
+  attachment: hexColorTokenSchema,
 });
 
 export const iconAssetKeys = [
@@ -73,6 +74,7 @@ export const iconAssetKeys = [
   'web-link',
   'markdown',
   'file',
+  'attachment',
   'copy',
   'open',
   'view',

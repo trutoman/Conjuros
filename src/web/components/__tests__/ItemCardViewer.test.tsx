@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ItemCardViewer } from '../ItemCardViewer';
-import { createFileItem, createMarkdownItem } from './itemCard.fixtures';
+import { createAttachmentItem, createFileItem, createMarkdownItem } from './itemCard.fixtures';
 
 describe('ItemCardViewer', () => {
   it('shows "View markdown" and the item title in the header', () => {
@@ -139,6 +139,40 @@ describe('ItemCardViewer', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Close file viewer' }));
 
       expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('attachment viewer', () => {
+    it('shows attachment metadata and no content body', () => {
+      render(
+        <ItemCardViewer
+          item={createAttachmentItem()}
+          onClose={vi.fn()}
+          onEdit={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByRole('heading', { name: /View attachment/ })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Quarterly report/ })).toBeInTheDocument();
+      expect(screen.getByText('Q3 results')).toBeInTheDocument();
+      expect(screen.getByText('report.pdf')).toBeInTheDocument();
+      expect(screen.getByText('No file stored yet')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Markdown content')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('File content')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Download file' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
+    });
+
+    it('closes and edits through the attachment controls', () => {
+      const onClose = vi.fn();
+      const onEdit = vi.fn();
+      render(<ItemCardViewer item={createAttachmentItem()} onClose={onClose} onEdit={onEdit} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close attachment viewer' }));
+      expect(onClose).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+      expect(onEdit).toHaveBeenCalledTimes(1);
     });
   });
 });
