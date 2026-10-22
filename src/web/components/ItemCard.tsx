@@ -40,8 +40,18 @@ export function ItemCard({
       ? markdownSlug(item.content ?? '')
       : item.kind === 'file'
         ? plainTextSlug(item.content ?? '')
-        : contentValue;
-  const kindLabel = isCommand ? 'Command' : item.kind === 'web-link' ? 'Web link' : item.kind === 'file' ? 'File' : 'Markdown';
+        : item.kind === 'attachment'
+          ? (item.filename || 'No file attached')
+          : contentValue;
+  const kindLabel = isCommand
+    ? 'Command'
+    : item.kind === 'web-link'
+      ? 'Web link'
+      : item.kind === 'file'
+        ? 'File'
+        : item.kind === 'attachment'
+          ? 'Attachment'
+          : 'Markdown';
 
   const supportsHover = useMemo(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -201,6 +211,13 @@ export function ItemCard({
                 label="File"
                 title="File"
                 name="file"
+              />
+            ) : item.kind === 'attachment' ? (
+              <ThemeIcon
+                label="Attachment"
+                title="Attachment"
+                name="attachment"
+                className="attachment-icon"
               />
             ) : (
               <ThemeIcon
@@ -363,6 +380,20 @@ export function ItemCard({
                 label="Download"
                 title="Download"
                 name="download"
+              />
+            </button>
+          )}
+          {item.kind === 'attachment' && (
+            <button
+              type="button"
+              className="icon-action"
+              aria-label="View attachment"
+              onClick={() => onView?.(item)}
+            >
+              <ThemeIcon
+                label="View"
+                title="View"
+                name="view"
               />
             </button>
           )}

@@ -1,6 +1,6 @@
 # Conjuros
 
-Conjuros is a private collection for commands, web links, and markdown notes. Markdown notes can optionally carry a `filename` (a plain `.md` file name) shown in the markdown reader and editable in the item form. The data lives in a hosted Supabase PostgreSQL database; the stack runs in two Docker containers — `api` and `web` — with the React frontend served by Nginx and the API proxied on a single origin.
+Conjuros is a private collection for commands, web links, markdown notes, plain-text files, and attachments. Markdown notes can optionally carry a `filename` (a plain `.md` file name) shown in the markdown reader and editable in the item form. Attachments reserve a `storagePath` for a future Supabase Storage object; file upload and download are not implemented yet. The data lives in a hosted Supabase PostgreSQL database; the stack runs in two Docker containers — `api` and `web` — with the React frontend served by Nginx and the API proxied on a single origin.
 
 ## Local Development
 

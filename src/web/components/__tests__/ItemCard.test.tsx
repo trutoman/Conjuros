@@ -6,6 +6,7 @@ import { ItemCard } from '../ItemCard';
 import { ThemeIconsContext, type ThemeIcons } from '../ThemeIconsContext';
 import { ICON_ASSETS } from '../../lib/iconAssets';
 import {
+  createAttachmentItem,
   createFileItem,
   createMarkdownItem,
   createCommandItem,
@@ -768,6 +769,37 @@ describe('ItemCard', () => {
 
       const copyIcon = container.querySelector('button[aria-label="Copy command"] svg');
       expect(copyIcon?.querySelector('path')?.getAttribute('d')).toBe(defaultIcons.copy.path);
+    });
+  });
+
+  describe('for an attachment item', () => {
+    it('shows the Attachment badge, filename, and view action', () => {
+      const { container } = renderItemCard({ item: createAttachmentItem() });
+
+      expect(screen.getByRole('img', { name: 'Attachment' })).toBeInTheDocument();
+      expect(screen.getByText('report.pdf')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'View attachment' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Copy command' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Download markdown' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Download file' })).not.toBeInTheDocument();
+      expect(container.querySelector('.item-card.kind-attachment')).not.toBeNull();
+      expect(container.querySelector('.attachment-icon')).not.toBeNull();
+    });
+
+    it('falls back to No file attached without a filename', () => {
+      renderItemCard({ item: createAttachmentItem({ filename: null }) });
+
+      expect(screen.getByText('No file attached')).toBeInTheDocument();
+    });
+
+    it('opens the viewer through the View attachment action', () => {
+      const onView = vi.fn();
+      renderItemCard({ item: createAttachmentItem(), onView });
+
+      fireEvent.click(screen.getByRole('button', { name: 'View attachment' }));
+
+      expect(onView).toHaveBeenCalledWith(createAttachmentItem());
     });
   });
 });

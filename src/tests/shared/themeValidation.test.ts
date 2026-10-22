@@ -49,6 +49,7 @@ export const validThemeDraft = {
     webLink: '#2563eb',
     markdown: '#b45309',
     file: '#0d9488',
+    attachment: '#be123c',
   },
   tagColorPalette: ['#1A73E8', '#7C3AED', '#2563EB', '#B45309', '#0D9488'],
 };

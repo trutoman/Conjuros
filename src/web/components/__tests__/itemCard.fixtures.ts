@@ -13,6 +13,7 @@ export function createCommandItem(overrides: Partial<CollectionItem> = {}): Coll
     url: null,
     content: null,
     filename: null,
+    storagePath: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
@@ -32,6 +33,7 @@ export function createWebLinkItem(overrides: Partial<CollectionItem> = {}): Coll
     url: 'https://example.com/docs',
     content: null,
     filename: null,
+    storagePath: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
@@ -51,6 +53,7 @@ export function createMarkdownItem(overrides: Partial<CollectionItem> = {}): Col
     url: null,
     content: '\n\n# Heading\n\nSome **bold** text.\n\nSecond line stays hidden.',
     filename: null,
+    storagePath: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
@@ -70,6 +73,29 @@ export function createFileItem(overrides: Partial<CollectionItem> = {}): Collect
     url: null,
     content: 'Started at 09:00\nFinished ok',
     filename: 'deploy.log',
+    storagePath: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+export function createAttachmentItem(
+  overrides: Partial<CollectionItem> = {},
+): CollectionItem {
+  return {
+    id: 'attachment-1',
+    kind: 'attachment',
+    title: 'Quarterly report',
+    description: 'Q3 results',
+    tags: ['docs'],
+    order: 5,
+    relatedItemIds: [],
+    command: null,
+    url: null,
+    content: null,
+    filename: 'report.pdf',
+    storagePath: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,

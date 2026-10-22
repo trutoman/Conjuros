@@ -1,4 +1,5 @@
 import {
+  attachmentUpdateCandidateSchema,
   collectionItemInputSchema,
   collectionItemUpdateSchema,
   fileUpdateCandidateSchema,
@@ -66,7 +67,16 @@ export class ItemsService {
               content: update.content ?? current.content,
               filename: update.filename ?? current.filename ?? '',
             })
-          : collectionItemInputSchema.parse({
+          : kind === 'attachment'
+            ? attachmentUpdateCandidateSchema.parse({
+                kind,
+                title: update.title ?? current.title,
+                description: update.description ?? current.description ?? undefined,
+                tags: update.tags ?? current.tags,
+                relatedItemIds: update.relatedItemIds ?? current.relatedItemIds,
+                filename: update.filename ?? current.filename ?? '',
+              })
+            : collectionItemInputSchema.parse({
               kind,
               title: update.title ?? current.title,
               description: update.description ?? current.description ?? undefined,
@@ -89,7 +99,13 @@ export class ItemsService {
       command: candidate.kind === 'command' ? candidate.command : null,
       url: candidate.kind === 'web-link' ? candidate.url : null,
       content: textLike ? candidate.content : null,
-      filename: textLike ? candidate.filename || null : null,
+      filename:
+        candidate.kind === 'markdown' ||
+        candidate.kind === 'file' ||
+        candidate.kind === 'attachment'
+          ? candidate.filename || null
+          : null,
+      storagePath: current.storagePath,
       updatedAt: new Date().toISOString(),
     }));
   }

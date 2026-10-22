@@ -17,6 +17,7 @@ const collectionItems: CollectionItem[] = [
     url: null,
     content: null,
     filename: null,
+    storagePath: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
@@ -32,6 +33,7 @@ const collectionItems: CollectionItem[] = [
     url: null,
     content: null,
     filename: null,
+    storagePath: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
@@ -320,6 +322,16 @@ describe('CollectionPage', () => {
     expect(options).toContain('Files');
   });
 
+  it('exposes an attachment option in the type filter', () => {
+    render(<CollectionPage />);
+
+    const select = screen.getByLabelText('Type');
+    const options = Array.from(select.querySelectorAll('option')).map(
+      (option) => option.textContent,
+    );
+    expect(options).toContain('Attachments');
+  });
+
   it('renders markdown items inline with a View markdown action', () => {
     collectionState.items = [
       {
@@ -334,6 +346,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -366,6 +379,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -397,6 +411,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -430,6 +445,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -459,6 +475,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -489,6 +506,7 @@ describe('CollectionPage', () => {
         url: null,
         content: '# Runbook\n\nSteps here.',
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -504,6 +522,7 @@ describe('CollectionPage', () => {
         url: null,
         content: null,
         filename: null,
+        storagePath: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },

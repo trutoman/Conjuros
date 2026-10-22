@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { ItemForm } from '../ItemForm';
-import { createFileItem, createMarkdownItem } from './itemCard.fixtures';
+import { createAttachmentItem, createFileItem, createMarkdownItem } from './itemCard.fixtures';
 
 const availableTags: Tag[] = [
   {
@@ -397,6 +397,7 @@ describe('ItemForm', () => {
       url: null,
       content: '# Saved',
       filename: null,
+      storagePath: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
@@ -904,6 +905,127 @@ describe('ItemForm', () => {
       expect(
         screen.getByText('Filename must be a name of at most 128 characters with no path separators'),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('for attachment items', () => {
+    it('shows Title, Description, Filename, and the drop area without Content', () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Attachment' }));
+
+      expect(screen.getByLabelText('Title')).toBeInTheDocument();
+      expect(screen.getByLabelText('Description')).toBeInTheDocument();
+      expect(screen.getByLabelText('Filename')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Content')).not.toBeInTheDocument();
+      expect(container.querySelector('.attachment-drop-zone')).not.toBeNull();
+    });
+
+    it('does not render the attachment drop zone in edit mode', () => {
+      const { container } = render(
+        <ItemForm
+          item={createAttachmentItem()}
+          availableTags={[]}
+          onSubmit={vi.fn()}
+          onCancel={vi.fn()}
+        />,
+      );
+
+      expect(container.querySelector('.attachment-drop-zone')).toBeNull();
+      expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('report.pdf');
+      expect(screen.queryByLabelText('Content')).not.toBeInTheDocument();
+    });
+
+    it('fills only the filename when a file is dropped', async () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByRole('radio', { name: 'Attachment' }));
+      const file = new File(['binary'], 'report.pdf', { type: 'application/pdf' });
+      const read = vi.fn().mockResolvedValue('binary');
+      Object.defineProperty(file, 'text', { value: read });
+
+      fireEvent.drop(container.querySelector('.attachment-drop-zone') as Element, {
+        dataTransfer: { files: [file] },
+      });
+
+      await waitFor(() =>
+        expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('report.pdf'),
+      );
+      expect(read).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText('Content')).not.toBeInTheDocument();
+    });
+
+    it('submits attachment metadata without content', () => {
+      const onSubmit = vi.fn();
+      render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Attachment' }));
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Report' } });
+      fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Q3 results' } });
+      fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'report.pdf' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'attachment',
+          title: 'Report',
+          description: 'Q3 results',
+          filename: 'report.pdf',
+        }),
+      );
+      expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('content');
+    });
+
+    it('allows saving an attachment without a filename', () => {
+      const onSubmit = vi.fn();
+      render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Attachment' }));
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Report' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'attachment', title: 'Report' }),
+      );
+      expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('filename');
+      expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('content');
+    });
+
+    it('reports an invalid attachment filename', () => {
+      const onSubmit = vi.fn();
+      render(<ItemForm availableTags={[]} onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Attachment' }));
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Report' } });
+      fireEvent.change(screen.getByLabelText('Filename'), {
+        target: { value: 'folder/report.pdf' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save item' }));
+
+      expect(
+        screen.getByText('Filename must be a name of at most 128 characters with no path separators'),
+      ).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('rejects multiple dropped files and keeps the filename', () => {
+      const { container } = render(
+        <ItemForm availableTags={[]} onSubmit={vi.fn()} onCancel={vi.fn()} />,
+      );
+      fireEvent.click(screen.getByRole('radio', { name: 'Attachment' }));
+      fireEvent.change(screen.getByLabelText('Filename'), { target: { value: 'keep.pdf' } });
+
+      fireEvent.drop(container.querySelector('.attachment-drop-zone') as Element, {
+        dataTransfer: {
+          files: [new File(['a'], 'one.pdf'), new File(['b'], 'two.pdf')],
+        },
+      });
+
+      expect(screen.getByText('Drop a single file')).toBeInTheDocument();
+      expect((screen.getByLabelText('Filename') as HTMLInputElement).value).toBe('keep.pdf');
     });
   });
 });

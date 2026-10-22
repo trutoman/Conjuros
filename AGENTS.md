@@ -36,7 +36,7 @@ npm run docker:check     # Optional: verify Docker CLI and daemon before docker 
 
 ## Product
 
-Conjuros lets authenticated users manage a private collection of items. An item is either a `command` item with command text, a `web-link` with a `url`, or a `markdown` note with `content`; all items have an owner, title, description, tags, order, and relationships. Markdown notes may optionally carry a `filename` (a plain `.md` file name, at most 64 characters, no path separators). Accounts are email/password based; the API also sends transactional email (a welcome message on registration and password reset links) through an optional SMTP sender.
+Conjuros lets authenticated users manage a private collection of items. An item is either a `command` item with command text, a `web-link` with a `url`, a `markdown` note or `file` with `content`, or an `attachment` with an optional `filename` and a reserved `storagePath`; all items have an owner, title, description, tags, order, and relationships. Markdown notes may optionally carry a `filename` (a plain `.md` file name, at most 64 characters, no path separators). Attachment file storage is not implemented yet, so `storagePath` stays `null`. Accounts are email/password based; the API also sends transactional email (a welcome message on registration and password reset links) through an optional SMTP sender.
 
 ## Architecture
 
@@ -76,6 +76,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - `web-link` requires absolute `https:` or `http:` URL; open only after explicit user action
 - `markdown` requires `content`; render and store the exact text, never execute or transform it
 - `markdown` items may carry an optional `filename`: a plain file name only (no path separators) of at most 64 characters, always ending in `.md`; an empty or absent `filename` is stored and returned as `null`
+- `attachment` items require a title, may carry an optional `filename`, and keep `storagePath`, `content`, `command`, and `url` as `null` in this phase; actual file storage is not implemented yet
 - `relatedItemIds` may only refer to items owned by the same user
 - Validate enumerated tags against catalogs; normalize free-form tags
 - Accounts may have no local password (external-identity-only) and may carry at most one external provider identity; a passwordless account must fail password sign-in with the standard invalid-credentials error
@@ -102,6 +103,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - Every command item has an accessible action to copy its `command` text
 - Every `web-link` has actions to copy URL and open it
 - `markdown` cards render a `content` slug inline and offer a "View markdown" action that opens a read-only sanitized viewer of the full note; the viewer also shows the note's optional `filename`
+- `attachment` cards show the filename and a "View attachment" action; the viewer shows metadata and a "No file stored yet" state without rendering content or offering download until storage exists
 - Ordering must work with pointer and keyboard; persist via API
 - Include loading, empty, no-results, and error states
 - Do not add components, libraries, or animations without a specific need

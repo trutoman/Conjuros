@@ -21,7 +21,7 @@ export function EmptyState({
       <p>
         {filtered
           ? 'Try adjusting your search or filters.'
-          : 'Add a command or web link to get started.'}
+          : 'Add an item to get started.'}
       </p>
     </section>
   );

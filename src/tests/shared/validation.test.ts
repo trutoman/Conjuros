@@ -27,6 +27,63 @@ describe('collection item contracts', () => {
     expect(parsed.command).toBe(command);
   });
 
+  it('accepts attachment metadata with and without a filename', () => {
+    const withFile = collectionItemInputSchema.parse({
+      kind: 'attachment',
+      title: 'Report',
+      description: 'Q3',
+      tags: ['docs'],
+      relatedItemIds: [],
+      filename: 'report.pdf',
+    });
+    expect(withFile).toMatchObject({ kind: 'attachment', filename: 'report.pdf' });
+
+    const withoutFile = collectionItemInputSchema.parse({
+      kind: 'attachment',
+      title: 'Report',
+      tags: [],
+      relatedItemIds: [],
+    });
+    expect(withoutFile).toMatchObject({ kind: 'attachment' });
+    expect(withoutFile).not.toHaveProperty('filename');
+  });
+
+  it('rejects storage paths and text fields on attachment inputs', () => {
+    const base = { kind: 'attachment', title: 'Report', tags: [], relatedItemIds: [] };
+    expect(
+      collectionItemInputSchema.safeParse({ ...base, storagePath: 'private/report.pdf' }).success,
+    ).toBe(false);
+    expect(
+      collectionItemUpdateSchema.safeParse({ kind: 'attachment', storagePath: 'private/report.pdf' })
+        .success,
+    ).toBe(false);
+    expect(collectionItemInputSchema.safeParse({ ...base, content: 'text' }).success).toBe(false);
+    expect(collectionItemInputSchema.safeParse({ ...base, command: 'echo' }).success).toBe(false);
+    expect(
+      collectionItemInputSchema.safeParse({ ...base, url: 'https://example.com' }).success,
+    ).toBe(false);
+  });
+
+  it('reads storagePath as null for an attachment', () => {
+    const parsed = collectionItemSchema.parse({
+      id: 'attachment-1',
+      kind: 'attachment',
+      title: 'Report',
+      description: null,
+      tags: [],
+      order: 1,
+      relatedItemIds: [],
+      command: null,
+      url: null,
+      content: null,
+      filename: 'report.pdf',
+      storagePath: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(parsed.storagePath).toBeNull();
+  });
+
   it('rejects the former spell kind in inputs and filters', () => {
     expect(
       collectionItemInputSchema.safeParse({
@@ -109,6 +166,7 @@ describe('collection item contracts', () => {
       url: null,
       content: '# Notes',
       filename: null,
+      storagePath: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
@@ -183,6 +241,7 @@ describe('collection item contracts', () => {
       url: null,
       content: '# Notes',
       filename: 'notes.md',
+      storagePath: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
@@ -487,6 +546,7 @@ describe('collection item contracts', () => {
       url: null,
       content: 'hello',
       filename: 'app.log',
+      storagePath: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };

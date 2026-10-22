@@ -167,6 +167,8 @@ describe('database integrity rules', () => {
       { kind: 'markdown' as const, command: null, content: null },
     ],
     ['a file item that holds a command', { kind: 'file' as const, content: 'text' }],
+    ['an attachment that holds a command', { kind: 'attachment' as const, command: 'echo' }],
+    ['an attachment that holds content', { kind: 'attachment' as const, command: null, content: 'text' }],
   ])('rejects %s', async (_label, overrides) => {
     const ownerId = await insertUser('user-a');
 
@@ -196,9 +198,15 @@ describe('database integrity rules', () => {
         filename: 'note.md',
       }),
       itemRow(ownerId, { id: 'file', kind: 'file', command: null, content: 'text' }),
+      itemRow(ownerId, {
+        id: 'attachment',
+        kind: 'attachment',
+        command: null,
+        filename: 'report.pdf',
+      }),
     ]);
 
-    expect(await handle.db.select().from(collectionItems)).toHaveLength(4);
+    expect(await handle.db.select().from(collectionItems)).toHaveLength(5);
   });
 
   it.each([

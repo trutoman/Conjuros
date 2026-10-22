@@ -23,6 +23,7 @@ export function applyTheme(root: HTMLElement, theme: Theme | null): void {
     style.removeProperty('--link');
     style.removeProperty('--markdown');
     style.removeProperty('--file');
+    style.removeProperty('--attachment');
     style.removeProperty('--danger');
     style.removeProperty('--success');
     style.removeProperty('--warning');
@@ -56,6 +57,7 @@ export function applyTheme(root: HTMLElement, theme: Theme | null): void {
   style.setProperty('--link', kindColors.webLink);
   style.setProperty('--markdown', kindColors.markdown);
   style.setProperty('--file', kindColors.file);
+  style.setProperty('--attachment', kindColors.attachment);
   style.setProperty('--danger', colors.danger);
   style.setProperty('--success', colors.success);
   style.setProperty('--warning', colors.warning);

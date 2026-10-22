@@ -405,6 +405,7 @@ export function CollectionPage({
                       <option value="web-link">Web links</option>
                       <option value="markdown">Markdown</option>
                       <option value="file">Files</option>
+                      <option value="attachment">Attachments</option>
                     </select>
                   </label>
                 </div>
@@ -441,7 +442,9 @@ export function CollectionPage({
               label={
                 viewerItem.kind === 'markdown'
                   ? `View markdown ${viewerItem.title}`
-                  : `View file ${viewerItem.title}`
+                  : viewerItem.kind === 'attachment'
+                    ? `View attachment ${viewerItem.title}`
+                    : `View file ${viewerItem.title}`
               }
               onClose={closeViewer}
               size="wide"

@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { collectionItemInputSchema, collectionItemUpdateSchema, type CollectionItem, type CollectionItemInput, type CollectionItemUpdate, type ItemKind, type Tag } from '@conjuros/contracts';
 import { clearDraft, dedentSelection, handleAutoClose, handleEnter, indentSelection, loadDraft, saveDraft, type EditResult } from '../lib/markdownEditor';
 import { messageForInputError } from '../lib/itemForm';
+import { AttachmentDropZone } from './AttachmentDropZone';
 import { FileDropZone } from './FileDropZone';
 import { FormField } from './FormField';
 import { ItemTypeSelector } from './ItemTypeSelector';
@@ -24,6 +25,7 @@ export function ItemForm({
   const markdownSavedContent = item?.content ?? '';
   const [kind, setKind] = useState<ItemKind>(item?.kind ?? 'command');
   const textKind = kind === 'markdown' || kind === 'file';
+  const isAttachment = kind === 'attachment';
   const [title, setTitle] = useState(item?.title ?? '');
   const [description, setDescription] = useState(item?.description ?? '');
   const [tags, setTags] = useState<string[]>(item?.tags ?? []);
@@ -158,6 +160,11 @@ export function ItemForm({
     setContent(text);
   }
 
+  function handleAttachmentSelected(name: string) {
+    setFilename(name);
+    setError('');
+  }
+
   const tagSelector = (
     <fieldset className="item-form-tags">
       <legend>Tags</legend>
@@ -199,7 +206,15 @@ export function ItemForm({
       tags,
       relatedItemIds: [],
       ...(textKind ? {} : { description }),
-      ...(kind === 'command' ? { command: content } : kind === 'web-link' ? { url: content } : { content, filename }),
+      ...(kind === 'command'
+        ? { command: content }
+        : kind === 'web-link'
+          ? { url: content }
+          : kind === 'attachment'
+            ? item === undefined && filename.trim() === ''
+              ? {}
+              : { filename }
+            : { content, filename }),
     };
     const result = item
       ? collectionItemUpdateSchema.safeParse(payload)
@@ -229,6 +244,11 @@ export function ItemForm({
       )}
       {textKind && (
         <FormField label="Filename"><input value={filename} onChange={(event) => setFilename(event.target.value)} /></FormField>
+      )}
+      {isAttachment && (
+        <FormField label="Filename" error={error}>
+          <input value={filename} onChange={(event) => setFilename(event.target.value)} />
+        </FormField>
       )}
       {kind === 'markdown' ? (
         <div className="form-field">
@@ -264,15 +284,19 @@ export function ItemForm({
         <FormField label="Content" error={error}>
           <textarea value={content} onChange={(event) => setContent(event.target.value)} />
         </FormField>
-      ) : (
+      ) : isAttachment ? null : (
         <FormField label={kind === 'command' ? 'Command' : 'URL'} error={error}>
           <textarea value={content} onChange={(event) => setContent(event.target.value)} />
         </FormField>
       )}
-      {item === undefined && kind === 'file' ? (
+      {item === undefined && (kind === 'file' || isAttachment) ? (
         <div className="item-form-footer">
           {tagSelector}
-          <FileDropZone onFileLoaded={handleFileLoaded} />
+          {kind === 'file' ? (
+            <FileDropZone onFileLoaded={handleFileLoaded} />
+          ) : (
+            <AttachmentDropZone onFileSelected={handleAttachmentSelected} />
+          )}
         </div>
       ) : (
         tagSelector

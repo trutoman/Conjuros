@@ -14,6 +14,8 @@ export function ItemCardViewer({
   onEdit: () => void;
 }) {
   const isMarkdown = item.kind === 'markdown';
+  const isAttachment = item.kind === 'attachment';
+  const viewerKind = isMarkdown ? 'markdown' : isAttachment ? 'attachment' : 'file';
   const html = useMemo(
     () => (isMarkdown ? DOMPurify.sanitize(marked.parse(item.content ?? '') as string) : ''),
     [isMarkdown, item.content],
@@ -24,20 +26,26 @@ export function ItemCardViewer({
       <button
         type="button"
         className="form-close"
-        aria-label={isMarkdown ? 'Close markdown viewer' : 'Close file viewer'}
+        aria-label={`Close ${viewerKind} viewer`}
         onClick={onClose}
       >
         <ThemeIcon name="close" />
       </button>
       <h2>
-        {isMarkdown ? 'View markdown' : 'View file'} <span className="markdown-viewer-title">{item.title}</span>
+        {isMarkdown ? 'View markdown' : isAttachment ? 'View attachment' : 'View file'}{' '}
+        <span className="markdown-viewer-title">{item.title}</span>
       </h2>
+      {isAttachment && item.description && (
+        <p className="attachment-viewer-description">{item.description}</p>
+      )}
       {item.filename && (
         <p className="markdown-viewer-filename">
           <span>Filename</span> {item.filename}
         </p>
       )}
-      {isMarkdown ? (
+      {isAttachment ? (
+        !item.storagePath && <p className="attachment-viewer-status">No file stored yet</p>
+      ) : isMarkdown ? (
         <div
           className="content-pane-preview markdown-viewer-content"
           aria-label="Markdown content"

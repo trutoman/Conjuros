@@ -50,6 +50,7 @@ const lightTheme: Theme = {
     webLink: '#2563eb',
     markdown: '#b45309',
     file: '#0d9488',
+    attachment: '#be123c',
   },
   tagColorPalette: [
     '#1A73E8',
@@ -97,6 +98,7 @@ const darkTheme: Theme = {
     webLink: '#60a5fa',
     markdown: '#fbbf24',
     file: '#2dd4bf',
+    attachment: '#fb7185',
   },
   isDefault: false,
 };

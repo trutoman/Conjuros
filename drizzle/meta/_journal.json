@@ -36,6 +36,20 @@
       "when": 1792556612655,
       "tag": "0004_medical_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792619020215,
+      "tag": "0005_thankful_wendell_rand",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792619069285,
+      "tag": "0006_attachment_storage",
+      "breakpoints": true
     }
   ]
 }

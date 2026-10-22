@@ -79,6 +79,7 @@ export const collectionItems = pgTable(
     url: text(),
     content: text(),
     filename: text(),
+    storagePath: text(),
     createdAt: timestamptz().notNull(),
     updatedAt: timestamptz().notNull(),
   },
@@ -87,9 +88,10 @@ export const collectionItems = pgTable(
     check(
       'collection_items_kind_fields_check',
       sql`(
-        (${table.kind} = 'command' AND ${table.command} IS NOT NULL AND ${table.url} IS NULL AND ${table.content} IS NULL AND ${table.filename} IS NULL)
-        OR (${table.kind} = 'web-link' AND ${table.url} IS NOT NULL AND ${table.command} IS NULL AND ${table.content} IS NULL AND ${table.filename} IS NULL)
-        OR (${table.kind} IN ('markdown', 'file') AND ${table.content} IS NOT NULL AND ${table.command} IS NULL AND ${table.url} IS NULL)
+        (${table.kind}::text = 'command' AND ${table.command} IS NOT NULL AND ${table.url} IS NULL AND ${table.content} IS NULL AND ${table.filename} IS NULL AND ${table.storagePath} IS NULL)
+        OR (${table.kind}::text = 'web-link' AND ${table.url} IS NOT NULL AND ${table.command} IS NULL AND ${table.content} IS NULL AND ${table.filename} IS NULL AND ${table.storagePath} IS NULL)
+        OR (${table.kind}::text IN ('markdown', 'file') AND ${table.content} IS NOT NULL AND ${table.command} IS NULL AND ${table.url} IS NULL AND ${table.storagePath} IS NULL)
+        OR (${table.kind}::text = 'attachment' AND ${table.command} IS NULL AND ${table.url} IS NULL AND ${table.content} IS NULL)
       )`,
     ),
   ],
