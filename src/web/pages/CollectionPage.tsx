@@ -17,7 +17,7 @@ import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Sidebar } from '../components/Sidebar';
 import { TagColumnIcon } from '../components/TagColumnIcon';
-import { ItemForm } from '../components/ItemForm';
+import { ItemForm, type ItemFormExtras } from '../components/ItemForm';
 import { ItemCardViewer } from '../components/ItemCardViewer';
 import { Modal } from '../components/Modal';
 import { TagForm } from '../components/TagForm';
@@ -53,7 +53,17 @@ export function CollectionPage({
   tagPalette?: string[] | null;
 }) {
   const { filters, setFilters, query } = useCollectionFilters();
-  const { items, isLoading, error, create, update, remove, reorder } = useCollection(query);
+  const {
+    items,
+    isLoading,
+    error,
+    create,
+    update,
+    remove,
+    reorder,
+    uploadAttachment,
+    removeAttachment,
+  } = useCollection(query);
   const tagsState = useTags();
   const categoriesState = useTagCategories();
   const themesState = useThemes();
@@ -111,14 +121,26 @@ export function CollectionPage({
   const [formTheme, setFormTheme] = useState<Theme | null | undefined>(undefined);
   const [deleteTheme, setDeleteTheme] = useState<Theme | null>(null);
 
-  async function save(input: CollectionItemInput | CollectionItemUpdate) {
+  async function save(input: CollectionItemInput | CollectionItemUpdate, extras?: ItemFormExtras) {
+    let saved: CollectionItem;
     try {
-      if (formItem) await update({ id: formItem.id, item: input });
-      else await create(input as CollectionItemInput);
-      setFormItem(undefined);
+      saved = formItem
+        ? await update({ id: formItem.id, item: input })
+        : await create(input as CollectionItemInput);
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : 'Could not save item');
+      return;
     }
+    try {
+      if (extras?.removeStoredFile) await removeAttachment(saved.id);
+      if (extras?.attachmentFile) await uploadAttachment({ id: saved.id, file: extras.attachmentFile });
+    } catch (cause) {
+      // The item is already saved: keep the form open on it so the upload can be retried.
+      setFormItem(saved);
+      const reason = cause instanceof Error ? cause.message : 'Upload failed';
+      throw new Error(`The item was saved, but its file could not be updated: ${reason}`);
+    }
+    setFormItem(undefined);
   }
 
   async function saveTag(input: TagInput) {

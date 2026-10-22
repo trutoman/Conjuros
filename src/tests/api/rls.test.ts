@@ -15,6 +15,7 @@ describe('row level security', () => {
     const tables = result.rows.map((row) => row.relname).sort();
 
     expect(tables).toEqual([
+      'attachments',
       'collection_items',
       'password_reset_tokens',
       'tag_categories',

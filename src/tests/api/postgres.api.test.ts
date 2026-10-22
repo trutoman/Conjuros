@@ -2,6 +2,8 @@
 import request from 'supertest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../api/app';
+import { attachments } from '../../api/db/schema';
+import { PostgresAttachmentsRepository } from '../../api/repositories/attachments.repository';
 import { PostgresItemsRepository } from '../../api/repositories/items.repository';
 import { PostgresPasswordResetTokensRepository } from '../../api/repositories/password-reset-tokens.repository';
 import { PostgresTagCategoriesRepository } from '../../api/repositories/tag-categories.repository';
@@ -10,6 +12,7 @@ import { PostgresThemesRepository } from '../../api/repositories/themes.reposito
 import { buildSeedThemes } from '../../api/repositories/themeSeed';
 import { PostgresUsersRepository } from '../../api/repositories/users.repository';
 import { ThemesService } from '../../api/services/themes.service';
+import { InMemoryAttachmentStorage, type AttachmentStorage } from '../../api/storage/storage';
 import { setupPgliteDatabase } from './pglite';
 import { RecordingEmailSender, registerUser, validPassword } from './testApp';
 
@@ -18,12 +21,14 @@ const database = setupPgliteDatabase();
 const isoTimestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const paletteColor = buildSeedThemes()[0].tagColorPalette[0];
 
-async function createPostgresApp() {
+async function createPostgresApp(storage: AttachmentStorage | null = new InMemoryAttachmentStorage()) {
   const themes = new PostgresThemesRepository(database.db);
   const users = new PostgresUsersRepository(database.db);
   await new ThemesService(themes, users).ensureSeeded();
   return createApp({
     items: new PostgresItemsRepository(database.db),
+    attachments: new PostgresAttachmentsRepository(database.db),
+    attachmentStorage: storage,
     tags: new PostgresTagsRepository(database.db),
     tagCategories: new PostgresTagCategoriesRepository(database.db),
     themes,
@@ -289,5 +294,63 @@ describe('API over PostgreSQL repositories', () => {
       responses.map((response) => response.body.id).sort(),
     );
     expect(work[0].tagCount).toBe(2);
+  });
+
+  it('stores, replaces, and removes an attachment file over PostgreSQL repositories', async () => {
+    const storage = new InMemoryAttachmentStorage();
+    const app = await createPostgresApp(storage);
+    const cookie = await registerUser(request, app, 'ada@example.com');
+    const item = await postItem(app, cookie, {
+      kind: 'attachment',
+      title: 'Contract',
+    }).expect(201);
+    const pdf = Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(64, 0x20)]);
+    const png = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(32, 1),
+    ]);
+
+    const first = await request(app)
+      .put(`/api/items/${item.body.id}/attachment`)
+      .set('Cookie', cookie)
+      .attach('file', pdf, { filename: 'contract.pdf', contentType: 'application/pdf' })
+      .expect(200);
+    let rows = await database.db.select().from(attachments);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      itemId: item.body.id,
+      bucketId: 'attachments',
+      objectPath: first.body.storagePath,
+      originalFilename: 'contract.pdf',
+      mimeType: 'application/pdf',
+      sizeBytes: pdf.length,
+    });
+
+    const second = await request(app)
+      .put(`/api/items/${item.body.id}/attachment`)
+      .set('Cookie', cookie)
+      .attach('file', png, { filename: 'scan.png', contentType: 'image/png' })
+      .expect(200);
+    rows = await database.db.select().from(attachments);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].objectPath).toBe(second.body.storagePath);
+    expect([...storage.objects.keys()]).toEqual([second.body.storagePath]);
+
+    const removed = await request(app)
+      .delete(`/api/items/${item.body.id}/attachment`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(removed.body.storagePath).toBeNull();
+    expect(await database.db.select().from(attachments)).toHaveLength(0);
+    expect(storage.objects.size).toBe(0);
+
+    await request(app)
+      .put(`/api/items/${item.body.id}/attachment`)
+      .set('Cookie', cookie)
+      .attach('file', pdf, { filename: 'again.pdf', contentType: 'application/pdf' })
+      .expect(200);
+    await request(app).delete(`/api/items/${item.body.id}`).set('Cookie', cookie).expect(204);
+    expect(await database.db.select().from(attachments)).toHaveLength(0);
+    expect(storage.objects.size).toBe(0);
   });
 });

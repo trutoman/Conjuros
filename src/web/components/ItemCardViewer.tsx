@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import type { CollectionItem } from '@conjuros/contracts';
+import { downloadAttachment } from '../lib/downloadAttachment';
 import { ThemeIcon } from './ThemeIcon';
 
 export function ItemCardViewer({
@@ -13,6 +14,7 @@ export function ItemCardViewer({
   onClose: () => void;
   onEdit: () => void;
 }) {
+  const [downloadError, setDownloadError] = useState('');
   const isMarkdown = item.kind === 'markdown';
   const isAttachment = item.kind === 'attachment';
   const viewerKind = isMarkdown ? 'markdown' : isAttachment ? 'attachment' : 'file';
@@ -44,7 +46,29 @@ export function ItemCardViewer({
         </p>
       )}
       {isAttachment ? (
-        !item.storagePath && <p className="attachment-viewer-status">No file stored yet</p>
+        item.storagePath ? (
+          <div className="attachment-viewer-status">
+            <p>File stored</p>
+            <button
+              type="button"
+              onClick={() => {
+                setDownloadError('');
+                downloadAttachment(item.id).catch(() =>
+                  setDownloadError('Could not download attachment'),
+                );
+              }}
+            >
+              Download attachment
+            </button>
+            {downloadError && (
+              <p className="field-error" role="alert">
+                {downloadError}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="attachment-viewer-status">No file stored yet</p>
+        )
       ) : isMarkdown ? (
         <div
           className="content-pane-preview markdown-viewer-content"

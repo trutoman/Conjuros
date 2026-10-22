@@ -11,10 +11,12 @@ import {
   type CollectionQuery,
 } from '@conjuros/contracts';
 import { AppError } from '../errors';
+import type { AttachmentsRepository } from '../repositories/attachments.repository';
 import type { ItemsRepository, StoredCollectionItem } from '../repositories/items.repository';
+import type { AttachmentStorage } from '../storage/storage';
 import type { TagsService } from './tags.service';
 
-function toPublicItem(item: StoredCollectionItem): CollectionItem {
+export function toPublicItem(item: StoredCollectionItem): CollectionItem {
   const { ownerId, ...publicItem } = item;
   void ownerId;
   return publicItem;
@@ -24,6 +26,7 @@ export class ItemsService {
   constructor(
     private readonly repository: ItemsRepository,
     private readonly tags: Pick<TagsService, 'assertOwnedTagNames'>,
+    private readonly files?: { attachments: AttachmentsRepository; storage: AttachmentStorage | null },
   ) {}
 
   async list(ownerId: string, query: CollectionQuery) {
@@ -46,6 +49,13 @@ export class ItemsService {
   async update(ownerId: string, id: string, update: CollectionItemUpdate) {
     const current = await this.requireOwned(ownerId, id);
     const kind = update.kind ?? current.kind;
+    if (current.storagePath && kind !== 'attachment') {
+      throw new AppError(
+        409,
+        'CONFLICT',
+        'Remove the attached file before changing the item type',
+      );
+    }
     const candidate =
       kind === 'markdown'
         ? markdownUpdateCandidateSchema.parse({
@@ -111,8 +121,16 @@ export class ItemsService {
   }
 
   async delete(ownerId: string, id: string) {
+    const attachment = await this.files?.attachments.findByItem(ownerId, id);
     if (!(await this.repository.delete(id, ownerId))) {
       throw new AppError(404, 'NOT_FOUND', 'Collection item not found');
+    }
+    if (attachment && this.files?.storage) {
+      try {
+        await this.files.storage.remove([attachment.objectPath]);
+      } catch (error) {
+        console.error('Could not remove attachment object from storage', attachment.objectPath, error);
+      }
     }
   }
 

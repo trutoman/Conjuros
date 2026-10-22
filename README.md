@@ -1,6 +1,6 @@
 # Conjuros
 
-Conjuros is a private collection for commands, web links, markdown notes, plain-text files, and attachments. Markdown notes can optionally carry a `filename` (a plain `.md` file name) shown in the markdown reader and editable in the item form. Attachments reserve a `storagePath` for a future Supabase Storage object; file upload and download are not implemented yet. The data lives in a hosted Supabase PostgreSQL database; the stack runs in two Docker containers — `api` and `web` — with the React frontend served by Nginx and the API proxied on a single origin.
+Conjuros is a private collection for commands, web links, markdown notes, plain-text files, and attachments. Markdown notes can optionally carry a `filename` (a plain `.md` file name) shown in the markdown reader and editable in the item form. Attachments store their file in a private Supabase Storage bucket, with metadata in PostgreSQL, and are downloaded through short-lived signed URLs. The data lives in a hosted Supabase PostgreSQL database; the stack runs in two Docker containers — `api` and `web` — with the React frontend served by Nginx and the API proxied on a single origin.
 
 ## Local Development
 
@@ -94,6 +94,31 @@ Set the following in `.env` to enable delivery:
 - `APP_BASE_URL` — the public base URL used to build password reset links (defaults to `CORS_ORIGIN`).
 - `PASSWORD_RESET_TTL_MINUTES` — how long a reset link stays valid, in minutes (default `60`).
 
+## Attachments
+
+Attachment items keep their file in a private Supabase Storage bucket and their metadata in the `attachments` table. The API is the only Storage client: it authenticates with the service role key, so no `storage.objects` policy is granted to `anon` or `authenticated` and the browser never talks to Storage directly. Uploads, downloads, and removals are owner-checked; a download returns a signed URL valid for five minutes.
+
+Set the following in `.env` to enable file storage:
+
+- `SUPABASE_URL` — the project URL, `https://<project-ref>.supabase.co` (the ref is the suffix of the pooler user, `postgres.<project-ref>`).
+- `SUPABASE_SERVICE_ROLE_KEY` — the `service_role` / `sb_secret_…` key (**Project Settings → API Keys**). It bypasses RLS, so it stays server-side: never add it to the web build or a `VITE_*` variable.
+- `ATTACHMENT_BUCKET` — bucket name, default `attachments`.
+- `ATTACHMENT_MAX_BYTES` — maximum file size, default `52428800` (50 MiB).
+
+Both `SUPABASE_*` values are required together; with only one set, the API refuses to start. With neither set the file endpoints answer `503 STORAGE_NOT_CONFIGURED` and metadata-only attachments keep working.
+
+The bucket must be **private** and its filters must match the app: allowed MIME types `image/jpeg`, `image/png`, `image/webp`, `image/gif`, `application/pdf`, `application/msword`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/vnd.ms-excel`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `application/vnd.ms-powerpoint`, `application/vnd.openxmlformats-officedocument.presentationml.presentation`, `text/plain`, `text/csv`, `application/zip`, `application/x-7z-compressed`, `application/gzip`, `application/x-tar`, and a file size limit of `52428800`. A mismatch (a typo such as `aplication/pdf`, or a narrower `image/*` list) rejects uploads that the API accepted.
+
+Endpoints, all behind the session cookie:
+
+| Method | Path | Result |
+|---|---|---|
+| `PUT` | `/api/items/:id/attachment` | Uploads or replaces the file, returns the item |
+| `GET` | `/api/items/:id/attachment/download` | `{ url, expiresInSeconds: 300 }` |
+| `DELETE` | `/api/items/:id/attachment` | Removes the file, keeps the item |
+
+Uploads are capped by Nginx (`client_max_body_size 60m`), by the API, and by the bucket; the API also verifies size, MIME type, and the file signature. Removing an item deletes its object. Changing the kind of an item that still has a stored file is rejected with a conflict, so remove the file first.
+
 ## Troubleshooting
 
 - **Docker unavailable**: run `npm run docker:check`; install Docker or start its daemon before running Compose.
@@ -103,6 +128,9 @@ Set the following in `.env` to enable delivery:
 - **Connection timeout or `ENETUNREACH`**: use the Session pooler string, not the direct connection, which is IPv6-only on the free plan.
 - **Project paused**: free Supabase projects pause after inactivity; restore it from the dashboard and retry.
 - **Invalid configuration**: API startup stops before serving requests and names the invalid environment variable. Update `.env` without placing real values in logs, issue reports, or source control.
+- **Upload rejected with `415 UNSUPPORTED_FILE_TYPE` for a type the app allows**: the bucket's MIME filter does not match the list above (check for typos such as `aplication/pdf`). `docker compose logs api` shows the Storage message that was rejected.
+- **Upload rejected with `413`**: one of the three limits is lower than the file — `ATTACHMENT_MAX_BYTES`, Nginx `client_max_body_size`, or the bucket file size limit.
+- **Upload rejected with `503 STORAGE_UNAVAILABLE`**: Storage could not be reached or returned an unexpected error; the item keeps the file it already had. Check `docker compose logs api` for the Storage detail.
 
 ## Validation
 

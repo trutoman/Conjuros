@@ -193,7 +193,7 @@ export class InMemoryItemsRepository implements ItemsRepository {
   }
 }
 
-function toStoredItem(row: typeof collectionItems.$inferSelect): StoredCollectionItem {
+export function toStoredItem(row: typeof collectionItems.$inferSelect): StoredCollectionItem {
   return {
     id: row.id,
     ownerId: row.ownerId,

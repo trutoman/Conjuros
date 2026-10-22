@@ -1,8 +1,13 @@
 import { useRef, useState } from 'react';
+import { attachmentMaxBytes } from '@conjuros/contracts';
+import { resolveAttachmentFile } from '../lib/attachmentFile';
 import { ThemeIcon } from './ThemeIcon';
 
 const SINGLE_FILE_MESSAGE = 'Drop a single file';
 const READ_ERROR_MESSAGE = 'That file could not be read';
+const UNSUPPORTED_TYPE_MESSAGE = 'That file type is not supported';
+const EMPTY_FILE_MESSAGE = 'That file is empty';
+const TOO_LARGE_MESSAGE = `That file is larger than ${Math.round(attachmentMaxBytes / (1024 * 1024))} MB`;
 
 type DropZoneMode = 'file' | 'attachment';
 
@@ -24,7 +29,7 @@ export function DropZone({
   onFile,
 }: {
   mode: DropZoneMode;
-  onFile: (fileName: string, content: string | null) => void;
+  onFile: (fileName: string, content: string | null, file: File) => void;
 }) {
   const isAttachment = mode === 'attachment';
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,7 +44,20 @@ export function DropZone({
     readTokenRef.current = token;
     setError('');
     if (isAttachment) {
-      onFile(file.name, null);
+      const staged = resolveAttachmentFile(file);
+      const problem = !staged
+        ? UNSUPPORTED_TYPE_MESSAGE
+        : file.size === 0
+          ? EMPTY_FILE_MESSAGE
+          : file.size > attachmentMaxBytes
+            ? TOO_LARGE_MESSAGE
+            : null;
+      if (problem || !staged) {
+        setStatus('');
+        setError(problem ?? UNSUPPORTED_TYPE_MESSAGE);
+        return;
+      }
+      onFile(file.name, null, staged);
       setStatus(`Selected ${file.name}`);
       return;
     }
@@ -47,7 +65,7 @@ export function DropZone({
     try {
       const content = await readFileText(file);
       if (readTokenRef.current !== token) return;
-      onFile(file.name, content);
+      onFile(file.name, content, file);
       setStatus(`Loaded ${file.name}`);
     } catch {
       if (readTokenRef.current !== token) return;

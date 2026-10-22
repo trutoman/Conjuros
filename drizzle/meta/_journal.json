@@ -50,6 +50,13 @@
       "when": 1792619069285,
       "tag": "0006_attachment_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792703758944,
+      "tag": "0007_slippery_pestilence",
+      "breakpoints": true
     }
   ]
 }

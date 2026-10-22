@@ -4,6 +4,7 @@ import { computeTagOverflow, estimateInlineWidth } from './itemCardOverflow';
 import { markdownSlug, plainTextSlug } from '../lib/itemCardSlug';
 import { downloadMarkdownFile } from '../lib/downloadMarkdown';
 import { downloadTextFile } from '../lib/downloadFile';
+import { downloadAttachment } from '../lib/downloadAttachment';
 import { useTransientMessage } from '../hooks/useTransientMessage';
 import { ThemeIcon } from './ThemeIcon';
 
@@ -394,6 +395,24 @@ export function ItemCard({
                 label="View"
                 title="View"
                 name="view"
+              />
+            </button>
+          )}
+          {item.kind === 'attachment' && item.storagePath && (
+            <button
+              type="button"
+              className="icon-action"
+              aria-label="Download attachment"
+              onClick={() => {
+                downloadAttachment(item.id).catch(() =>
+                  showMessage('Could not download attachment', 'error'),
+                );
+              }}
+            >
+              <ThemeIcon
+                label="Download"
+                title="Download"
+                name="download"
               />
             </button>
           )}
