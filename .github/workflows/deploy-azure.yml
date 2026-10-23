@@ -65,11 +65,13 @@ jobs:
           interval="${ROLLOUT_INTERVAL_SECONDS:-10}"
 
           for attempt in $(seq 1 "$attempts"); do
-            state="$(az containerapp revision show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" \
+            # Query one property at a time: `-o tsv` prints array elements on separate lines.
+            provisioning="$(az containerapp revision show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" \
               --revision "$revision" \
-              --query "properties.[provisioningState,healthState]" -o tsv 2>/dev/null || true)"
-            provisioning="$(printf '%s\n' "$state" | cut -f1)"
-            health="$(printf '%s\n' "$state" | cut -f2)"
+              --query "properties.provisioningState" -o tsv 2>/dev/null || true)"
+            health="$(az containerapp revision show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" \
+              --revision "$revision" \
+              --query "properties.healthState" -o tsv 2>/dev/null || true)"
             echo "Attempt ${attempt}/${attempts}: ${revision} provisioning=${provisioning:-pending} health=${health:-pending}"
 
             if [ "$provisioning" = "Provisioned" ] && [ "$health" = "Healthy" ]; then
