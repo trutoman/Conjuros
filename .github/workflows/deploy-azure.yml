@@ -48,6 +48,44 @@ jobs:
       - name: Roll out new revisions
         run: |
           az containerapp update -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RESOURCE_GROUP }} \
-            --container-name conjuros-api --image ${{ vars.ACR_NAME }}.azurecr.io/conjuros-api:${{ github.sha }}
+            --container-name conjuros-api --image ${{ vars.ACR_NAME }}.azurecr.io/conjuros-api:${{ github.sha }} \
+            --revision-suffix gh${{ github.run_id }}-api
           az containerapp update -n ${{ vars.CONTAINER_APP }} -g ${{ vars.RESOURCE_GROUP }} \
-            --container-name conjuros-web --image ${{ vars.ACR_NAME }}.azurecr.io/conjuros-web:${{ github.sha }}
+            --container-name conjuros-web --image ${{ vars.ACR_NAME }}.azurecr.io/conjuros-web:${{ github.sha }} \
+            --revision-suffix gh${{ github.run_id }}-web
+
+      - name: Verify rollout
+        env:
+          CONTAINER_APP: ${{ vars.CONTAINER_APP }}
+          RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          revision="${CONTAINER_APP}--gh${RUN_ID}-web"
+          attempts="${ROLLOUT_ATTEMPTS:-60}"
+          interval="${ROLLOUT_INTERVAL_SECONDS:-10}"
+
+          for attempt in $(seq 1 "$attempts"); do
+            state="$(az containerapp revision show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" \
+              --revision "$revision" \
+              --query "properties.[provisioningState,healthState]" -o tsv 2>/dev/null || true)"
+            provisioning="$(printf '%s\n' "$state" | cut -f1)"
+            health="$(printf '%s\n' "$state" | cut -f2)"
+            echo "Attempt ${attempt}/${attempts}: ${revision} provisioning=${provisioning:-pending} health=${health:-pending}"
+
+            if [ "$provisioning" = "Provisioned" ] && [ "$health" = "Healthy" ]; then
+              echo "Revision ${revision} is healthy."
+              exit 0
+            fi
+
+            if [ "$provisioning" = "Failed" ]; then
+              echo "::error::Revision ${revision} failed to provision."
+              break
+            fi
+
+            sleep "$interval"
+          done
+
+          az containerapp logs show -n "$CONTAINER_APP" -g "$RESOURCE_GROUP" \
+            --container conjuros-api --revision "$revision" --tail 100 || true
+          echo "::error::Revision ${revision} did not become healthy within the rollout timeout."
+          exit 1

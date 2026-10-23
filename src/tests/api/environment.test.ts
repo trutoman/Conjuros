@@ -136,6 +136,8 @@ describe('parseApiEnvironment', () => {
     ['SMTP_URL', 'not a URL', { ...validEnvironment, SMTP_URL: 'smtp.example.com:587' }],
     ['MAIL_FROM', 'not an email', { ...validEnvironment, MAIL_FROM: 'not-an-email' }],
     ['APP_BASE_URL', 'not a URL', { ...validEnvironment, APP_BASE_URL: 'conjuros.example.com' }],
+    ['APP_BASE_URL', 'not an HTTP URL', { ...validEnvironment, APP_BASE_URL: 'ftp://conjuros.example.com' }],
+    ['SUPABASE_URL', 'a URL without a scheme', { ...validEnvironment, SUPABASE_URL: 'project.supabase.co' }],
     [
       'PASSWORD_RESET_TTL_MINUTES',
       'not a positive integer',
@@ -210,5 +212,40 @@ describe('parseApiEnvironment', () => {
     });
     expect(message).toContain('SUPABASE_SERVICE_ROLE_KEY');
     expect(message).not.toContain('project.supabase.co');
+  });
+
+  it('rejects a Storage URL without a valid scheme before the Storage client is built', () => {
+    const message = invalidEnvironmentMessage({
+      ...validEnvironment,
+      SUPABASE_URL: 'ttps://project.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+    });
+
+    expect(message).toBe('Invalid environment configuration: SUPABASE_URL');
+    expect(message).not.toContain('ttps://project.supabase.co');
+  });
+
+  it('accepts absolute HTTPS service URLs', () => {
+    expect(
+      parseApiEnvironment({
+        ...validEnvironment,
+        SUPABASE_URL: 'https://project.supabase.co',
+        SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+        CORS_ORIGIN: 'https://conjuros.example.com',
+        APP_BASE_URL: 'https://conjuros.example.com',
+      }),
+    ).toMatchObject({
+      supabaseUrl: 'https://project.supabase.co',
+      corsOrigin: 'https://conjuros.example.com',
+      appBaseUrl: 'https://conjuros.example.com',
+    });
+  });
+
+  it('keeps URL defaults when the optional URLs are unset', () => {
+    expect(parseApiEnvironment(validEnvironment)).toMatchObject({
+      supabaseUrl: null,
+      corsOrigin: 'http://localhost:5173',
+      appBaseUrl: 'http://localhost:5173',
+    });
   });
 });

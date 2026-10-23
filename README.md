@@ -79,9 +79,18 @@ Never copy production credentials into a local `.env`.
 
 1. Develop on a branch and run it against the DEV database. If the change adds a migration (`npm run db:generate`), apply it to DEV (it runs at API startup or with `npm run db:migrate`) and test with it.
 2. Open a pull request; the `CI` workflow runs `npm run check`.
-3. Merge to `main`. The deploy workflow runs the same checks and only then builds and rolls out the new revision.
+3. Merge to `main`. The deploy workflow runs the same checks, builds the images, rolls out a revision named `conjuros-web--gh<run-id>-web`, and then waits until that revision is provisioned and healthy. If it does not become healthy within the timeout, the job fails and prints the API container logs for that revision.
 
 Migrations are applied automatically when the production API starts, so always test them on DEV first. Before releasing a destructive migration (dropping or rewriting columns or tables), export a backup of the production database.
+
+If a rollout stays unhealthy, reactivate the previous revision while you investigate:
+
+```bash
+az containerapp revision list -n <container-app> -g <resource-group> -o table
+az containerapp revision activate -n <container-app> -g <resource-group> --revision <previous-revision>
+```
+
+The container app and resource group are the `CONTAINER_APP` and `RESOURCE_GROUP` repository variables used by the workflow.
 
 ## Email
 
@@ -91,7 +100,7 @@ Set the following in `.env` to enable delivery:
 
 - `SMTP_URL` — an `smtp:` or `smtps:` connection URL (for example `smtp://user:password@smtp.example.com:587`).
 - `MAIL_FROM` — the sender address; required when `SMTP_URL` is set.
-- `APP_BASE_URL` — the public base URL used to build password reset links (defaults to `CORS_ORIGIN`).
+- `APP_BASE_URL` — the public base URL used to build password reset links (defaults to `CORS_ORIGIN`), as an absolute `http:` or `https:` URL.
 - `PASSWORD_RESET_TTL_MINUTES` — how long a reset link stays valid, in minutes (default `60`).
 
 ## Attachments
@@ -100,7 +109,7 @@ Attachment items keep their file in a private Supabase Storage bucket and their 
 
 Set the following in `.env` to enable file storage:
 
-- `SUPABASE_URL` — the project URL, `https://<project-ref>.supabase.co` (the ref is the suffix of the pooler user, `postgres.<project-ref>`).
+- `SUPABASE_URL` — the project URL, `https://<project-ref>.supabase.co` (the ref is the suffix of the pooler user, `postgres.<project-ref>`). It must be an absolute `http:` or `https:` URL; the API rejects a missing or malformed scheme before it starts.
 - `SUPABASE_SERVICE_ROLE_KEY` — the `service_role` / `sb_secret_…` key (**Project Settings → API Keys**). It bypasses RLS, so it stays server-side: never add it to the web build or a `VITE_*` variable.
 - `ATTACHMENT_BUCKET` — bucket name, default `attachments`.
 - `ATTACHMENT_MAX_BYTES` — maximum file size, default `52428800` (50 MiB).

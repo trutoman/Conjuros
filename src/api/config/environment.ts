@@ -30,12 +30,24 @@ const smtpUrlSchema = nonBlankString.refine(
   { message: 'Must use the smtp: or smtps: protocol' },
 );
 
+const httpUrlSchema = nonBlankString.refine(
+  (value) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  },
+  { message: 'Must be an absolute http: or https: URL' },
+);
+
 const apiEnvironmentSchema = z
   .object({
     DATABASE_URL: databaseUrlSchema,
     SESSION_SECRET: nonBlankString.min(32),
     ADMIN_EMAIL: z.preprocess(blankToUndefined, emailSchema.optional()),
-    CORS_ORIGIN: z.preprocess(blankToUndefined, z.string().trim().url().optional()),
+    CORS_ORIGIN: z.preprocess(blankToUndefined, httpUrlSchema.optional()),
     PORT: z.preprocess(
       blankToUndefined,
       z.coerce.number().int().min(1).max(65_535).optional(),
@@ -44,12 +56,12 @@ const apiEnvironmentSchema = z
     DATABASE_SSL_CA: z.preprocess(blankToUndefined, nonBlankString.optional()),
     SMTP_URL: z.preprocess(blankToUndefined, smtpUrlSchema.optional()),
     MAIL_FROM: z.preprocess(blankToUndefined, emailSchema.optional()),
-    APP_BASE_URL: z.preprocess(blankToUndefined, z.string().trim().url().optional()),
+    APP_BASE_URL: z.preprocess(blankToUndefined, httpUrlSchema.optional()),
     PASSWORD_RESET_TTL_MINUTES: z.preprocess(
       blankToUndefined,
       z.coerce.number().int().positive().optional(),
     ),
-    SUPABASE_URL: z.preprocess(blankToUndefined, z.string().trim().url().optional()),
+    SUPABASE_URL: z.preprocess(blankToUndefined, httpUrlSchema.optional()),
     SUPABASE_SERVICE_ROLE_KEY: z.preprocess(blankToUndefined, nonBlankString.optional()),
     ATTACHMENT_BUCKET: z.preprocess(blankToUndefined, nonBlankString.optional()),
     ATTACHMENT_MAX_BYTES: z.preprocess(
