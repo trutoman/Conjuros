@@ -92,6 +92,20 @@ az containerapp revision activate -n <container-app> -g <resource-group> --revis
 
 The container app and resource group are the `CONTAINER_APP` and `RESOURCE_GROUP` repository variables used by the workflow.
 
+### Origin protection
+
+Cloudflare is the only public entry point: the container app ingress accepts traffic only from the IPv4 ranges that Cloudflare publishes at [cloudflare.com/ips-v4](https://www.cloudflare.com/ips-v4). Requests that reach the container app FQDN directly are answered with `403 RBAC: Access Denied`, so the WAF, rate limiting and Bot Fight Mode cannot be bypassed.
+
+Cloudflare adds and retires ranges from time to time. The `Cloudflare IP allowlist drift` workflow runs every Monday, compares the published ranges with the ingress rules and, when they differ, opens (or comments on) an issue labelled `infra` whose body contains the exact `az containerapp ingress access-restriction set` commands to run. The job fails only when the allowlist needs action; extra rules are reported as a warning.
+
+To check by hand:
+
+```bash
+npm run infra:cloudflare-ips
+```
+
+After applying a fix, re-run that command (or the workflow) until it reports that the allowlist matches. Verify with `curl` that `https://conjuros.app/` still answers `200` and that the container app FQDN answers `403`.
+
 ## Email
 
 The API sends account emails — a welcome message when an account is created by registration and a link to reset a forgotten password — through SMTP. Email is optional: when `SMTP_URL` is not set, the API logs each message to the console instead of delivering it, so local development needs no mail server.

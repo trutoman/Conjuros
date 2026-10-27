@@ -1,0 +1,90 @@
+name: Cloudflare IP allowlist drift
+
+on:
+  schedule:
+    # Mondays at 06:00 UTC (07:00 or 08:00 in Spain, depending on DST).
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+concurrency:
+  group: cloudflare-ips
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Compare Cloudflare ranges with the container app allowlist
+        id: drift
+        continue-on-error: true
+        run: |
+          node scripts/check-cloudflare-ips.mjs \
+            --container-app "${{ vars.CONTAINER_APP }}" \
+            --resource-group "${{ vars.RESOURCE_GROUP }}" \
+            --json-out drift.json \
+            --markdown-out issue.md
+
+      - name: Upload the drift report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-ips-drift
+          path: |
+            drift.json
+            issue.md
+          if-no-files-found: ignore
+
+      - name: Open or update the drift issue
+        if: steps.drift.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ ! -f issue.md ]; then
+            echo "No issue report was generated; see the job log above."
+            exit 0
+          fi
+
+          gh label create infra --color BFD4F2 --description "Infrastructure" 2>/dev/null || true
+
+          existing="$(gh issue list --repo "${{ github.repository }}" --state open --label infra \
+            --search 'in:title "Cloudflare IP allowlist drift"' \
+            --json number --jq '.[0].number // empty')"
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "${{ github.repository }}" --body-file issue.md
+          else
+            gh issue create --repo "${{ github.repository }}" --label infra \
+              --title "Cloudflare IP allowlist drift ($(date -u +%F))" \
+              --body-file issue.md
+          fi
+
+      - name: Fail when the allowlist needs action
+        if: steps.drift.outcome == 'failure'
+        run: |
+          if [ ! -f drift.json ]; then
+            echo "::error::The drift check did not produce a report."
+            exit 1
+          fi
+
+          status="$(jq -r '.status // empty' drift.json)"
+          if [ "$status" = "cleanup" ]; then
+            echo "::warning::Extra allow rules found; see the issue for cleanup commands."
+            exit 0
+          fi
+
+          echo "::error::Cloudflare allowlist status: ${status:-unknown}"
+          exit 1

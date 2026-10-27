@@ -15,6 +15,7 @@
     "build": "tsc --noEmit && vite build",
     "check": "pnpm run lint && pnpm run test && pnpm run build",
     "docker:check": "node scripts/check-docker.mjs",
+    "infra:cloudflare-ips": "node scripts/check-cloudflare-ips.mjs --container-app conjuros-web --resource-group conjuros-rg",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "lint": "eslint .",
