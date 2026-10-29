@@ -34,6 +34,7 @@ import { useCollectionFilters } from '../hooks/useCollectionFilters';
 import { useTags } from '../hooks/useTags';
 import { useTagCategories } from '../hooks/useTagCategories';
 import { useThemes } from '../hooks/useThemes';
+import { isImageAttachment } from '../lib/attachmentPreview';
 
 const MOBILE_BREAKPOINT_PX = 768;
 
@@ -469,7 +470,7 @@ export function CollectionPage({
                     : `View file ${viewerItem.title}`
               }
               onClose={closeViewer}
-              size="wide"
+              size={isImageAttachment(viewerItem) ? 'full' : 'wide'}
             >
               <ItemCardViewer
                 item={viewerItem}

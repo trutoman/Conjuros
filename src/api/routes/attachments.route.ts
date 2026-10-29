@@ -9,5 +9,6 @@ export function createAttachmentsRouter(
     .use(requireAuth)
     .put('/:id/attachment', controller.ensureConfigured, controller.receiveFile, controller.store)
     .get('/:id/attachment/download', controller.download)
+    .get('/:id/attachment/preview', controller.preview)
     .delete('/:id/attachment', controller.remove);
 }

@@ -1,7 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ItemCardViewer } from '../ItemCardViewer';
+import { clearAttachmentPreviewCache } from '../../lib/attachmentPreview';
 import { createAttachmentItem, createFileItem, createMarkdownItem } from './itemCard.fixtures';
+
+afterEach(() => {
+  clearAttachmentPreviewCache();
+  vi.unstubAllGlobals();
+});
 
 describe('ItemCardViewer', () => {
   it('shows "View markdown" and the item title in the header', () => {
@@ -173,6 +179,89 @@ describe('ItemCardViewer', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
       expect(onEdit).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders a stored image preview inside a frame', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          url: 'https://storage.test/image.png?token=1',
+          expiresInSeconds: 300,
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { container } = render(
+        <ItemCardViewer
+          item={createAttachmentItem({
+            filename: 'photo.png',
+            storagePath: 'owner/file.png',
+            mimeType: 'image/png',
+          })}
+          onClose={vi.fn()}
+          onEdit={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText('Loading image preview…')).toBeInTheDocument();
+      const image = await screen.findByRole('img', { name: 'photo.png' });
+
+      expect(image).toHaveAttribute('src', 'https://storage.test/image.png?token=1');
+      expect(container.querySelector('.attachment-image-frame')).not.toBeNull();
+      expect(screen.getByRole('button', { name: 'Download attachment' })).toBeInTheDocument();
+      expect(screen.getByText('File stored')).toBeInTheDocument();
+    });
+
+    it('reports a preview failure while keeping the metadata and download', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: async () => ({ error: { message: 'Storage unavailable' } }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      render(
+        <ItemCardViewer
+          item={createAttachmentItem({
+            filename: 'photo.png',
+            storagePath: 'owner/file.png',
+            mimeType: 'image/png',
+          })}
+          onClose={vi.fn()}
+          onEdit={vi.fn()}
+        />,
+      );
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not load image preview');
+      await waitFor(() =>
+        expect(screen.queryByText('Loading image preview…')).not.toBeInTheDocument(),
+      );
+      expect(screen.getByRole('button', { name: 'Download attachment' })).toBeInTheDocument();
+      expect(screen.getByText('File stored')).toBeInTheDocument();
+      expect(screen.getByText('photo.png')).toBeInTheDocument();
+    });
+
+    it('does not request a preview for non-image attachments', () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+
+      render(
+        <ItemCardViewer
+          item={createAttachmentItem({
+            filename: 'contract.pdf',
+            storagePath: 'owner/file.pdf',
+            mimeType: 'application/pdf',
+          })}
+          onClose={vi.fn()}
+          onEdit={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByRole('img', { name: 'contract.pdf' })).not.toBeInTheDocument();
+      expect(screen.queryByText('Loading image preview…')).not.toBeInTheDocument();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(screen.getByText('File stored')).toBeInTheDocument();
     });
   });
 });

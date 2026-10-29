@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { CollectionItem } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
+import { clearAttachmentPreviewCache } from '../../lib/attachmentPreview';
 
 const reorderMock = vi.fn().mockResolvedValue(undefined);
 const collectionItems: CollectionItem[] = [
@@ -18,6 +19,7 @@ const collectionItems: CollectionItem[] = [
     content: null,
     filename: null,
     storagePath: null,
+    mimeType: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
@@ -34,6 +36,7 @@ const collectionItems: CollectionItem[] = [
     content: null,
     filename: null,
     storagePath: null,
+    mimeType: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
@@ -111,6 +114,8 @@ vi.mock('../../hooks/useThemes', () => ({
 afterEach(() => {
   sessionStorage.clear();
   localStorage.clear();
+  clearAttachmentPreviewCache();
+  vi.unstubAllGlobals();
   reorderMock.mockReset();
   reorderMock.mockResolvedValue(undefined);
   collectionState.items = collectionItems;
@@ -349,6 +354,7 @@ describe('CollectionPage', () => {
         content: '# Runbook\n\nSteps here.',
         filename: null,
         storagePath: null,
+        mimeType: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -382,6 +388,7 @@ describe('CollectionPage', () => {
         content: '# Runbook\n\nSteps here.',
         filename: null,
         storagePath: null,
+        mimeType: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -414,6 +421,7 @@ describe('CollectionPage', () => {
         content: '# Runbook\n\nSteps here.',
         filename: null,
         storagePath: null,
+        mimeType: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -448,6 +456,7 @@ describe('CollectionPage', () => {
         content: '# Runbook\n\nSteps here.',
         filename: null,
         storagePath: null,
+        mimeType: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -478,6 +487,7 @@ describe('CollectionPage', () => {
         content: '# Runbook\n\nSteps here.',
         filename: null,
         storagePath: null,
+        mimeType: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -509,6 +519,7 @@ describe('CollectionPage', () => {
         content: '# Runbook\n\nSteps here.',
         filename: null,
         storagePath: null,
+        mimeType: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -525,6 +536,7 @@ describe('CollectionPage', () => {
         content: null,
         filename: null,
         storagePath: null,
+        mimeType: null,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
       },
@@ -538,6 +550,92 @@ describe('CollectionPage', () => {
 
     expect(screen.getAllByText('Runbook').length).toBeGreaterThan(0);
     expect(screen.queryByText('Git status')).not.toBeInTheDocument();
+  });
+
+  describe('attachment image viewer', () => {
+    const imageItem: CollectionItem = {
+      id: 'att-image',
+      kind: 'attachment',
+      title: 'Photo',
+      description: '',
+      tags: [],
+      order: 1,
+      relatedItemIds: [],
+      command: null,
+      url: null,
+      content: null,
+      filename: 'photo.png',
+      storagePath: 'owner/file.png',
+      mimeType: 'image/png',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    function stubPreview() {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          url: 'https://storage.test/image.png?token=1',
+          expiresInSeconds: 300,
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      collectionState.items = [imageItem];
+      collectionState.total = 1;
+      return fetchMock;
+    }
+
+    it('opens a full-size image modal and closes on backdrop click', async () => {
+      stubPreview();
+      render(<CollectionPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'View attachment' }));
+
+      const dialog = screen.getByRole('dialog', { name: 'View attachment Photo' });
+      expect(dialog.className).toContain('modal-panel-full');
+      const image = await within(dialog).findByRole('img', { name: 'photo.png' });
+      expect(image).toHaveAttribute('src', 'https://storage.test/image.png?token=1');
+      expect(within(dialog).getByText('File stored')).toBeInTheDocument();
+
+      fireEvent.mouseDown(screen.getByTestId('modal-backdrop'));
+
+      expect(screen.queryByRole('dialog', { name: /View attachment/ })).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
+    });
+
+    it('closes the image modal on Escape', async () => {
+      stubPreview();
+      render(<CollectionPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'View attachment' }));
+      const dialog = screen.getByRole('dialog', { name: 'View attachment Photo' });
+      await within(dialog).findByRole('img', { name: 'photo.png' });
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(screen.queryByRole('dialog', { name: /View attachment/ })).not.toBeInTheDocument();
+    });
+
+    it('keeps the viewer wide for non-image attachments', () => {
+      vi.stubGlobal('fetch', vi.fn());
+      collectionState.items = [
+        {
+          ...imageItem,
+          filename: 'contract.pdf',
+          storagePath: 'owner/file.pdf',
+          mimeType: 'application/pdf',
+        },
+      ];
+      collectionState.total = 1;
+      render(<CollectionPage />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'View attachment' }));
+
+      const dialog = screen.getByRole('dialog', { name: 'View attachment Photo' });
+      expect(dialog.className).toContain('modal-panel-wide');
+      expect(dialog.className).not.toContain('modal-panel-full');
+    });
   });
 
   describe('attachment files', () => {

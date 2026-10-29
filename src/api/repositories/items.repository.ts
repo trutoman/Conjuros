@@ -16,7 +16,7 @@ import {
 import type { CollectionItem, CollectionItemInput, CollectionQuery } from '@conjuros/contracts';
 import type { Database } from '../db/client';
 import { renumberOwnedRows } from '../db/reorder';
-import { collectionItems } from '../db/schema';
+import { collectionItems, attachments } from '../db/schema';
 import { containsPattern } from '../db/sql';
 
 export interface StoredCollectionItem extends CollectionItem {
@@ -127,6 +127,7 @@ export class InMemoryItemsRepository implements ItemsRepository {
           ? (input.filename ?? null)
           : null,
       storagePath: null,
+      mimeType: null,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -193,7 +194,10 @@ export class InMemoryItemsRepository implements ItemsRepository {
   }
 }
 
-export function toStoredItem(row: typeof collectionItems.$inferSelect): StoredCollectionItem {
+export function toStoredItem(
+  row: typeof collectionItems.$inferSelect,
+  mimeType: string | null = null,
+): StoredCollectionItem {
   return {
     id: row.id,
     ownerId: row.ownerId,
@@ -208,6 +212,7 @@ export function toStoredItem(row: typeof collectionItems.$inferSelect): StoredCo
     content: row.content,
     filename: row.filename,
     storagePath: row.storagePath,
+    mimeType,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -216,6 +221,18 @@ export function toStoredItem(row: typeof collectionItems.$inferSelect): StoredCo
 function owned(ownerId: string, id: string) {
   return and(eq(collectionItems.id, id), eq(collectionItems.ownerId, ownerId));
 }
+
+function attachmentOwnedByItem() {
+  return and(
+    eq(attachments.itemId, collectionItems.id),
+    eq(attachments.userId, collectionItems.ownerId),
+  );
+}
+
+const itemWithMimeType = {
+  item: collectionItems,
+  mimeType: attachments.mimeType,
+};
 
 function listCondition(ownerId: string, query: CollectionQuery) {
   const conditions: (SQL | undefined)[] = [eq(collectionItems.ownerId, ownerId)];
@@ -258,40 +275,50 @@ export class PostgresItemsRepository implements ItemsRepository {
     // The id tie-break keeps pages stable when many rows share the sort key (a reorder gives them one updated_at).
     const [rows, [{ total }]] = await Promise.all([
       this.db
-        .select()
+        .select(itemWithMimeType)
         .from(collectionItems)
+        .leftJoin(attachments, attachmentOwnedByItem())
         .where(where)
         .orderBy(sort, asc(collectionItems.id))
         .limit(query.limit)
         .offset(query.skip),
       this.db.select({ total: count() }).from(collectionItems).where(where),
     ]);
-    return { items: rows.map(toStoredItem), total };
+    return {
+      items: rows.map((row) => toStoredItem(row.item, row.mimeType)),
+      total,
+    };
   }
 
   async findOwned(id: string, ownerId: string) {
-    const [row] = await this.db.select().from(collectionItems).where(owned(ownerId, id));
-    return row ? toStoredItem(row) : null;
+    const [row] = await this.db
+      .select(itemWithMimeType)
+      .from(collectionItems)
+      .leftJoin(attachments, attachmentOwnedByItem())
+      .where(owned(ownerId, id));
+    return row ? toStoredItem(row.item, row.mimeType) : null;
   }
 
   async findOwnedByIds(ids: string[], ownerId: string) {
     if (ids.length === 0) return [];
     const rows = await this.db
-      .select()
+      .select(itemWithMimeType)
       .from(collectionItems)
+      .leftJoin(attachments, attachmentOwnedByItem())
       .where(and(eq(collectionItems.ownerId, ownerId), inArray(collectionItems.id, ids)))
       .orderBy(asc(collectionItems.order), asc(collectionItems.id));
-    return rows.map(toStoredItem);
+    return rows.map((row) => toStoredItem(row.item, row.mimeType));
   }
 
   async findOwnedByTags(ownerId: string, tags: string[]) {
     if (tags.length === 0) return [];
     const rows = await this.db
-      .select()
+      .select(itemWithMimeType)
       .from(collectionItems)
+      .leftJoin(attachments, attachmentOwnedByItem())
       .where(and(eq(collectionItems.ownerId, ownerId), arrayContains(collectionItems.tags, tags)))
       .orderBy(asc(collectionItems.order), asc(collectionItems.id));
-    return rows.map(toStoredItem);
+    return rows.map((row) => toStoredItem(row.item, row.mimeType));
   }
 
   async nextOrder(ownerId: string) {
@@ -363,8 +390,12 @@ export class PostgresItemsRepository implements ItemsRepository {
   async reorder(id: string, ownerId: string, order: number) {
     return this.db.transaction(async (tx) => {
       if (!(await renumberOwnedRows(tx, collectionItems, ownerId, id, order))) return null;
-      const [row] = await tx.select().from(collectionItems).where(owned(ownerId, id));
-      return toStoredItem(row);
+      const [row] = await tx
+        .select(itemWithMimeType)
+        .from(collectionItems)
+        .leftJoin(attachments, attachmentOwnedByItem())
+        .where(owned(ownerId, id));
+      return row ? toStoredItem(row.item, row.mimeType) : null;
     });
   }
 

@@ -408,6 +408,24 @@ select {
   border-left-color: var(--attachment);
 }
 
+.attachment-card-preview-frame {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.attachment-card-preview {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 85px;
+  max-height: 85px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface-muted);
+}
+
 .icon.attachment-icon {
   stroke-width: 60;
 }
@@ -987,6 +1005,35 @@ select {
   text-align: center;
 }
 
+.attachment-image-pane {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.attachment-image-frame {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.attachment-image-preview {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: calc(100vh - 16rem);
+  max-height: calc(100dvh - 16rem);
+  object-fit: contain;
+}
+
 .markdown-item-viewer .markdown-viewer-content {
   flex: 1 1 auto;
   min-height: 12rem;
@@ -1498,6 +1545,10 @@ select {
 
 .modal-panel-wide {
   width: min(56rem, 100%);
+}
+
+.modal-panel-full {
+  width: min(calc(100vw - 2rem), 100%);
 }
 
 .modal-panel > .item-form {

@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import type { CollectionItem } from '@conjuros/contracts';
 import { downloadAttachment } from '../lib/downloadAttachment';
+import {
+  getAttachmentPreviewUrl,
+  isImageAttachment,
+} from '../lib/attachmentPreview';
 import { ThemeIcon } from './ThemeIcon';
 
 export function ItemCardViewer({
@@ -15,13 +19,39 @@ export function ItemCardViewer({
   onEdit: () => void;
 }) {
   const [downloadError, setDownloadError] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState('');
   const isMarkdown = item.kind === 'markdown';
   const isAttachment = item.kind === 'attachment';
+  const showsImagePreview = isImageAttachment(item);
   const viewerKind = isMarkdown ? 'markdown' : isAttachment ? 'attachment' : 'file';
   const html = useMemo(
     () => (isMarkdown ? DOMPurify.sanitize(marked.parse(item.content ?? '') as string) : ''),
     [isMarkdown, item.content],
   );
+
+  useEffect(() => {
+    if (!showsImagePreview) {
+      setPreviewUrl(null);
+      setPreviewError('');
+      return;
+    }
+
+    let cancelled = false;
+    setPreviewUrl(null);
+    setPreviewError('');
+    getAttachmentPreviewUrl(item)
+      .then((url) => {
+        if (!cancelled) setPreviewUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setPreviewError('Could not load image preview');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [item, showsImagePreview]);
 
   return (
     <div className="item-form markdown-item-viewer">
@@ -44,6 +74,29 @@ export function ItemCardViewer({
         <p className="markdown-viewer-filename">
           <span>Filename</span> {item.filename}
         </p>
+      )}
+      {showsImagePreview && (
+        <div className="attachment-image-pane">
+          {previewUrl ? (
+            <figure className="attachment-image-frame">
+              <img
+                className="attachment-image-preview"
+                src={previewUrl}
+                alt={item.filename ?? item.title}
+                onError={() => {
+                  setPreviewUrl(null);
+                  setPreviewError('Could not load image preview');
+                }}
+              />
+            </figure>
+          ) : previewError ? (
+            <p className="field-error" role="alert">
+              {previewError}
+            </p>
+          ) : (
+            <p className="attachment-viewer-status">Loading image preview…</p>
+          )}
+        </div>
       )}
       {isAttachment ? (
         item.storagePath ? (

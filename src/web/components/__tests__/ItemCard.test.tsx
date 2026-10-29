@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import type { CollectionItem, Tag } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ItemCard } from '../ItemCard';
+import { clearAttachmentPreviewCache } from '../../lib/attachmentPreview';
 import { ThemeIconsContext, type ThemeIcons } from '../ThemeIconsContext';
 import { ICON_ASSETS } from '../../lib/iconAssets';
 import {
@@ -119,6 +120,7 @@ function mockNarrowTopRowLayout(width = 220) {
 }
 
 afterEach(() => {
+  clearAttachmentPreviewCache();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -800,6 +802,134 @@ describe('ItemCard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'View attachment' }));
 
       expect(onView).toHaveBeenCalledWith(createAttachmentItem());
+    });
+
+    it('shows a thumbnail preview for a stored image attachment', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          url: 'https://storage.test/thumb.png?token=1',
+          expiresInSeconds: 300,
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { container } = renderItemCard({
+        item: createAttachmentItem({
+          filename: 'photo.png',
+          storagePath: 'owner/file.png',
+          mimeType: 'image/png',
+        }),
+      });
+
+      const preview = await screen.findByRole('img', { name: 'Preview of photo.png' });
+      expect(preview).toHaveAttribute('src', 'https://storage.test/thumb.png?token=1');
+      expect(container.querySelector('.attachment-card-preview')).not.toBeNull();
+
+      const titleRow = preview.closest('.item-title-row');
+      expect(titleRow).not.toBeNull();
+      const contentBox = container.querySelector('.item-inline-content-box');
+      const tags = container.querySelector('.tags');
+      expect(contentBox).not.toBeNull();
+      expect(tags).not.toBeNull();
+      expect(
+        contentBox!.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        preview.compareDocumentPosition(tags!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(tags!.contains(preview)).toBe(false);
+      expect(container.querySelector('.item-card > .attachment-card-preview-frame')).toBeNull();
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/items/attachment-1/attachment/preview',
+        expect.anything(),
+      );
+    });
+
+    it('reserves the thumbnail width when collapsing overflowing tags', async () => {
+      mockNarrowTopRowLayout();
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            url: 'https://storage.test/thumb.png?token=1',
+            expiresInSeconds: 300,
+          }),
+        }),
+      );
+
+      renderItemCard({
+        item: createAttachmentItem({
+          filename: 'photo.png',
+          storagePath: 'owner/file.png',
+          mimeType: 'image/png',
+          tags: denseTags.map((tag) => tag.tagName),
+        }),
+        tags: denseTags,
+      });
+
+      expect(
+        await screen.findByRole('button', { name: 'Show 4 hidden tags' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText('git')).not.toBeInTheDocument();
+    });
+
+    it('shows no thumbnail for non-image or empty attachments', () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { rerender } = renderItemCard({
+        item: createAttachmentItem({
+          filename: 'report.pdf',
+          storagePath: 'owner/file.pdf',
+          mimeType: 'application/pdf',
+        }),
+      });
+      expect(screen.queryByRole('img', { name: /Preview of/ })).not.toBeInTheDocument();
+
+      rerender(
+        <ItemCard
+          item={createAttachmentItem({
+            filename: 'photo.png',
+            storagePath: null,
+            mimeType: 'image/png',
+          })}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          isMenuOpen={false}
+          onMenuToggle={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByRole('img', { name: /Preview of/ })).not.toBeInTheDocument();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('keeps the card usable when the thumbnail preview fails', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: async () => ({ error: { message: 'Storage unavailable' } }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      renderItemCard({
+        item: createAttachmentItem({
+          filename: 'photo.png',
+          storagePath: 'owner/file.png',
+          mimeType: 'image/png',
+        }),
+      });
+
+      await screen.findByText('photo.png');
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+      expect(screen.queryByRole('img', { name: /Preview of/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'View attachment' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Download attachment' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'View attachment' })).toBeInTheDocument();
     });
   });
 });

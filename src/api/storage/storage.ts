@@ -3,7 +3,7 @@ import { toStorageError } from './storageErrors';
 
 export interface AttachmentStorage {
   upload(path: string, body: Buffer, contentType: string): Promise<void>;
-  createSignedUrl(path: string, expiresInSeconds: number, downloadName: string): Promise<string>;
+  createSignedUrl(path: string, expiresInSeconds: number, downloadName?: string): Promise<string>;
   remove(paths: string[]): Promise<void>;
 }
 
@@ -39,11 +39,12 @@ export class SupabaseAttachmentStorage implements AttachmentStorage {
   async createSignedUrl(
     path: string,
     expiresInSeconds: number,
-    downloadName: string,
+    downloadName?: string,
   ): Promise<string> {
+    const options = downloadName ? { download: downloadName } : undefined;
     const { data, error } = await this.client.storage
       .from(this.bucket)
-      .createSignedUrl(path, expiresInSeconds, { download: downloadName });
+      .createSignedUrl(path, expiresInSeconds, options);
     if (error || !data) {
       const detail = error?.message ?? 'no signed URL returned';
       console.error('Storage could not sign a download', { path, detail });
@@ -73,10 +74,11 @@ export class InMemoryAttachmentStorage implements AttachmentStorage {
   async createSignedUrl(
     path: string,
     expiresInSeconds: number,
-    downloadName: string,
+    downloadName?: string,
   ): Promise<string> {
     if (!this.objects.has(path)) throw new Error('Storage object not found');
-    const query = new URLSearchParams({ expires: String(expiresInSeconds), download: downloadName });
+    const query = new URLSearchParams({ expires: String(expiresInSeconds) });
+    if (downloadName) query.set('download', downloadName);
     return `https://storage.test/object/sign/${path}?${query.toString()}`;
   }
 

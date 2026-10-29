@@ -29,7 +29,12 @@ async function createAttachment(context: TestContext, cookie: string, body: obje
     .set('Cookie', cookie)
     .send({ kind: 'attachment', title: 'Report', tags: [], relatedItemIds: [], ...body })
     .expect(201);
-  return response.body as { id: string; filename: string | null; storagePath: string | null };
+  return response.body as {
+    id: string;
+    filename: string | null;
+    storagePath: string | null;
+    mimeType: string | null;
+  };
 }
 
 function upload(
@@ -120,6 +125,81 @@ describe('attachment file endpoints', () => {
 
     await request(context.app)
       .get(`/api/items/${item.id}/attachment/download`)
+      .set('Cookie', cookie)
+      .expect(404);
+  });
+
+  it('exposes the stored file MIME type on item responses', async () => {
+    const context = createTestApp();
+    const cookie = await registerUser(request, context.app, 'owner@example.com');
+    const item = await createAttachment(context, cookie);
+    expect(item.mimeType).toBeNull();
+
+    const uploaded = await upload(context, cookie, item.id, {
+      buffer: png,
+      filename: 'preview.png',
+      contentType: 'image/png',
+    }).expect(200);
+    expect(uploaded.body.mimeType).toBe('image/png');
+
+    const listed = await request(context.app).get('/api/items').set('Cookie', cookie).expect(200);
+    expect(listed.body.items[0].mimeType).toBe('image/png');
+
+    const command = await request(context.app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({ kind: 'command', title: 'Status', tags: [], relatedItemIds: [], command: 'git status' })
+      .expect(201);
+    expect(command.body.mimeType).toBeNull();
+
+    const removed = await request(context.app)
+      .delete(`/api/items/${item.id}/attachment`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(removed.body.mimeType).toBeNull();
+  });
+
+  it('returns a five-minute inline signed URL for an image preview', async () => {
+    const context = createTestApp();
+    const cookie = await registerUser(request, context.app, 'owner@example.com');
+    const item = await createAttachment(context, cookie);
+    await upload(context, cookie, item.id, {
+      buffer: png,
+      filename: 'preview.png',
+      contentType: 'image/png',
+    }).expect(200);
+
+    const response = await request(context.app)
+      .get(`/api/items/${item.id}/attachment/preview`)
+      .set('Cookie', cookie)
+      .expect(200);
+
+    expect(response.body.expiresInSeconds).toBe(300);
+    expect(response.body.url).toContain('expires=300');
+    expect(new URL(response.body.url).searchParams.has('download')).toBe(false);
+  });
+
+  it('rejects inline previews of non-image files', async () => {
+    const context = createTestApp();
+    const cookie = await registerUser(request, context.app, 'owner@example.com');
+    const item = await createAttachment(context, cookie);
+    await upload(context, cookie, item.id, pdfFile).expect(200);
+
+    const response = await request(context.app)
+      .get(`/api/items/${item.id}/attachment/preview`)
+      .set('Cookie', cookie)
+      .expect(415);
+
+    expect(response.body.error.code).toBe('UNSUPPORTED_FILE_TYPE');
+  });
+
+  it('answers not found when there is no file to preview', async () => {
+    const context = createTestApp();
+    const cookie = await registerUser(request, context.app, 'owner@example.com');
+    const item = await createAttachment(context, cookie);
+
+    await request(context.app)
+      .get(`/api/items/${item.id}/attachment/preview`)
       .set('Cookie', cookie)
       .expect(404);
   });
@@ -223,10 +303,15 @@ describe('attachment file endpoints', () => {
       .set('Cookie', otherCookie)
       .expect(404);
     await request(context.app)
+      .get(`/api/items/${item.id}/attachment/preview`)
+      .set('Cookie', otherCookie)
+      .expect(404);
+    await request(context.app)
       .delete(`/api/items/${item.id}/attachment`)
       .set('Cookie', otherCookie)
       .expect(404);
     await request(context.app).get(`/api/items/${item.id}/attachment/download`).expect(401);
+    await request(context.app).get(`/api/items/${item.id}/attachment/preview`).expect(401);
     await request(context.app).put(`/api/items/${item.id}/attachment`).expect(401);
 
     expect([...storage(context).objects.keys()]).toEqual([stored.body.storagePath]);
@@ -270,6 +355,10 @@ describe('attachment file endpoints', () => {
     expect(response.body.error.code).toBe('STORAGE_NOT_CONFIGURED');
     await request(context.app)
       .get(`/api/items/${item.id}/attachment/download`)
+      .set('Cookie', cookie)
+      .expect(503);
+    await request(context.app)
+      .get(`/api/items/${item.id}/attachment/preview`)
       .set('Cookie', cookie)
       .expect(503);
     await request(context.app)

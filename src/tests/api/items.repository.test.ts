@@ -146,6 +146,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
         ownerId: owner,
       });
       expect(created[1].description).toBeNull();
+      expect(created.map((item) => item.mimeType)).toEqual([null, null, null, null]);
     });
 
     it('returns a stored item unchanged when it is read back', async () => {

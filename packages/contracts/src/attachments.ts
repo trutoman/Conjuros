@@ -53,4 +53,7 @@ export const attachmentDownloadSchema = z.object({
   expiresInSeconds: z.number().int().positive(),
 });
 
+export const attachmentPreviewSchema = attachmentDownloadSchema;
+
 export type AttachmentDownload = z.infer<typeof attachmentDownloadSchema>;
+export type AttachmentPreview = z.infer<typeof attachmentPreviewSchema>;

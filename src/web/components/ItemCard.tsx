@@ -5,6 +5,7 @@ import { markdownSlug, plainTextSlug } from '../lib/itemCardSlug';
 import { downloadMarkdownFile } from '../lib/downloadMarkdown';
 import { downloadTextFile } from '../lib/downloadFile';
 import { downloadAttachment } from '../lib/downloadAttachment';
+import { getAttachmentPreviewUrl, isImageAttachment } from '../lib/attachmentPreview';
 import { useTransientMessage } from '../hooks/useTransientMessage';
 import { ThemeIcon } from './ThemeIcon';
 
@@ -29,6 +30,8 @@ export function ItemCard({
   const [expanded, setExpanded] = useState(false);
   const [topRowWidth, setTopRowWidth] = useState<number>(Number.POSITIVE_INFINITY);
   const [isTagOverflowOpen, setIsTagOverflowOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const showsImagePreview = isImageAttachment(item);
   const topRowRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -60,6 +63,26 @@ export function ItemCard({
     }
     return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   }, []);
+
+  useEffect(() => {
+    if (!showsImagePreview) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    getAttachmentPreviewUrl(item)
+      .then((url) => {
+        if (!cancelled) setPreviewUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setPreviewUrl(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [item, showsImagePreview]);
 
   useEffect(() => {
     const node = topRowRef.current;
@@ -99,8 +122,9 @@ export function ItemCard({
     const titleWidth =
       titleRef.current?.getBoundingClientRect().width ?? estimateInlineWidth(item.title, 8, 20);
     const tagWidths = item.tags.map((tag) => estimateInlineWidth(tag, 7, 18));
+    const previewReservation = showsImagePreview ? 85 + 8 : 0;
     const overflow = computeTagOverflow({
-      availableWidth: topRowWidth,
+      availableWidth: Math.max(0, topRowWidth - previewReservation),
       titleWidth,
       minContentWidth: 32,
       tagWidths,
@@ -115,7 +139,7 @@ export function ItemCard({
       visibleTags: item.tags.slice(0, overflow.visibleCount),
       hiddenTags: item.tags.slice(overflow.visibleCount),
     };
-  }, [item.tags, item.title, topRowWidth]);
+  }, [item.tags, item.title, topRowWidth, showsImagePreview]);
 
   async function copy(value: string, label: string) {
     try {
@@ -251,6 +275,17 @@ export function ItemCard({
                   </button>
                 )}
               </div>
+              {previewUrl && (
+                <div className="attachment-card-preview-frame">
+                  <img
+                    className="attachment-card-preview"
+                    src={previewUrl}
+                    alt={`Preview of ${item.filename ?? item.title}`}
+                    loading="lazy"
+                    onError={() => setPreviewUrl(null)}
+                  />
+                </div>
+              )}
               {item.tags.length > 0 && (
                 <div className="tags" aria-label="Item tags">
                   {visibleTags.map((tag) => (
