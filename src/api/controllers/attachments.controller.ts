@@ -63,6 +63,13 @@ export function createAttachmentsController(
         .then((result) => response.json(result))
         .catch(next);
     },
+    preview: (request, response, next) => {
+      const current = request as AuthenticatedRequest;
+      void service
+        .previewUrl(userId(current), itemId(current))
+        .then((result) => response.json(result))
+        .catch(next);
+    },
     remove: (request, response, next) => {
       const current = request as AuthenticatedRequest;
       void service

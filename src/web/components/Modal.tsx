@@ -12,7 +12,7 @@ export function Modal({
   label: string;
   onClose: () => void;
   children: React.ReactNode;
-  size?: 'default' | 'wide';
+  size?: 'default' | 'wide' | 'full';
   isDismissDisabled?: boolean;
 }) {
   const id = useId();
@@ -67,7 +67,7 @@ export function Modal({
         aria-modal="true"
         aria-label={label}
         data-testid="modal-dialog"
-        className={`modal-panel${size === 'wide' ? ' modal-panel-wide' : ''}`}
+        className={`modal-panel${size === 'wide' ? ' modal-panel-wide' : size === 'full' ? ' modal-panel-full' : ''}`}
       >
         {children}
       </section>

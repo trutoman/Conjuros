@@ -4,6 +4,7 @@ import type { CollectionItemInput, CollectionQuery } from '@conjuros/contracts';
 import { collectionItems } from '../../api/db/schema';
 import { CHECK_VIOLATION, FOREIGN_KEY_VIOLATION } from '../../api/db/sqlstate';
 import { PostgresItemsRepository } from '../../api/repositories/items.repository';
+import { PostgresAttachmentsRepository } from '../../api/repositories/attachments.repository';
 import { PostgresUsersRepository } from '../../api/repositories/users.repository';
 import { sqlStateOf, setupPgliteDatabase } from './pglite';
 
@@ -217,6 +218,42 @@ describe('PostgresItemsRepository', () => {
       expect(stored?.tags).toEqual(['guides']);
       expect(stored?.updatedAt).not.toBe(carrying.updatedAt);
       expect((await items.findOwned(bystander.id, owner))?.tags).toEqual([]);
+    });
+  });
+
+  describe('attachment MIME type', () => {
+    it('joins the stored file type into reads and clears it on removal', async () => {
+      const { items, owner } = await setup();
+      const attachments = new PostgresAttachmentsRepository(database.db);
+      const item = await items.create(
+        owner,
+        { kind: 'attachment', title: 'Image', tags: [], relatedItemIds: [] },
+        await items.nextOrder(owner),
+      );
+
+      expect(item.mimeType).toBeNull();
+      expect((await items.list(owner, baseQuery)).items[0].mimeType).toBeNull();
+
+      const replaced = await attachments.replaceForItem({
+        id: 'attachment-id',
+        userId: owner,
+        itemId: item.id,
+        bucketId: 'attachments',
+        objectPath: `${owner}/attachment-id.png`,
+        originalFilename: 'photo.png',
+        mimeType: 'image/png',
+        sizeBytes: 10,
+        createdAt: new Date().toISOString(),
+      });
+
+      expect(replaced?.item.mimeType).toBe('image/png');
+      expect((await items.findOwned(item.id, owner))?.mimeType).toBe('image/png');
+      expect((await items.list(owner, baseQuery)).items[0].mimeType).toBe('image/png');
+
+      const removed = await attachments.deleteForItem(owner, item.id);
+
+      expect(removed?.item.mimeType).toBeNull();
+      expect((await items.findOwned(item.id, owner))?.mimeType).toBeNull();
     });
   });
 });

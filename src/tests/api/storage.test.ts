@@ -108,6 +108,18 @@ describe('SupabaseAttachmentStorage error translation', () => {
     });
   });
 
+  it('signs inline previews without a download disposition', async () => {
+    storageApi.createSignedUrl.mockResolvedValue({
+      data: { signedUrl: 'https://storage.test/a.png?token=1' },
+      error: null,
+    });
+
+    await expect(createStorage().createSignedUrl('user/id.png', 300)).resolves.toBe(
+      'https://storage.test/a.png?token=1',
+    );
+    expect(storageApi.createSignedUrl).toHaveBeenCalledWith('user/id.png', 300, undefined);
+  });
+
   it('maps a removal failure and skips an empty removal', async () => {
     storageApi.remove.mockResolvedValue({ error: { message: 'Internal error' } });
 

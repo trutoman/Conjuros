@@ -176,6 +176,7 @@ export const collectionItemSchema = z.object({
   content: z.string().nullable(),
   filename: z.string().nullable(),
   storagePath: z.string().nullable(),
+  mimeType: z.string().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

@@ -3,6 +3,7 @@ import {
   attachmentExtensions,
   isAttachmentMimeType,
   type AttachmentDownload,
+  type AttachmentPreview,
 } from '@conjuros/contracts';
 import { AppError } from '../errors';
 import type { AttachmentsRepository } from '../repositories/attachments.repository';
@@ -107,6 +108,21 @@ export class AttachmentsService {
       signedUrlLifetimeSeconds,
       attachment.originalFilename,
     );
+    return { url, expiresInSeconds: signedUrlLifetimeSeconds };
+  }
+
+  async previewUrl(ownerId: string, itemId: string): Promise<AttachmentPreview> {
+    const storage = this.assertConfigured();
+    const attachment = await this.attachments.findByItem(ownerId, itemId);
+    if (!attachment) throw new AppError(404, 'NOT_FOUND', 'Attachment file not found');
+    if (!attachment.mimeType.startsWith('image/')) {
+      throw new AppError(
+        415,
+        'UNSUPPORTED_FILE_TYPE',
+        'Only image attachments can be previewed inline',
+      );
+    }
+    const url = await storage.createSignedUrl(attachment.objectPath, signedUrlLifetimeSeconds);
     return { url, expiresInSeconds: signedUrlLifetimeSeconds };
   }
 

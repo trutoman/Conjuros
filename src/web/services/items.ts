@@ -1,5 +1,6 @@
 import {
   attachmentDownloadSchema,
+  attachmentPreviewSchema,
   collectionItemSchema,
   collectionListSchema,
   type CollectionItem,
@@ -71,4 +72,8 @@ export async function removeAttachment(id: string) {
 
 export async function getAttachmentDownload(id: string) {
   return attachmentDownloadSchema.parse(await api(`/items/${id}/attachment/download`));
+}
+
+export async function getAttachmentPreview(id: string) {
+  return attachmentPreviewSchema.parse(await api(`/items/${id}/attachment/preview`));
 }

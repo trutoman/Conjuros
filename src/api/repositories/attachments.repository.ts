@@ -81,7 +81,10 @@ export class PostgresAttachmentsRepository implements AttachmentsRepository {
         )
         .returning();
       if (!row) throw new Error('Attachment item disappeared during upload');
-      return { previousObjectPath: previous?.objectPath ?? null, item: toStoredItem(row) };
+      return {
+        previousObjectPath: previous?.objectPath ?? null,
+        item: toStoredItem(row, attachment.mimeType),
+      };
     });
   }
 
@@ -97,7 +100,7 @@ export class PostgresAttachmentsRepository implements AttachmentsRepository {
         .set({ storagePath: null, updatedAt: new Date() })
         .where(and(eq(collectionItems.id, itemId), eq(collectionItems.ownerId, ownerId)))
         .returning();
-      return { attachment: toStoredAttachment(removed), item: toStoredItem(row) };
+      return { attachment: toStoredAttachment(removed), item: toStoredItem(row, null) };
     });
   }
 }
@@ -121,6 +124,7 @@ export class InMemoryAttachmentsRepository implements AttachmentsRepository {
       ...item,
       storagePath: attachment.objectPath,
       filename: item.filename || attachment.originalFilename,
+      mimeType: attachment.mimeType,
       updatedAt: new Date().toISOString(),
     });
     return { previousObjectPath: previous?.objectPath ?? null, item: updated };
@@ -134,6 +138,7 @@ export class InMemoryAttachmentsRepository implements AttachmentsRepository {
     const updated = await this.items.replace({
       ...item,
       storagePath: null,
+      mimeType: null,
       updatedAt: new Date().toISOString(),
     });
     return { attachment, item: updated };

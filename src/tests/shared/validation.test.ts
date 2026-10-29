@@ -78,6 +78,7 @@ describe('collection item contracts', () => {
       content: null,
       filename: 'report.pdf',
       storagePath: null,
+      mimeType: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     });
@@ -167,6 +168,7 @@ describe('collection item contracts', () => {
       content: '# Notes',
       filename: null,
       storagePath: null,
+      mimeType: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
@@ -242,6 +244,7 @@ describe('collection item contracts', () => {
       content: '# Notes',
       filename: 'notes.md',
       storagePath: null,
+      mimeType: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
@@ -547,6 +550,7 @@ describe('collection item contracts', () => {
       content: 'hello',
       filename: 'app.log',
       storagePath: null,
+      mimeType: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
