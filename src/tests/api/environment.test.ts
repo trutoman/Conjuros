@@ -248,4 +248,41 @@ describe('parseApiEnvironment', () => {
       appBaseUrl: 'http://localhost:5173',
     });
   });
+
+  it('accepts Storage that belongs to the database project', () => {
+    const environment = {
+      DATABASE_URL:
+        'postgresql://postgres.prodref:db-secret@aws-0-eu-west-1.pooler.supabase.com:5432/postgres',
+      SESSION_SECRET: validEnvironment.SESSION_SECRET,
+      SUPABASE_URL: 'https://prodref.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+    };
+
+    expect(parseApiEnvironment(environment)).toMatchObject({
+      supabaseUrl: 'https://prodref.supabase.co',
+    });
+  });
+
+  it('rejects Storage pointed at a different Supabase project than the database', () => {
+    const message = invalidEnvironmentMessage({
+      DATABASE_URL:
+        'postgresql://postgres.prodref:db-secret@aws-0-eu-west-1.pooler.supabase.com:5432/postgres',
+      SESSION_SECRET: validEnvironment.SESSION_SECRET,
+      SUPABASE_URL: 'https://devref.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+    });
+
+    expect(message).toBe('Invalid environment configuration: SUPABASE_URL');
+    expect(message).not.toContain('devref');
+  });
+
+  it('skips the project check when the database is not a Supabase project', () => {
+    expect(
+      parseApiEnvironment({
+        ...validEnvironment,
+        SUPABASE_URL: 'https://devref.supabase.co',
+        SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+      }),
+    ).toMatchObject({ supabaseUrl: 'https://devref.supabase.co' });
+  });
 });

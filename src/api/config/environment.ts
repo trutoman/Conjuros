@@ -42,6 +42,33 @@ const httpUrlSchema = nonBlankString.refine(
   { message: 'Must be an absolute http: or https: URL' },
 );
 
+const supabaseProjectRefPattern = /^([a-z0-9]+)\.(?:supabase\.co|pooler\.supabase\.com)$/i;
+
+// Resolves the Supabase project a connection string or project URL belongs to, or null when
+// the value does not describe a Supabase project (local PostgreSQL, custom domain, self-hosted).
+export function supabaseProjectRef(value: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+
+  if (url.protocol === 'postgres:' || url.protocol === 'postgresql:') {
+    const poolerUser = /^postgres\.([a-z0-9]+)$/i.exec(url.username);
+    if (poolerUser) return poolerUser[1].toLowerCase();
+    const host = supabaseProjectRefPattern.exec(url.hostname);
+    return host ? host[1].toLowerCase() : null;
+  }
+
+  if (url.protocol === 'https:' || url.protocol === 'http:') {
+    const host = supabaseProjectRefPattern.exec(url.hostname);
+    return host ? host[1].toLowerCase() : null;
+  }
+
+  return null;
+}
+
 const apiEnvironmentSchema = z
   .object({
     DATABASE_URL: databaseUrlSchema,
@@ -76,7 +103,20 @@ const apiEnvironmentSchema = z
   .refine((data) => !data.SUPABASE_URL === !data.SUPABASE_SERVICE_ROLE_KEY, {
     message: 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together',
     path: ['SUPABASE_SERVICE_ROLE_KEY'],
-  });
+  })
+  .refine(
+    (data) => {
+      // Storage must belong to the database's own project so one environment never writes
+      // objects into another environment's bucket. Skipped when either side is not Supabase.
+      const databaseRef = supabaseProjectRef(data.DATABASE_URL);
+      const storageRef = data.SUPABASE_URL ? supabaseProjectRef(data.SUPABASE_URL) : null;
+      return !databaseRef || !storageRef || databaseRef === storageRef;
+    },
+    {
+      message: 'Must point at the same Supabase project as DATABASE_URL',
+      path: ['SUPABASE_URL'],
+    },
+  );
 
 export interface ApiEnvironment {
   databaseUrl: string;
