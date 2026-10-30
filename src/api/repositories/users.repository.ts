@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import type { Role, ThemePreference } from '@conjuros/contracts';
+import type { Role } from '@conjuros/contracts';
 import type { Database } from '../db/client';
 import { users } from '../db/schema';
 import { UNIQUE_VIOLATION, findSqlState } from '../db/sqlstate';
@@ -12,7 +12,6 @@ export interface StoredUser {
   passwordHash: string | null;
   googleId: string | null;
   createdAt: string;
-  theme: ThemePreference;
   role: Role;
 }
 
@@ -23,7 +22,6 @@ export interface UsersRepository {
   create(email: string, passwordHash: string | null): Promise<StoredUser>;
   linkGoogleId(id: string, googleId: string): Promise<StoredUser | null>;
   updatePasswordHash(id: string, passwordHash: string): Promise<StoredUser | null>;
-  updateTheme(id: string, theme: ThemePreference): Promise<StoredUser | null>;
   setRole(id: string, role: Role): Promise<StoredUser | null>;
 }
 
@@ -34,7 +32,6 @@ function toStoredUser(row: typeof users.$inferSelect): StoredUser {
     passwordHash: row.passwordHash,
     googleId: row.googleId,
     createdAt: row.createdAt.toISOString(),
-    theme: row.theme,
     role: row.role,
   };
 }
@@ -99,11 +96,6 @@ export class PostgresUsersRepository implements UsersRepository {
     return row ? toStoredUser(row) : null;
   }
 
-  async updateTheme(id: string, theme: ThemePreference): Promise<StoredUser | null> {
-    const [row] = await this.db.update(users).set({ theme }).where(eq(users.id, id)).returning();
-    return row ? toStoredUser(row) : null;
-  }
-
   async setRole(id: string, role: Role): Promise<StoredUser | null> {
     const [row] = await this.db.update(users).set({ role }).where(eq(users.id, id)).returning();
     return row ? toStoredUser(row) : null;
@@ -113,23 +105,16 @@ export class PostgresUsersRepository implements UsersRepository {
 export class InMemoryUsersRepository implements UsersRepository {
   private readonly users = new Map<string, StoredUser>();
 
-  private hydrate(user: StoredUser | null): StoredUser | null {
-    if (!user) return null;
-    return { ...user, theme: user.theme ?? 'light', role: user.role ?? 'user' };
-  }
-
   async findByEmail(email: string): Promise<StoredUser | null> {
-    return this.hydrate([...this.users.values()].find((user) => user.email === email) ?? null);
+    return [...this.users.values()].find((user) => user.email === email) ?? null;
   }
 
   async findById(id: string): Promise<StoredUser | null> {
-    return this.hydrate(this.users.get(id) ?? null);
+    return this.users.get(id) ?? null;
   }
 
   async findByGoogleId(googleId: string): Promise<StoredUser | null> {
-    return this.hydrate(
-      [...this.users.values()].find((user) => user.googleId === googleId) ?? null,
-    );
+    return [...this.users.values()].find((user) => user.googleId === googleId) ?? null;
   }
 
   async create(email: string, passwordHash: string | null): Promise<StoredUser> {
@@ -142,7 +127,6 @@ export class InMemoryUsersRepository implements UsersRepository {
       passwordHash,
       googleId: null,
       createdAt: new Date().toISOString(),
-      theme: 'light' as const,
       role: 'user' as const,
     };
     this.users.set(user.id, user);
@@ -164,14 +148,6 @@ export class InMemoryUsersRepository implements UsersRepository {
     const current = this.users.get(id);
     if (!current) return null;
     const updated = { ...current, passwordHash };
-    this.users.set(id, updated);
-    return updated;
-  }
-
-  async updateTheme(id: string, theme: ThemePreference): Promise<StoredUser | null> {
-    const current = this.users.get(id);
-    if (!current) return null;
-    const updated = { ...current, theme };
     this.users.set(id, updated);
     return updated;
   }

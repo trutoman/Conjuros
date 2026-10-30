@@ -1,57 +1,33 @@
 import { useEffect, useState } from 'react';
-import type { ThemePreference } from '@conjuros/contracts';
+import { updateUserPreferences } from '../services/user-preferences';
 
-type ThemePreferenceResponse = {
-  user?: {
-    theme?: ThemePreference;
-  };
-};
-
-async function updateThemePreference(theme: ThemePreference) {
-  const response = await fetch('/api/auth/me/theme', {
-    method: 'PATCH',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ theme }),
-  });
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null) as { error?: { message?: string } } | null;
-    throw new Error(body?.error?.message ?? 'Could not update theme');
-  }
-
-  const body = await response.json().catch(() => null) as ThemePreferenceResponse | null;
-  return body?.user?.theme ?? theme;
-}
-
-export function useThemePreference(initialTheme: ThemePreference, enabled: boolean) {
-  const [theme, setTheme] = useState<ThemePreference>(initialTheme);
-  const [settledTheme, setSettledTheme] = useState<ThemePreference>(initialTheme);
+export function useThemePreference(initialThemeId: string | null, enabled: boolean) {
+  const [themeId, setThemeId] = useState<string | null>(initialThemeId);
+  const [settledThemeId, setSettledThemeId] = useState<string | null>(initialThemeId);
 
   useEffect(() => {
-    setTheme(initialTheme);
-    setSettledTheme(initialTheme);
-  }, [enabled, initialTheme]);
+    setThemeId(initialThemeId);
+    setSettledThemeId(initialThemeId);
+  }, [enabled, initialThemeId]);
 
-  async function changeTheme(nextTheme: ThemePreference) {
+  async function changeTheme(nextThemeId: string | null) {
     if (!enabled) {
-      setTheme(nextTheme);
-      setSettledTheme(nextTheme);
+      setThemeId(nextThemeId);
+      setSettledThemeId(nextThemeId);
       return;
     }
 
-    const previousTheme = settledTheme;
-    setTheme(nextTheme);
-
+    const previousThemeId = settledThemeId;
+    setThemeId(nextThemeId);
     try {
-      const persistedTheme = await updateThemePreference(nextTheme);
-      setSettledTheme(persistedTheme);
-      setTheme(persistedTheme);
+      const preferences = await updateUserPreferences({ themeId: nextThemeId });
+      setSettledThemeId(preferences.themeId);
+      setThemeId(preferences.themeId);
     } catch (error) {
-      setTheme(previousTheme);
+      setThemeId(previousThemeId);
       throw error;
     }
   }
 
-  return { theme, settledTheme, setTheme: changeTheme };
+  return { themeId, settledThemeId, setTheme: changeTheme };
 }

@@ -7,7 +7,7 @@ import { ThemesService } from '../../api/services/themes.service';
 
 function createSeededTestApp() {
   const context = createTestApp();
-  const service = new ThemesService(context.themes, context.users);
+  const service = new ThemesService(context.themes, context.userPreferences);
   return { ...context, themesService: service };
 }
 
@@ -60,7 +60,7 @@ describe('theme endpoints', () => {
 
     const active = await request(context.app).get('/api/themes/active').set('Cookie', cookie).expect(200);
     expect(active.body.theme.name).toBe('light');
-    expect(active.body.source).toBe('preference');
+    expect(active.body.source).toBe('default');
   });
 
   it('rejects non-admin theme mutations with 403', async () => {
@@ -109,6 +109,7 @@ describe('theme endpoints', () => {
         colors: buildSeedThemes()[0].colors,
         fonts: buildSeedThemes()[0].fonts,
         fontSizes: buildSeedThemes()[0].fontSizes,
+        backdrop: buildSeedThemes()[0].backdrop,
         iconAssets: {
           command: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
           copy: { path: 'M10 8 H20 A2 2 0 0 1 22 10 V20', viewBox: '0 0 24 24' },
@@ -175,6 +176,7 @@ describe('theme endpoints', () => {
         colors: buildSeedThemes()[0].colors,
         fonts: buildSeedThemes()[0].fonts,
         fontSizes: buildSeedThemes()[0].fontSizes,
+        backdrop: buildSeedThemes()[0].backdrop,
         iconAssets: {
           command: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
         },
@@ -224,6 +226,7 @@ describe('theme endpoints', () => {
         },
         fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
         fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
+        backdrop: buildSeedThemes()[0].backdrop,
         iconAssets: ['command', 'copy'] as unknown as Parameters<typeof context.themes.create>[0] extends infer T ? T extends { iconAssets: infer R } ? R : never : never,
         kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488', attachment: '#be123c' },
         tagColorPalette: ['#1A73E8', '#7C3AED'],

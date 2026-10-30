@@ -14,7 +14,7 @@ function resolveIcons(theme: Theme | null): Record<IconAssetKey, { path: string;
   return merged;
 }
 
-export function useSiteTheme(enabled: boolean, preference: 'light' | 'dark' | undefined) {
+export function useSiteTheme(enabled: boolean, preference: string | undefined) {
   const [theme, setTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
@@ -23,11 +23,19 @@ export function useSiteTheme(enabled: boolean, preference: 'light' | 'dark' | un
     setTheme(null);
 
     let cancelled = false;
+    let probe: HTMLImageElement | null = null;
     void getActiveTheme()
       .then((context) => {
         if (cancelled) return;
         setTheme(context.theme);
         applyTheme(document.documentElement, context.theme);
+        const imageUrl = context.theme.imageBackdropUrl;
+        if (!context.theme.useImageBackdrop || !imageUrl) return;
+        probe = new Image();
+        probe.onload = () => {
+          if (!cancelled) applyTheme(document.documentElement, context.theme, imageUrl);
+        };
+        probe.src = imageUrl;
       })
       .catch(() => {
         if (cancelled) return;
@@ -35,6 +43,7 @@ export function useSiteTheme(enabled: boolean, preference: 'light' | 'dark' | un
       });
     return () => {
       cancelled = true;
+      if (probe) probe.onload = null;
     };
   }, [enabled, preference]);
 

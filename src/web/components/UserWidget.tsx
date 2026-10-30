@@ -1,48 +1,66 @@
-import type { KeyboardEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-function SignOutIcon() {
-  return (
-    <svg
-      className="user-widget-icon"
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="24"
-      height="24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9" />
-    </svg>
-  );
-}
+export function UserWidget({
+  userLabel,
+  onSignOut,
+  onThemeSelector,
+  onThemeEditor,
+}: {
+  userLabel: string;
+  onSignOut: () => void;
+  onThemeSelector?: () => void;
+  onThemeEditor?: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
-export function UserWidget({ userLabel, onSignOut }: { userLabel: string; onSignOut: () => void }) {
-  function handleKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
+  useEffect(() => {
+    if (!isOpen) return;
+    function handlePointerDown(event: MouseEvent) {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) setIsOpen(false);
     }
-    event.preventDefault();
-    onSignOut();
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsOpen(false);
+    }
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  function openThemeSelector() {
+    setIsOpen(false);
+    onThemeSelector?.();
+  }
+
+  function openThemeEditor() {
+    setIsOpen(false);
+    onThemeEditor?.();
   }
 
   return (
-    <div className="user-widget" role="group" aria-label={`Signed in as ${userLabel}`}>
-      <span className="user-widget-name">{userLabel}</span>
-      <span
-        className="user-widget-icon-shell"
-        role="button"
-        tabIndex={0}
-        aria-label={`Sign out ${userLabel}`}
-        onClick={onSignOut}
-        onKeyDown={handleKeyDown}
+    <div ref={rootRef} className="user-widget">
+      <button
+        type="button"
+        className="user-widget-name"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
       >
-        <SignOutIcon />
-      </span>
+        {userLabel}
+      </button>
+      {isOpen && (
+        <div className="user-widget-menu" role="menu" aria-label={`${userLabel} menu`}>
+          <button type="button" role="menuitem" disabled>Profile</button>
+          <button type="button" role="menuitem" onClick={openThemeSelector}>Theme selector</button>
+          {onThemeEditor && (
+            <button type="button" role="menuitem" onClick={openThemeEditor}>Theme editor</button>
+          )}
+          <button type="button" role="menuitem" onClick={() => { setIsOpen(false); onSignOut(); }}>Sign out</button>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,9 +11,11 @@ import { PostgresPasswordResetTokensRepository } from './repositories/password-r
 import { PostgresTagCategoriesRepository } from './repositories/tag-categories.repository';
 import { PostgresTagsRepository } from './repositories/tags.repository';
 import { PostgresThemesRepository } from './repositories/themes.repository';
+import { PostgresUserPreferencesRepository } from './repositories/user-preferences.repository';
 import { PostgresUsersRepository } from './repositories/users.repository';
 import { ThemesService } from './services/themes.service';
 import { createAttachmentStorage } from './storage/storage';
+import { createThemeImageStorage } from './storage/themeImageStorage';
 
 const environment = parseApiEnvironment(process.env);
 
@@ -25,7 +27,8 @@ const { db } = createDatabase(environment.databaseUrl, {
 await runMigrations(db);
 const users = new PostgresUsersRepository(db);
 const themes = new PostgresThemesRepository(db);
-const themesService = new ThemesService(themes, users);
+const userPreferences = new PostgresUserPreferencesRepository(db);
+const themesService = new ThemesService(themes, userPreferences);
 await grantAdminRole(users, environment.adminEmail);
 await ensureThemesSeeded(themesService);
 await backfillThemeIcons(themesService);
@@ -37,7 +40,16 @@ const attachmentStorage = createAttachmentStorage({
 if (!attachmentStorage) {
   console.info('Attachment file storage is not configured; file endpoints answer 503.');
 }
+const themeImageStorage = createThemeImageStorage({
+  supabaseUrl: environment.supabaseUrl,
+  supabaseServiceRoleKey: environment.supabaseServiceRoleKey,
+  bucket: environment.themeAssetBucket,
+});
+if (!themeImageStorage) {
+  console.info('Theme image storage is not configured; theme image upload answers 503.');
+}
 const app = createApp({
+  themeImageStorage,
   items: new PostgresItemsRepository(db),
   attachments: new PostgresAttachmentsRepository(db),
   attachmentStorage,
@@ -46,6 +58,7 @@ const app = createApp({
   tags: new PostgresTagsRepository(db),
   tagCategories: new PostgresTagCategoriesRepository(db),
   themes,
+  userPreferences,
   users,
   resetTokens: new PostgresPasswordResetTokensRepository(db),
   emailSender: createEmailSender({ smtpUrl: environment.smtpUrl, mailFrom: environment.mailFrom }),

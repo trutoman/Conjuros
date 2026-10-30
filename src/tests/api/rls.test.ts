@@ -21,6 +21,7 @@ describe('row level security', () => {
       'tag_categories',
       'tags',
       'themes',
+      'user_preferences',
       'users',
     ]);
     expect(result.rows.every((row) => row.relrowsecurity)).toBe(true);

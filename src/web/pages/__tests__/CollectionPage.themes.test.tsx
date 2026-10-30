@@ -38,6 +38,7 @@ const themesState = {
       },
       fonts: { display: "'Cinzel', serif", body: "'Cormorant Garamond', serif", mono: "'Cutive Mono', monospace" },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
+      backdrop: { pattern: 'lines', gridSize: '40px', lineWidth: '1px', glowPosition: 'top-right', glowSize: '30%', glowColor: 'rgba(15, 23, 42, 0.04)' },
       iconAssets: ['command', 'copy'],
       kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488', attachment: '#be123c' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
@@ -57,6 +58,7 @@ const themesState = {
       },
       fonts: { display: "'Cinzel', serif", body: "'Cormorant Garamond', serif", mono: "'Cutive Mono', monospace" },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
+      backdrop: { pattern: 'lines', gridSize: '40px', lineWidth: '1px', glowPosition: 'top-right', glowSize: '30%', glowColor: 'rgba(148, 163, 184, 0.08)' },
       iconAssets: ['command', 'copy'],
       kindColors: { command: '#c084fc', webLink: '#60a5fa', markdown: '#fbbf24', file: '#2dd4bf', attachment: '#fb7185' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
@@ -100,29 +102,55 @@ vi.mock('../../hooks/useThemes', () => ({
 }));
 
 describe('CollectionPage admin theme management', () => {
-  it('hides the theme management entry for non-admin users', () => {
-    render(<CollectionPage role="user" />);
+  function openThemeEditor(role: 'admin' | 'user' = 'admin') {
+    render(
+      <CollectionPage
+        role={role}
+        currentUserLabel="alicia"
+        onSignOut={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Theme editor' }));
+  }
+
+  it('does not offer a theme control in the tags sidebar footer', () => {
+    render(<CollectionPage role="admin" currentUserLabel="alicia" onSignOut={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Themes' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Manage tags' })).toBeInTheDocument();
   });
 
-  it('shows the theme management entry for admin users', () => {
-    render(<CollectionPage role="admin" />);
-    expect(screen.getByRole('button', { name: 'Themes' })).toBeInTheDocument();
+  it('hides the theme editor entry for non-admin users', () => {
+    render(<CollectionPage role="user" currentUserLabel="alicia" onSignOut={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    expect(screen.queryByRole('menuitem', { name: 'Theme editor' })).not.toBeInTheDocument();
   });
 
-  it('open the theme management view and lists themes with default marker', () => {
-    render(<CollectionPage role="admin" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Themes' }));
+  it('shows the theme editor entry for admin users', () => {
+    render(<CollectionPage role="admin" currentUserLabel="alicia" onSignOut={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    expect(screen.getByRole('menuitem', { name: 'Theme editor' })).toBeInTheDocument();
+  });
+
+  it('opens the theme management view and lists labels with the default marker', () => {
+    openThemeEditor();
 
     expect(screen.getByRole('heading', { name: 'Manage themes' })).toBeInTheDocument();
     expect(screen.getByText('Light')).toBeInTheDocument();
     expect(screen.getByText('Dark')).toBeInTheDocument();
-    expect(screen.getByText('light · default')).toBeInTheDocument();
+    expect(screen.getByText('default')).toBeInTheDocument();
+  });
+
+  it('shows no color swatch or internal theme name in the theme list', () => {
+    openThemeEditor();
+
+    expect(screen.queryByText('light')).not.toBeInTheDocument();
+    expect(screen.queryByText('dark')).not.toBeInTheDocument();
+    expect(document.querySelector('.theme-list-preview')).not.toBeInTheDocument();
   });
 
   it('routes activation to the activate mutation', () => {
-    render(<CollectionPage role="admin" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Themes' }));
+    openThemeEditor();
 
     fireEvent.click(screen.getByRole('button', { name: 'Make Dark the default' }));
 
@@ -130,8 +158,7 @@ describe('CollectionPage admin theme management', () => {
   });
 
   it('routes deletion through the confirm dialog', async () => {
-    render(<CollectionPage role="admin" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Themes' }));
+    openThemeEditor();
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete Dark' }));
     expect(screen.getByRole('heading', { name: 'Delete Dark theme?' })).toBeInTheDocument();
@@ -142,11 +169,39 @@ describe('CollectionPage admin theme management', () => {
   });
 
   it('opens the theme form to add a new theme', () => {
-    render(<CollectionPage role="admin" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Themes' }));
+    openThemeEditor();
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Add theme' })[0]);
 
     expect(screen.getByRole('heading', { name: 'Add theme' })).toBeInTheDocument();
+  });
+
+  it('opens a theme selector for a regular user and applies the saved choice', async () => {
+    const onThemeChange = vi.fn().mockResolvedValue(undefined);
+    render(<CollectionPage role="user" currentUserLabel="alicia" onSignOut={vi.fn()} themeId="theme-light" onThemeChange={onThemeChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Theme selector' }));
+    expect(screen.getByRole('dialog', { name: 'Theme selector' })).toBeInTheDocument();
+    expect(screen.getByText('Light', { selector: 'span' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Dark'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save theme preferences' }));
+
+    await waitFor(() => expect(onThemeChange).toHaveBeenCalledWith('theme-dark'));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Theme selector' })).not.toBeInTheDocument());
+  });
+
+  it('does not save a theme choice when the selector is cancelled', () => {
+    const onThemeChange = vi.fn();
+    render(<CollectionPage role="user" currentUserLabel="alicia" onSignOut={vi.fn()} themeId="theme-light" onThemeChange={onThemeChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Theme selector' }));
+    fireEvent.click(screen.getByLabelText('Dark'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(onThemeChange).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: 'Theme selector' })).not.toBeInTheDocument();
   });
 });

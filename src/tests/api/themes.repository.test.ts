@@ -6,11 +6,11 @@ import {
   type StoredTheme,
 } from '../../api/repositories/themes.repository';
 import { buildSeedThemes } from '../../api/repositories/themeSeed';
-import {
-  InMemoryUsersRepository,
-  PostgresUsersRepository,
-} from '../../api/repositories/users.repository';
 import { ThemesService } from '../../api/services/themes.service';
+import {
+  InMemoryUserPreferencesRepository,
+  PostgresUserPreferencesRepository,
+} from '../../api/repositories/user-preferences.repository';
 import { setupPgliteDatabase } from './pglite';
 
 const database = setupPgliteDatabase();
@@ -18,13 +18,13 @@ const database = setupPgliteDatabase();
 const implementations = [
   [
     'in-memory',
-    () => ({ themes: new InMemoryThemesRepository(), users: new InMemoryUsersRepository() }),
+    () => ({ themes: new InMemoryThemesRepository(), preferences: new InMemoryUserPreferencesRepository() }),
   ],
   [
     'postgres',
     () => ({
       themes: new PostgresThemesRepository(database.db),
-      users: new PostgresUsersRepository(database.db),
+      preferences: new PostgresUserPreferencesRepository(database.db),
     }),
   ],
 ] as const;
@@ -240,8 +240,8 @@ describe.each(implementations)('%s themes repository', (_name, createRepositorie
 
   describe('ThemesService.ensureSeeded', () => {
     it('seeds the light and dark themes with exactly one default on an empty database', async () => {
-      const { themes, users } = createRepositories();
-      const service = new ThemesService(themes, users);
+      const { themes, preferences } = createRepositories();
+      const service = new ThemesService(themes, preferences);
 
       await service.ensureSeeded();
 
@@ -252,8 +252,8 @@ describe.each(implementations)('%s themes repository', (_name, createRepositorie
     });
 
     it('does not seed again when themes already exist', async () => {
-      const { themes, users } = createRepositories();
-      const service = new ThemesService(themes, users);
+      const { themes, preferences } = createRepositories();
+      const service = new ThemesService(themes, preferences);
 
       await service.ensureSeeded();
       await service.ensureSeeded();

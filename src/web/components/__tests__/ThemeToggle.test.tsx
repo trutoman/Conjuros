@@ -1,44 +1,36 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import type { Theme } from '@conjuros/contracts';
 import { ThemeToggle } from '../ThemeToggle';
-import { useThemePreference } from '../../hooks/useThemePreference';
-import type { ThemePreference } from '@conjuros/contracts';
 
-function ThemeHarness({ initialTheme, enabled }: { initialTheme: ThemePreference; enabled: boolean }) {
-  const { theme, setTheme } = useThemePreference(initialTheme, enabled);
-  return <ThemeToggle theme={theme} onChange={setTheme} />;
-}
-
-afterEach(() => {
-  vi.restoreAllMocks();
-  document.documentElement.dataset.theme = 'light';
-});
+const themes = [
+  { id: 'theme-light', name: 'light' },
+  { id: 'theme-dark', name: 'dark' },
+  { id: 'theme-custom', name: 'parchment' },
+] as unknown as Theme[];
 
 describe('ThemeToggle', () => {
-  it('renders the default light theme and switches to dark', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ user: { theme: 'dark' as const } }),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
-    render(<ThemeHarness initialTheme="light" enabled />);
+  it('marks the saved light theme and emits the dark theme id', () => {
+    const onChange = vi.fn();
+    render(<ThemeToggle themeId="theme-light" themes={themes} onChange={onChange} />);
 
     expect(screen.getByRole('button', { name: 'Light mode' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveAttribute('aria-pressed', 'false');
-
     fireEvent.click(screen.getByRole('button', { name: 'Dark mode' }));
-
-    expect(fetchMock).toHaveBeenCalledWith('/api/auth/me/theme', expect.objectContaining({ method: 'PATCH' }));
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByRole('button', { name: 'Light mode' })).toHaveAttribute('aria-pressed', 'false');
-    });
+    expect(onChange).toHaveBeenCalledWith('theme-dark');
   });
 
-  it('keeps a saved dark preference after reload', () => {
-    render(<ThemeHarness initialTheme="dark" enabled />);
+  it('leaves both options unpressed for a custom theme', () => {
+    render(<ThemeToggle themeId="theme-custom" themes={themes} onChange={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Light mode' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('disables light and dark options if those themes are unavailable', () => {
+    render(<ThemeToggle themeId="theme-custom" themes={[themes[2]]} onChange={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Light mode' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Dark mode' })).toBeDisabled();
   });
 });

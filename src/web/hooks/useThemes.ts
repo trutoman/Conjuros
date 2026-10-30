@@ -14,7 +14,16 @@ export function useThemes() {
 
   const result = useQuery({
     queryKey: ['themes'],
-    queryFn: () => listThemes({ limit: 50, skip: 0, sort: 'name' }),
+    queryFn: async () => {
+      const firstPage = await listThemes({ limit: 50, skip: 0, sort: 'name' });
+      const items = [...firstPage.items];
+      while (items.length < firstPage.total) {
+        const page = await listThemes({ limit: 50, skip: items.length, sort: 'name' });
+        if (page.items.length === 0) break;
+        items.push(...page.items);
+      }
+      return { items, total: firstPage.total };
+    },
   });
 
   const createMutation = useMutation({ mutationFn: createTheme, onSuccess: invalidate });

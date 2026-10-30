@@ -13,7 +13,6 @@ export function Sidebar({
   onToggleOpen,
   onChange,
   onManageTags,
-  onManageThemes,
   onClose,
 }: {
   tags: Tag[];
@@ -23,7 +22,6 @@ export function Sidebar({
   onToggleOpen?: () => void;
   onChange: (filters: CollectionFilters) => void;
   onManageTags: () => void;
-  onManageThemes?: () => void;
   onClose?: () => void;
 }) {
   const groupedCategories = useMemo(() => {
@@ -151,11 +149,6 @@ export function Sidebar({
             <button className="quiet" onClick={onManageTags}>
               Manage tags
             </button>
-            {onManageThemes && (
-              <button className="quiet" onClick={onManageThemes}>
-                Themes
-              </button>
-            )}
           </div>
         </>
       )}

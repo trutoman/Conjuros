@@ -4,6 +4,7 @@ import {
   roleSchema,
   themeInputSchema,
   themeSchema,
+  userPreferencesUpdateSchema,
 } from '@conjuros/contracts';
 import { describe, expect, it } from 'vitest';
 
@@ -38,6 +39,14 @@ export const validThemeDraft = {
     heading: '2.65rem',
     body: '1rem',
     mono: '0.75rem',
+  },
+  backdrop: {
+    pattern: 'grid',
+    gridSize: '32px',
+    lineWidth: '1px',
+    glowPosition: 'center',
+    glowSize: '40%',
+    glowColor: 'rgba(0, 0, 0, 0.04)',
   },
   iconAssets: {
     command: { path: 'M15 4V2 M15 16v-2 M3 21l9-9', viewBox: '0 0 24 24' },
@@ -80,6 +89,40 @@ describe('theme contracts', () => {
       ...validThemeDraft,
       fontSizes: { ...validThemeDraft.fontSizes, heading: 'huge' },
     };
+    expect(themeInputSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it('rejects a backdrop pattern outside the enumerated values', () => {
+    const draft = {
+      ...validThemeDraft,
+      backdrop: { ...validThemeDraft.backdrop, pattern: 'waves' },
+    };
+    expect(themeInputSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it('rejects a glow position outside the enumerated values', () => {
+    const draft = {
+      ...validThemeDraft,
+      backdrop: { ...validThemeDraft.backdrop, glowPosition: 'top right' },
+    };
+    expect(themeInputSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it('rejects backdrop sizes without the expected units', () => {
+    const gridDraft = {
+      ...validThemeDraft,
+      backdrop: { ...validThemeDraft.backdrop, gridSize: '40' },
+    };
+    const glowDraft = {
+      ...validThemeDraft,
+      backdrop: { ...validThemeDraft.backdrop, glowSize: '30px' },
+    };
+    expect(themeInputSchema.safeParse(gridDraft).success).toBe(false);
+    expect(themeInputSchema.safeParse(glowDraft).success).toBe(false);
+  });
+
+  it('rejects a theme without backdrop settings', () => {
+    const draft = { ...validThemeDraft, backdrop: undefined };
     expect(themeInputSchema.safeParse(draft).success).toBe(false);
   });
 
@@ -137,6 +180,55 @@ describe('theme contracts', () => {
   });
 });
 
+describe('theme image backdrop contracts', () => {
+  const reference = { storagePath: 'themes/theme-custom/a.png', mimeType: 'image/png', sizeBytes: 1024 };
+
+  it('defaults the image flag to false and the reference to null', () => {
+    const stored = themeSchema.parse({ ...validStoredTheme(), imageBackdrop: undefined });
+    expect(stored.useImageBackdrop).toBe(false);
+    expect(stored.imageBackdrop).toBeNull();
+    expect(themeInputSchema.parse(validThemeDraft).useImageBackdrop).toBe(false);
+  });
+
+  it('rejects image mode in a create input because no image can exist yet', () => {
+    expect(themeInputSchema.safeParse({ ...validThemeDraft, useImageBackdrop: true }).success).toBe(false);
+  });
+
+  it('rejects a stored theme in image mode without a reference', () => {
+    const draft = { ...validStoredTheme(), useImageBackdrop: true, imageBackdrop: null };
+    expect(themeSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it('accepts a stored theme in image mode with a reference', () => {
+    const draft = { ...validStoredTheme(), useImageBackdrop: true, imageBackdrop: reference };
+    expect(themeSchema.parse(draft).imageBackdrop).toEqual(reference);
+  });
+
+  it('keeps a reference on a backdrop-mode theme', () => {
+    const draft = { ...validStoredTheme(), useImageBackdrop: false, imageBackdrop: reference };
+    expect(themeSchema.safeParse(draft).success).toBe(true);
+  });
+
+  it('never accepts a client-supplied image reference as input', () => {
+    const parsed = themeInputSchema.parse({ ...validThemeDraft, imageBackdrop: reference });
+    expect(parsed).not.toHaveProperty('imageBackdrop');
+  });
+
+  it('rejects an image reference with a type outside the accepted set', () => {
+    const draft = { ...validStoredTheme(), useImageBackdrop: true, imageBackdrop: { ...reference, mimeType: 'image/gif' } };
+    expect(themeSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it('rejects an image reference above 5 MB', () => {
+    const draft = {
+      ...validStoredTheme(),
+      useImageBackdrop: true,
+      imageBackdrop: { ...reference, sizeBytes: 5 * 1024 * 1024 + 1 },
+    };
+    expect(themeSchema.safeParse(draft).success).toBe(false);
+  });
+});
+
 describe('role contracts', () => {
   it('accepts only user or admin roles', () => {
     expect(roleSchema.parse('user')).toBe('user');
@@ -156,17 +248,17 @@ describe('role contracts', () => {
       authenticatedUserProfileSchema.parse({
         id: 'id-1',
         email: 'a@b.com',
-        theme: 'dark',
+        preferences: { themeId: null, tagsPanelExpanded: true },
         role: 'admin',
       }),
-    ).toEqual({ id: 'id-1', email: 'a@b.com', theme: 'dark', role: 'admin' });
+    ).toEqual({ id: 'id-1', email: 'a@b.com', preferences: { themeId: null, tagsPanelExpanded: true }, role: 'admin' });
   });
 
   it('omits the external provider identity from the authenticated profile', () => {
     const parsed = authenticatedUserProfileSchema.parse({
       id: 'id-1',
       email: 'a@b.com',
-      theme: 'light',
+      preferences: { themeId: null, tagsPanelExpanded: true },
       role: 'user',
       googleId: 'sub-1',
       passwordHash: null,
@@ -174,5 +266,19 @@ describe('role contracts', () => {
 
     expect(parsed).not.toHaveProperty('googleId');
     expect(parsed).not.toHaveProperty('passwordHash');
+  });
+});
+
+describe('user preference contracts', () => {
+  it('requires at least one preference to be updated', () => {
+    expect(userPreferencesUpdateSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('accepts a null theme and strips unknown fields', () => {
+    expect(userPreferencesUpdateSchema.parse({ themeId: null, extra: 'ignored' })).toEqual({ themeId: null });
+  });
+
+  it('rejects invalid tags panel state values', () => {
+    expect(userPreferencesUpdateSchema.safeParse({ tagsPanelExpanded: 'false' }).success).toBe(false);
   });
 });

@@ -5,7 +5,7 @@ import { ThemesService } from '../../api/services/themes.service';
 
 function seededContext() {
   const context = createTestApp();
-  const themesService = new ThemesService(context.themes, context.users);
+  const themesService = new ThemesService(context.themes, context.userPreferences);
   return { ...context, themesService };
 }
 
@@ -58,11 +58,10 @@ describe('tag color palette enforcement', () => {
     const { app, themesService } = seededContext();
     await themesService.ensureSeeded();
     const cookie = await registerUser(request, app, 'owner@example.com');
-    await request(app).patch('/api/auth/me/theme').set('Cookie', cookie).send({ theme: 'dark' }).expect(200);
-
     const dark = (await themesService.list({ limit: 50, skip: 0, sort: 'name' })).items.find(
       (theme) => theme.name === 'dark',
     )!;
+    await request(app).patch('/api/auth/me/preferences').set('Cookie', cookie).send({ themeId: dark.id }).expect(200);
     const paletteColor = dark.tagColorPalette[0];
 
     const created = await request(app)

@@ -9,7 +9,6 @@ import type {
   TagCategory,
   TagInput,
   Theme,
-  ThemePreference,
 } from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
@@ -41,15 +40,19 @@ const MOBILE_BREAKPOINT_PX = 768;
 export function CollectionPage({
   onSignOut,
   currentUserLabel,
-  theme = 'light',
+  themeId = null,
   onThemeChange,
+  tagsPanelExpanded = true,
+  onTagsPanelExpandedChange,
   role = 'user',
   tagPalette = null,
 }: {
   onSignOut?: () => void;
   currentUserLabel?: string;
-  theme?: ThemePreference;
-  onThemeChange?: (theme: ThemePreference) => void | Promise<void>;
+  themeId?: string | null;
+  onThemeChange?: (themeId: string | null) => void | Promise<void>;
+  tagsPanelExpanded?: boolean;
+  onTagsPanelExpandedChange?: (expanded: boolean) => void | Promise<void>;
   role?: Role;
   tagPalette?: string[] | null;
 }) {
@@ -68,14 +71,16 @@ export function CollectionPage({
   const tagsState = useTags();
   const categoriesState = useTagCategories();
   const themesState = useThemes();
+  const effectiveThemeId = themeId ?? themesState.themes.find((theme) => theme.isDefault)?.id ?? null;
   const [isNarrowViewport, setIsNarrowViewport] = useState(
     () => window.innerWidth <= MOBILE_BREAKPOINT_PX,
   );
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    const saved = localStorage.getItem('conjuros_sidebar_open');
-    if (saved !== null) return saved !== 'false';
-    return window.innerWidth > MOBILE_BREAKPOINT_PX;
-  });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(tagsPanelExpanded);
+  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
+  const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null);
+  const [themeSelectorError, setThemeSelectorError] = useState('');
+
+  useEffect(() => setIsSidebarOpen(tagsPanelExpanded), [tagsPanelExpanded]);
 
   useEffect(() => {
     function handleResize() {
@@ -100,10 +105,21 @@ export function CollectionPage({
       closeMobileDrawer();
       return;
     }
-    setIsSidebarOpen((prev) => {
-      const next = !prev;
-      localStorage.setItem('conjuros_sidebar_open', String(next));
-      return next;
+    const next = !isSidebarOpen;
+    setIsSidebarOpen(next);
+    if (!onTagsPanelExpandedChange) return;
+    void Promise.resolve(onTagsPanelExpandedChange(next)).catch((cause) => {
+      setIsSidebarOpen(!next);
+      setActionError(cause instanceof Error ? cause.message : 'Could not save preferences');
+    });
+  }
+
+  function collapseDesktopSidebar() {
+    setIsSidebarOpen(false);
+    if (!onTagsPanelExpandedChange) return;
+    void Promise.resolve(onTagsPanelExpandedChange(false)).catch((cause) => {
+      setIsSidebarOpen(true);
+      setActionError(cause instanceof Error ? cause.message : 'Could not save preferences');
     });
   }
 
@@ -192,6 +208,23 @@ export function CollectionPage({
       await themesState.activate(theme.id);
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : 'Could not activate theme');
+    }
+  }
+
+  function openThemeSelector() {
+    setSelectedThemeId(effectiveThemeId);
+    setThemeSelectorError('');
+    setIsThemeSelectorOpen(true);
+  }
+
+  async function saveThemePreference() {
+    if (!selectedThemeId || !onThemeChange) return;
+    setThemeSelectorError('');
+    try {
+      await onThemeChange(selectedThemeId);
+      setIsThemeSelectorOpen(false);
+    } catch (cause) {
+      setThemeSelectorError(cause instanceof Error ? cause.message : 'Could not save theme preferences');
     }
   }
 
@@ -334,9 +367,14 @@ export function CollectionPage({
             </div>
           </div>
           <div className="topbar-signout">
-            <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
+            <ThemeToggle themeId={effectiveThemeId} themes={themesState.themes} onChange={(nextThemeId) => onThemeChange?.(nextThemeId)} />
             {onSignOut && currentUserLabel && (
-              <UserWidget userLabel={currentUserLabel} onSignOut={onSignOut} />
+              <UserWidget
+                userLabel={currentUserLabel}
+                onSignOut={onSignOut}
+                onThemeSelector={openThemeSelector}
+                onThemeEditor={role === 'admin' ? openManageThemes : undefined}
+              />
             )}
           </div>
         </header>
@@ -356,14 +394,10 @@ export function CollectionPage({
                 onToggleOpen={handleToggleSidebar}
                 onChange={setFilters}
                 onManageTags={openManageTags}
-                onManageThemes={role === 'admin' ? openManageThemes : undefined}
                 onClose={
                   shouldForceExpandedSidebar
                     ? closeMobileDrawer
-                    : () => {
-                        setIsSidebarOpen(false);
-                        localStorage.setItem('conjuros_sidebar_open', 'false');
-                      }
+                    : collapseDesktopSidebar
                 }
               />
             </div>
@@ -598,6 +632,45 @@ export function CollectionPage({
                 }}
                 onCancel={() => setRenameCategory(null)}
               />
+            </Modal>
+          )}
+          {isThemeSelectorOpen && (
+            <Modal label="Theme selector" onClose={() => setIsThemeSelectorOpen(false)}>
+              <div className="item-form theme-selector">
+                <h2>Choose a theme</h2>
+                {themesState.isLoading ? (
+                  <LoadingState />
+                ) : themesState.error ? (
+                  <ErrorState message={themesState.error.message} />
+                ) : (
+                  <div className="theme-selector-list" role="radiogroup" aria-label="Available themes">
+                    {themesState.themes.map((availableTheme) => (
+                      <label key={availableTheme.id} className="theme-selector-option">
+                        <input
+                          type="radio"
+                          name="selected-theme"
+                          value={availableTheme.id}
+                          checked={selectedThemeId === availableTheme.id}
+                          onChange={() => setSelectedThemeId(availableTheme.id)}
+                        />
+                        <span>{availableTheme.label}</span>
+                        {availableTheme.id === effectiveThemeId && (
+                          <span className="theme-selector-current">Current</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {themeSelectorError && <p role="alert" className="field-error">{themeSelectorError}</p>}
+                <div className="form-actions">
+                  <button type="button" disabled={!selectedThemeId} onClick={() => void saveThemePreference()}>
+                    Save theme preferences
+                  </button>
+                  <button type="button" className="quiet" onClick={() => setIsThemeSelectorOpen(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </Modal>
           )}
           {manageThemes && (

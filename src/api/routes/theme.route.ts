@@ -14,5 +14,12 @@ export function createThemesRouter(
     .post('/', requireAdmin, controller.create)
     .patch('/:id', requireAdmin, controller.update)
     .delete('/:id', requireAdmin, controller.delete)
-    .patch('/:id/activate', requireAdmin, controller.activate);
+    .patch('/:id/activate', requireAdmin, controller.activate)
+    .post(
+      '/:id/image-backdrop',
+      requireAdmin,
+      controller.ensureImageStorage,
+      controller.receiveImage,
+      controller.uploadImage,
+    );
 }

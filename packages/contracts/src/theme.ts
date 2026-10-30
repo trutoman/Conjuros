@@ -61,6 +61,37 @@ export const themeFontSizesSchema = z.object({
   mono: fontSizeTokenSchema,
 });
 
+export const backdropPatternValues = ['lines', 'grid', 'dots', 'none'] as const;
+export const backdropGlowPositionValues = [
+  'top-left',
+  'top-center',
+  'top-right',
+  'center',
+  'bottom-left',
+  'bottom-center',
+  'bottom-right',
+] as const;
+
+export const backdropPatternSchema = z.enum(backdropPatternValues);
+export const backdropGlowPositionSchema = z.enum(backdropGlowPositionValues);
+export const pixelTokenSchema = z
+  .string()
+  .trim()
+  .regex(/^\d+(\.\d+)?px$/, 'Size must use the px unit');
+export const percentTokenSchema = z
+  .string()
+  .trim()
+  .regex(/^\d+(\.\d+)?%$/, 'Size must use the % unit');
+
+export const themeBackdropSchema = z.object({
+  pattern: backdropPatternSchema,
+  gridSize: pixelTokenSchema,
+  lineWidth: pixelTokenSchema,
+  glowPosition: backdropGlowPositionSchema,
+  glowSize: percentTokenSchema,
+  glowColor: cssColorValueSchema,
+});
+
 export const themeKindColorsSchema = z.object({
   command: hexColorTokenSchema,
   webLink: hexColorTokenSchema,
@@ -114,28 +145,71 @@ export const tagColorPaletteSchema = z
   .max(24, 'The tag color palette may contain at most 24 colors')
   .transform((colors) => [...new Set(colors.map((color) => color.toUpperCase()))]);
 
-export const themeSchema = z.object({
-  id: themeIdSchema,
+export const themeImageMimeTypes = ['image/png', 'image/jpeg', 'image/webp'] as const;
+export const themeImageMaxBytes = 5 * 1024 * 1024;
+export const themeImageExtensions: Record<(typeof themeImageMimeTypes)[number], string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
+
+export const themeImageBackdropSchema = z.object({
+  storagePath: z.string().trim().min(1).max(512),
+  mimeType: z.enum(themeImageMimeTypes),
+  sizeBytes: z.number().int().positive().max(themeImageMaxBytes),
+});
+
+export const imageBackdropRequiresImageMessage =
+  'Image backdrop mode requires an uploaded image; save the theme in backdrop mode first';
+
+// Form drafts and stored themes share these fields. The image reference is not part of
+// the draft: only the image upload endpoint writes it, so clients cannot choose a storage path.
+export const themeDraftSchema = z.object({
   name: themeNameSchema,
   label: themeLabelSchema,
   colors: themeColorsSchema,
   fonts: themeFontsSchema,
   fontSizes: themeFontSizesSchema,
+  backdrop: themeBackdropSchema,
+  useImageBackdrop: z.boolean().default(false),
   iconAssets: iconAssetsSchema,
   kindColors: themeKindColorsSchema,
   tagColorPalette: tagColorPaletteSchema,
-  isDefault: z.boolean(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  isDefault: z.boolean().default(false),
 });
 
-export const themeInputSchema = themeSchema
-  .omit({ id: true, isDefault: true, createdAt: true, updatedAt: true })
-  .extend({ isDefault: z.boolean().default(false) });
+export const themeInputSchema = themeDraftSchema.superRefine((value, context) => {
+  if (value.useImageBackdrop) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['useImageBackdrop'],
+      message: imageBackdropRequiresImageMessage,
+    });
+  }
+});
 
-export const themeUpdateSchema = themeInputSchema
+export const themeUpdateSchema = themeDraftSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, 'At least one field must be provided');
+
+export const themeSchema = themeDraftSchema
+  .extend({
+    id: themeIdSchema,
+    imageBackdrop: themeImageBackdropSchema.nullable().default(null),
+    imageBackdropUrl: z.string().url().optional(),
+    isDefault: z.boolean(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .superRefine((value, context) => {
+    if (value.useImageBackdrop && !value.imageBackdrop) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['imageBackdrop'],
+        message: imageBackdropRequiresImageMessage,
+      });
+    }
+  });
 
 export const themeQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(25),
@@ -163,6 +237,8 @@ export function normalizeTagColor(color: string): string {
 export type ThemeColors = z.infer<typeof themeColorsSchema>;
 export type ThemeFonts = z.infer<typeof themeFontsSchema>;
 export type ThemeFontSizes = z.infer<typeof themeFontSizesSchema>;
+export type ThemeBackdrop = z.infer<typeof themeBackdropSchema>;
+export type ThemeImageBackdrop = z.infer<typeof themeImageBackdropSchema>;
 export type ThemeKindColors = z.infer<typeof themeKindColorsSchema>;
 export type IconAssetKey = z.infer<typeof iconAssetKeySchema>;
 export type IconAssetDefinition = z.infer<typeof iconAssetDefinitionSchema>;

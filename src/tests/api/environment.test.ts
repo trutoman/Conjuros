@@ -25,6 +25,7 @@ const defaultConfiguration = {
   supabaseServiceRoleKey: null,
   attachmentBucket: 'attachments',
   attachmentMaxBytes: 52_428_800,
+  themeAssetBucket: 'assets',
 };
 
 function invalidEnvironmentMessage(environment: Record<string, string>) {
@@ -196,12 +197,14 @@ describe('parseApiEnvironment', () => {
         SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
         ATTACHMENT_BUCKET: 'files',
         ATTACHMENT_MAX_BYTES: '1048576',
+        THEME_ASSET_BUCKET: 'theme-files',
       }),
     ).toMatchObject({
       supabaseUrl: 'https://project.supabase.co',
       supabaseServiceRoleKey: 'service-role-secret',
       attachmentBucket: 'files',
       attachmentMaxBytes: 1_048_576,
+      themeAssetBucket: 'theme-files',
     });
   });
 

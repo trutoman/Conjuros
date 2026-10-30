@@ -91,6 +91,7 @@ const apiEnvironmentSchema = z
     SUPABASE_URL: z.preprocess(blankToUndefined, httpUrlSchema.optional()),
     SUPABASE_SERVICE_ROLE_KEY: z.preprocess(blankToUndefined, nonBlankString.optional()),
     ATTACHMENT_BUCKET: z.preprocess(blankToUndefined, nonBlankString.optional()),
+    THEME_ASSET_BUCKET: z.preprocess(blankToUndefined, nonBlankString.optional()),
     ATTACHMENT_MAX_BYTES: z.preprocess(
       blankToUndefined,
       z.coerce.number().int().positive().optional(),
@@ -134,6 +135,7 @@ export interface ApiEnvironment {
   supabaseServiceRoleKey: string | null;
   attachmentBucket: string;
   attachmentMaxBytes: number;
+  themeAssetBucket: string;
 }
 
 export function parseApiEnvironment(
@@ -163,5 +165,6 @@ export function parseApiEnvironment(
     supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY ?? null,
     attachmentBucket: parsed.data.ATTACHMENT_BUCKET ?? 'attachments',
     attachmentMaxBytes: parsed.data.ATTACHMENT_MAX_BYTES ?? attachmentMaxBytes,
+    themeAssetBucket: parsed.data.THEME_ASSET_BUCKET ?? 'assets',
   };
 }

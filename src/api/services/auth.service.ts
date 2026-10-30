@@ -1,7 +1,14 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import type { AuthenticatedUser, AuthenticatedUserProfile, Credentials, ThemePreference } from '@conjuros/contracts';
+import type {
+  AuthenticatedUser,
+  AuthenticatedUserProfile,
+  Credentials,
+  UserPreferencesUpdate,
+} from '@conjuros/contracts';
 import { AppError } from '../errors';
+import type { UserPreferencesRepository } from '../repositories/user-preferences.repository';
+import type { ThemesRepository } from '../repositories/themes.repository';
 import type { UsersRepository } from '../repositories/users.repository';
 
 export async function registerUser(repository: UsersRepository, credentials: Credentials): Promise<AuthenticatedUser> {
@@ -55,20 +62,43 @@ export async function resolveExternalIdentity(repository: UsersRepository, ident
   return { id: linkedNew.id, email: linkedNew.email };
 }
 
-export async function readAuthenticatedUserProfile(repository: UsersRepository, user: AuthenticatedUser): Promise<AuthenticatedUserProfile> {
+export async function readAuthenticatedUserProfile(
+  repository: UsersRepository,
+  preferences: UserPreferencesRepository,
+  user: AuthenticatedUser,
+): Promise<AuthenticatedUserProfile> {
   const stored = await repository.findById(user.id);
   if (!stored || stored.email !== user.email) {
     throw new AppError(401, 'AUTH_ERROR', 'Your session is invalid or expired');
   }
-  return { id: stored.id, email: stored.email, theme: stored.theme, role: stored.role };
+  return {
+    id: stored.id,
+    email: stored.email,
+    role: stored.role,
+    preferences: await preferences.get(stored.id),
+  };
 }
 
-export async function updateAuthenticatedUserTheme(repository: UsersRepository, userId: string, theme: ThemePreference): Promise<AuthenticatedUserProfile> {
-  const updated = await repository.updateTheme(userId, theme);
-  if (!updated) {
+export async function updateAuthenticatedUserPreferences(
+  repository: UsersRepository,
+  preferences: UserPreferencesRepository,
+  themes: ThemesRepository,
+  userId: string,
+  update: UserPreferencesUpdate,
+): Promise<AuthenticatedUserProfile> {
+  const stored = await repository.findById(userId);
+  if (!stored) {
     throw new AppError(404, 'NOT_FOUND', 'User not found');
   }
-  return { id: updated.id, email: updated.email, theme: updated.theme, role: updated.role };
+  if (update.themeId && !(await themes.findById(update.themeId))) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'The selected theme does not exist');
+  }
+  return {
+    id: stored.id,
+    email: stored.email,
+    role: stored.role,
+    preferences: await preferences.upsert(stored.id, update),
+  };
 }
 
 export function createSession(user: AuthenticatedUser, secret: string): string {

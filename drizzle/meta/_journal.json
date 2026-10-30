@@ -57,6 +57,27 @@
       "when": 1792703758944,
       "tag": "0007_slippery_pestilence",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793383437086,
+      "tag": "0008_damp_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793385730648,
+      "tag": "0009_material_mantis",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793393466993,
+      "tag": "0010_dear_king_bedlam",
+      "breakpoints": true
     }
   ]
 }

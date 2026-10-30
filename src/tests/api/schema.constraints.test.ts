@@ -56,6 +56,7 @@ describe('migrations', () => {
       'tag_categories',
       'tags',
       'themes',
+      'user_preferences',
       'users',
     ]);
   });
@@ -218,10 +219,6 @@ describe('database integrity rules', () => {
     [
       'user role',
       sql`INSERT INTO users (id, email, password_hash, role, created_at) VALUES ('u', 'u@example.com', 'h', 'owner', now())`,
-    ],
-    [
-      'theme preference',
-      sql`INSERT INTO users (id, email, password_hash, theme, created_at) VALUES ('u', 'u@example.com', 'h', 'sepia', now())`,
     ],
   ])('rejects an unknown %s', async (_label, statement) => {
     await insertUser('user-a');
