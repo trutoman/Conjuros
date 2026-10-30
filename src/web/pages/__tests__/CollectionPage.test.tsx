@@ -241,18 +241,17 @@ describe('CollectionPage', () => {
     expect(screen.getByText('Collection exploded')).toBeInTheDocument();
   });
 
-  it('renders the user widget and routes sign out through its action', () => {
+  it('renders the user menu and routes sign out through its menu item', () => {
     const onSignOut = vi.fn();
     render(<CollectionPage onSignOut={onSignOut} currentUserLabel="alicia" />);
 
-    expect(screen.getByText('alicia')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out alicia' }));
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }));
 
     expect(onSignOut).toHaveBeenCalledTimes(1);
   });
 
   it('hides the tags sidebar on narrow viewports and offers a Tags button next to the title', () => {
-    localStorage.setItem('conjuros_sidebar_open', 'true');
     Object.defineProperty(window, 'innerWidth', { value: 720, configurable: true });
 
     render(<CollectionPage />);
@@ -276,6 +275,23 @@ describe('CollectionPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
     expect(document.querySelector('.app-sidebar')).not.toBeInTheDocument();
+  });
+
+  it('restores and saves the desktop tags sidebar preference', () => {
+    Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true });
+    const onTagsPanelExpandedChange = vi.fn().mockResolvedValue(undefined);
+    render(
+      <CollectionPage
+        tagsPanelExpanded={false}
+        onTagsPanelExpandedChange={onTagsPanelExpandedChange}
+      />,
+    );
+
+    expect(document.querySelector('.app-sidebar')).toHaveClass('collapsed');
+    fireEvent.click(screen.getByRole('button', { name: 'Expand tags sidebar' }));
+
+    expect(onTagsPanelExpandedChange).toHaveBeenCalledWith(true);
+    expect(document.querySelector('.app-sidebar')).toHaveClass('expanded');
   });
 
   it('keeps the collection list visible while the Add item form is open as a modal', () => {

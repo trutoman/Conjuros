@@ -1,9 +1,14 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { buildSeedThemes } from '../../api/repositories/themeSeed';
 import { createTestApp, registerUser } from './testApp';
 
-describe('auth theme preference', () => {
-  it('returns the default theme for a newly authenticated user', async () => {
+async function seedThemes(context: ReturnType<typeof createTestApp>) {
+  for (const theme of buildSeedThemes()) await context.themes.create(theme);
+}
+
+describe('authenticated user preferences', () => {
+  it('returns default preferences for a newly authenticated user', async () => {
     const { app } = createTestApp();
     const cookie = await registerUser(request, app, 'owner@example.com');
 
@@ -11,55 +16,103 @@ describe('auth theme preference', () => {
 
     expect(response.body.user).toMatchObject({
       email: 'owner@example.com',
-      theme: 'light',
+      preferences: { themeId: null, tagsPanelExpanded: true },
     });
   });
 
-  it('updates the authenticated user theme and returns the updated profile', async () => {
-    const { app } = createTestApp();
-    const cookie = await registerUser(request, app, 'owner@example.com');
+  it('updates and reloads theme and tags panel preferences', async () => {
+    const context = createTestApp();
+    await seedThemes(context);
+    const cookie = await registerUser(request, context.app, 'owner@example.com');
+    const dark = (await context.themes.findByName('dark'))!;
 
-    const updated = await request(app)
-      .patch('/api/auth/me/theme')
+    const updated = await request(context.app)
+      .patch('/api/auth/me/preferences')
       .set('Cookie', cookie)
-      .send({ theme: 'dark' })
+      .send({ themeId: dark.id, tagsPanelExpanded: false })
       .expect(200);
 
-    expect(updated.body.user).toMatchObject({
-      email: 'owner@example.com',
-      theme: 'dark',
-    });
-
-    const reloaded = await request(app).get('/api/auth/me').set('Cookie', cookie).expect(200);
-    expect(reloaded.body.user.theme).toBe('dark');
+    expect(updated.body.user.preferences).toEqual({ themeId: dark.id, tagsPanelExpanded: false });
+    const reloaded = await request(context.app).get('/api/auth/me').set('Cookie', cookie).expect(200);
+    expect(reloaded.body.user.preferences).toEqual({ themeId: dark.id, tagsPanelExpanded: false });
   });
 
-  it('keeps each user theme preference isolated', async () => {
-    const { app } = createTestApp();
-    const ownerCookie = await registerUser(request, app, 'owner@example.com');
-    const otherCookie = await registerUser(request, app, 'other@example.com');
+  it('keeps preferences isolated between users', async () => {
+    const context = createTestApp();
+    await seedThemes(context);
+    const ownerCookie = await registerUser(request, context.app, 'owner@example.com');
+    const otherCookie = await registerUser(request, context.app, 'other@example.com');
+    const dark = (await context.themes.findByName('dark'))!;
 
-    await request(app)
-      .patch('/api/auth/me/theme')
+    await request(context.app)
+      .patch('/api/auth/me/preferences')
       .set('Cookie', ownerCookie)
-      .send({ theme: 'dark' })
+      .send({ themeId: dark.id })
       .expect(200);
 
-    const otherProfile = await request(app).get('/api/auth/me').set('Cookie', otherCookie).expect(200);
-    expect(otherProfile.body.user).toMatchObject({
-      email: 'other@example.com',
-      theme: 'light',
-    });
+    const otherProfile = await request(context.app).get('/api/auth/me').set('Cookie', otherCookie).expect(200);
+    expect(otherProfile.body.user.preferences).toEqual({ themeId: null, tagsPanelExpanded: true });
   });
 
-  it('rejects unsupported theme values', async () => {
-    const { app } = createTestApp();
-    const cookie = await registerUser(request, app, 'owner@example.com');
+  it('rejects unknown theme ids without changing preferences', async () => {
+    const context = createTestApp();
+    await seedThemes(context);
+    const cookie = await registerUser(request, context.app, 'owner@example.com');
 
-    await request(app)
-      .patch('/api/auth/me/theme')
+    await request(context.app)
+      .patch('/api/auth/me/preferences')
       .set('Cookie', cookie)
-      .send({ theme: 'system' })
+      .send({ themeId: 'missing-theme' })
       .expect(400);
+
+    const profile = await request(context.app).get('/api/auth/me').set('Cookie', cookie).expect(200);
+    expect(profile.body.user.preferences.themeId).toBeNull();
+  });
+
+  it('requires authentication to update preferences', async () => {
+    await request(createTestApp().app)
+      .patch('/api/auth/me/preferences')
+      .send({ tagsPanelExpanded: false })
+      .expect(401);
+  });
+
+  it('uses the selected theme for the active theme endpoint and falls back after deletion', async () => {
+    const context = createTestApp();
+    await seedThemes(context);
+    const cookie = await registerUser(request, context.app, 'owner@example.com');
+    const [light, dark] = buildSeedThemes();
+    const custom = await context.themes.create({
+      ...light,
+      id: 'theme-custom-test',
+      name: 'custom-test',
+      label: 'Custom test',
+      isDefault: false,
+    });
+
+    await request(context.app)
+      .patch('/api/auth/me/preferences')
+      .set('Cookie', cookie)
+      .send({ themeId: custom.id })
+      .expect(200);
+    const active = await request(context.app).get('/api/themes/active').set('Cookie', cookie).expect(200);
+    expect(active.body.theme.id).toBe(custom.id);
+
+    await context.themes.delete(custom.id);
+    const fallback = await request(context.app).get('/api/themes/active').set('Cookie', cookie).expect(200);
+    expect(fallback.body.theme.name).toBe('light');
+    expect((await context.themes.findById(dark.id))?.name).toBe('dark');
+  });
+
+  it('ignores unknown preference fields', async () => {
+    const context = createTestApp();
+    const cookie = await registerUser(request, context.app, 'owner@example.com');
+
+    const response = await request(context.app)
+      .patch('/api/auth/me/preferences')
+      .set('Cookie', cookie)
+      .send({ tagsPanelExpanded: false, extra: 'ignored' })
+      .expect(200);
+
+    expect(response.body.user.preferences.tagsPanelExpanded).toBe(false);
   });
 });

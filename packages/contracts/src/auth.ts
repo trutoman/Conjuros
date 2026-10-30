@@ -9,7 +9,10 @@ export const passwordSchema = z
   .regex(/[a-z]/, 'Password must include at least one lowercase letter')
   .regex(/[0-9]/, 'Password must include at least one number')
   .regex(/[^A-Za-z0-9]/, 'Password must include at least one special character');
-export const themePreferenceSchema = z.enum(['light', 'dark']);
+export const userPreferencesSchema = z.object({
+  themeId: z.string().min(1).max(128).nullable(),
+  tagsPanelExpanded: z.boolean(),
+});
 
 export const credentialsSchema = z.object({
   email: emailSchema,
@@ -43,20 +46,23 @@ export const authenticatedUserSchema = z.object({
 });
 
 export const authenticatedUserProfileSchema = authenticatedUserSchema.extend({
-  theme: themePreferenceSchema,
   role: roleSchema,
+  preferences: userPreferencesSchema,
 });
 
-export const themePreferenceUpdateSchema = z.object({
-  theme: themePreferenceSchema,
-});
+export const userPreferencesUpdateSchema = z
+  .object({
+    themeId: z.string().min(1).max(128).nullable().optional(),
+    tagsPanelExpanded: z.boolean().optional(),
+  })
+  .refine((value) => value.themeId !== undefined || value.tagsPanelExpanded !== undefined, 'At least one preference must be provided');
 
 export type Credentials = z.infer<typeof credentialsSchema>;
 export type LoginCredentials = z.infer<typeof loginCredentialsSchema>;
 export type PasswordResetRequest = z.infer<typeof passwordResetRequestSchema>;
 export type PasswordResetConfirm = z.infer<typeof passwordResetConfirmSchema>;
 export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
-export type ThemePreference = z.infer<typeof themePreferenceSchema>;
+export type UserPreferences = z.infer<typeof userPreferencesSchema>;
 export type Role = z.infer<typeof roleSchema>;
 export type AuthenticatedUserProfile = z.infer<typeof authenticatedUserProfileSchema>;
-export type ThemePreferenceUpdate = z.infer<typeof themePreferenceUpdateSchema>;
+export type UserPreferencesUpdate = z.infer<typeof userPreferencesUpdateSchema>;

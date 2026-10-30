@@ -17,6 +17,32 @@ function makeTheme(name: string, overrides: Partial<StoredTheme> = {}): StoredTh
 }
 
 describe('PostgresThemesRepository', () => {
+  it('round-trips the image backdrop reference', async () => {
+    const repository = new PostgresThemesRepository(database.db);
+    const reference = { storagePath: 'themes/theme-image/a.webp', mimeType: 'image/webp' as const, sizeBytes: 2048 };
+    await repository.create(makeTheme('image', { imageBackdrop: reference }));
+
+    expect((await repository.findById('theme-image'))?.imageBackdrop).toEqual(reference);
+  });
+
+  it('reads rows written before the image columns existed as backdrop mode', async () => {
+    const [light] = buildSeedThemes();
+    await database.db.execute(sql`
+      INSERT INTO themes (id, name, label, colors, font_sizes, fonts, backdrop, icon_assets, kind_colors,
+        tag_color_palette, is_default, created_at, updated_at)
+      VALUES ('theme-legacy', 'legacy', 'Legacy',
+        ${JSON.stringify(light.colors)}::jsonb, ${JSON.stringify(light.fontSizes)}::jsonb,
+        ${JSON.stringify(light.fonts)}::jsonb, ${JSON.stringify(light.backdrop)}::jsonb,
+        ${JSON.stringify(light.iconAssets)}::jsonb, ${JSON.stringify(light.kindColors)}::jsonb,
+        ARRAY['#1A73E8']::text[], false, now(), now())`);
+
+    const repository = new PostgresThemesRepository(database.db);
+    expect(await repository.findById('theme-legacy')).toMatchObject({
+      useImageBackdrop: false,
+      imageBackdrop: null,
+    });
+  });
+
   it('rejects a second theme with an existing name', async () => {
     const repository = new PostgresThemesRepository(database.db);
     await repository.create(makeTheme('midnight'));

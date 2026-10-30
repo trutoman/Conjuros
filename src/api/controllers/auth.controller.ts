@@ -4,14 +4,22 @@ import {
   loginCredentialsSchema,
   passwordResetConfirmSchema,
   passwordResetRequestSchema,
-  themePreferenceUpdateSchema,
+  userPreferencesUpdateSchema,
 } from '@conjuros/contracts';
 import type { EmailSender } from '../email/sender';
 import { AppError } from '../errors';
 import type { PasswordResetTokensRepository } from '../repositories/password-reset-tokens.repository';
+import type { ThemesRepository } from '../repositories/themes.repository';
+import type { UserPreferencesRepository } from '../repositories/user-preferences.repository';
 import type { UsersRepository } from '../repositories/users.repository';
 import { sendWelcomeEmail } from '../services/account-email.service';
-import { authenticateUser, createSession, readAuthenticatedUserProfile, registerUser, updateAuthenticatedUserTheme } from '../services/auth.service';
+import {
+  authenticateUser,
+  createSession,
+  readAuthenticatedUserProfile,
+  registerUser,
+  updateAuthenticatedUserPreferences,
+} from '../services/auth.service';
 import { requestPasswordReset, resetPassword } from '../services/password-reset.service';
 import { parseCredentialsOrThrow, parseOrThrow } from '../utils/http';
 
@@ -30,6 +38,8 @@ export const PASSWORD_RESET_SUCCESS_MESSAGE =
 
 export interface AuthControllerDependencies {
   users: UsersRepository;
+  themes: ThemesRepository;
+  preferences: UserPreferencesRepository;
   sessionSecret: string;
   resetTokens: PasswordResetTokensRepository;
   emailSender: EmailSender;
@@ -40,7 +50,7 @@ export interface AuthControllerDependencies {
 export function createAuthController(
   dependencies: AuthControllerDependencies,
 ): Record<string, RequestHandler> {
-  const { users, sessionSecret, resetTokens, emailSender, appBaseUrl, passwordResetTtlMinutes } =
+  const { users, themes, preferences, sessionSecret, resetTokens, emailSender, appBaseUrl, passwordResetTtlMinutes } =
     dependencies;
 
   async function authenticate(request: Parameters<RequestHandler>[0], response: Parameters<RequestHandler>[1], mode: 'register' | 'login') {
@@ -50,7 +60,7 @@ export function createAuthController(
     if (mode === 'register') {
       await sendWelcomeEmail(emailSender, authenticatedUser.email, appBaseUrl);
     }
-    const user = await readAuthenticatedUserProfile(users, authenticatedUser);
+    const user = await readAuthenticatedUserProfile(users, preferences, authenticatedUser);
     response.cookie('conjuros_session', createSession(authenticatedUser, sessionSecret), sessionOptions).status(mode === 'register' ? 201 : 200).json({ user });
   }
 
@@ -70,11 +80,11 @@ export function createAuthController(
     response.json({ message: PASSWORD_RESET_SUCCESS_MESSAGE });
   }
 
-  async function updateTheme(request: Parameters<RequestHandler>[0], response: Parameters<RequestHandler>[1]) {
-    const body = parseOrThrow(themePreferenceUpdateSchema, request.body);
+  async function updatePreferences(request: Parameters<RequestHandler>[0], response: Parameters<RequestHandler>[1]) {
+    const body = parseOrThrow(userPreferencesUpdateSchema, request.body);
     const currentUser = (request as Parameters<RequestHandler>[0] & { currentUser?: { id: string; email: string } }).currentUser;
     if (!currentUser) throw new AppError(401, 'AUTH_ERROR', 'Authentication is required');
-    const user = await updateAuthenticatedUserTheme(users, currentUser.id, body.theme);
+    const user = await updateAuthenticatedUserPreferences(users, preferences, themes, currentUser.id, body);
     response.json({ user });
   }
 
@@ -88,9 +98,9 @@ export function createAuthController(
         next(new AppError(401, 'AUTH_ERROR', 'Authentication is required'));
         return;
       }
-      void readAuthenticatedUserProfile(users, currentUser).then((user) => response.json({ user })).catch(next);
+      void readAuthenticatedUserProfile(users, preferences, currentUser).then((user) => response.json({ user })).catch(next);
     },
-    updateTheme: (request, response, next) => { void updateTheme(request, response).catch(next); },
+    updatePreferences: (request, response, next) => { void updatePreferences(request, response).catch(next); },
     requestReset: (request, response, next) => { void requestReset(request, response).catch(next); },
     confirmReset: (request, response, next) => { void confirmReset(request, response).catch(next); },
   };

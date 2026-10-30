@@ -126,6 +126,7 @@ Set the following in `.env` to enable file storage:
 - `SUPABASE_URL` — the project URL, `https://<project-ref>.supabase.co` (the ref is the suffix of the pooler user, `postgres.<project-ref>`). It must be an absolute `http:` or `https:` URL; the API rejects a missing or malformed scheme before it starts.
 - `SUPABASE_SERVICE_ROLE_KEY` — the `service_role` / `sb_secret_…` key (**Project Settings → API Keys**). It bypasses RLS, so it stays server-side: never add it to the web build or a `VITE_*` variable.
 - `ATTACHMENT_BUCKET` — bucket name, default `attachments`.
+- `THEME_ASSET_BUCKET` — public bucket for theme background images, default `assets`.
 - `ATTACHMENT_MAX_BYTES` — maximum file size, default `52428800` (50 MiB).
 
 Both `SUPABASE_*` values are required together; with only one set, the API refuses to start. With neither set the file endpoints answer `503 STORAGE_NOT_CONFIGURED` and metadata-only attachments keep working.

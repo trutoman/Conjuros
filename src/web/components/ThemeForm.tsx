@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import {
+  backdropGlowPositionValues,
+  backdropPatternValues,
   iconAssetKeys,
-  themeInputSchema,
+  themeDraftSchema,
+  themeImageMaxBytes,
+  themeImageMimeTypes,
   type IconAssetDefinition,
   type IconAssetKey,
   type Theme,
+  type ThemeImageBackdrop,
   type ThemeInput,
 } from '@conjuros/contracts';
 import { ICON_ASSETS } from '../lib/iconAssets';
+import { uploadThemeImage } from '../services/themes';
 import { FormField } from './FormField';
 import { ThemeIcon } from './ThemeIcon';
 
@@ -67,6 +73,14 @@ export function ThemeForm({
   const [headingSize, setHeadingSize] = useState(theme?.fontSizes.heading ?? '');
   const [bodySize, setBodySize] = useState(theme?.fontSizes.body ?? '');
   const [monoSize, setMonoSize] = useState(theme?.fontSizes.mono ?? '');
+  const [backdrop, setBackdrop] = useState({
+    pattern: theme?.backdrop.pattern ?? 'lines',
+    gridSize: theme?.backdrop.gridSize ?? '',
+    lineWidth: theme?.backdrop.lineWidth ?? '',
+    glowPosition: theme?.backdrop.glowPosition ?? 'top-right',
+    glowSize: theme?.backdrop.glowSize ?? '',
+    glowColor: theme?.backdrop.glowColor ?? '',
+  });
   const [iconAssets, setIconAssets] = useState<Record<IconAssetKey, IconAssetDefinition>>(() => {
     const initial = {} as Record<IconAssetKey, IconAssetDefinition>;
     for (const key of iconAssetKeys) {
@@ -77,6 +91,9 @@ export function ThemeForm({
     return initial;
   });
   const [palette, setPalette] = useState<string[]>(() => [...(theme?.tagColorPalette ?? [''])]);
+  const [useImageBackdrop, setUseImageBackdrop] = useState(theme?.useImageBackdrop ?? false);
+  const [storedImage, setStoredImage] = useState<ThemeImageBackdrop | null>(theme?.imageBackdrop ?? null);
+  const [imageError, setImageError] = useState('');
   const [error, setError] = useState('');
 
   function setIconPath(key: IconAssetKey, value: string) {
@@ -99,16 +116,39 @@ export function ThemeForm({
     setPalette((prev) => prev.filter((_, i) => i !== index));
   }
 
+  async function uploadImage(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !theme) return;
+    setImageError('');
+    if (!(themeImageMimeTypes as readonly string[]).includes(file.type)) {
+      setImageError('Use a PNG, JPEG, or WebP image');
+      return;
+    }
+    if (file.size > themeImageMaxBytes) {
+      setImageError('The image must be 5 MB or smaller');
+      return;
+    }
+    try {
+      const updated = await uploadThemeImage(theme.id, file);
+      setStoredImage(updated.imageBackdrop);
+    } catch (uploadError) {
+      setImageError(uploadError instanceof Error ? uploadError.message : 'Could not upload the image');
+    }
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError('');
 
-    const result = themeInputSchema.safeParse({
+    const result = themeDraftSchema.safeParse({
       name,
       label,
       colors,
       fonts: { display: displayFont, body: bodyFont, mono: monoFont },
       fontSizes: { heading: headingSize, body: bodySize, mono: monoSize },
+      backdrop,
+      useImageBackdrop,
       iconAssets,
       kindColors,
       tagColorPalette: palette.filter((entry) => entry.trim() !== ''),
@@ -191,6 +231,86 @@ export function ThemeForm({
           <input value={monoSize} onChange={(event) => setMonoSize(event.target.value)} />
         </FormField>
       </div>
+
+      <h3 className="theme-form-section">Page backdrop</h3>
+      <div className="theme-form-grid">
+        <FormField label="Pattern">
+          <select
+            value={backdrop.pattern}
+            onChange={(event) =>
+              setBackdrop((prev) => ({ ...prev, pattern: event.target.value as typeof prev.pattern }))
+            }
+          >
+            {backdropPatternValues.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Grid size">
+          <input
+            value={backdrop.gridSize}
+            onChange={(event) => setBackdrop((prev) => ({ ...prev, gridSize: event.target.value }))}
+          />
+        </FormField>
+        <FormField label="Line width">
+          <input
+            value={backdrop.lineWidth}
+            onChange={(event) => setBackdrop((prev) => ({ ...prev, lineWidth: event.target.value }))}
+          />
+        </FormField>
+        <FormField label="Glow position">
+          <select
+            value={backdrop.glowPosition}
+            onChange={(event) =>
+              setBackdrop((prev) => ({
+                ...prev,
+                glowPosition: event.target.value as typeof prev.glowPosition,
+              }))
+            }
+          >
+            {backdropGlowPositionValues.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Glow size">
+          <input
+            value={backdrop.glowSize}
+            onChange={(event) => setBackdrop((prev) => ({ ...prev, glowSize: event.target.value }))}
+          />
+        </FormField>
+        <FormField label="Glow color">
+          <input
+            value={backdrop.glowColor}
+            onChange={(event) => setBackdrop((prev) => ({ ...prev, glowColor: event.target.value }))}
+          />
+        </FormField>
+      </div>
+
+      <h3 className="theme-form-section">Image backdrop</h3>
+      <FormField label="Use image backdrop">
+        <input
+          type="checkbox"
+          checked={useImageBackdrop}
+          disabled={!storedImage}
+          onChange={(event) => setUseImageBackdrop(event.target.checked)}
+        />
+      </FormField>
+      {!theme && <p className="theme-form-help">Save the theme first, then upload a background image.</p>}
+      {theme && (
+        <FormField label="Background image" error={imageError}>
+          <input
+            type="file"
+            accept={themeImageMimeTypes.join(',')}
+            onChange={(event) => void uploadImage(event)}
+          />
+        </FormField>
+      )}
+      {storedImage && <p className="theme-form-help">An image is stored for this theme.</p>}
 
       <h3 className="theme-form-section">Icon assets</h3>
       <p className="theme-form-help">

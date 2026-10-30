@@ -3,23 +3,69 @@ import { describe, expect, it, vi } from 'vitest';
 import { UserWidget } from '../UserWidget';
 
 describe('UserWidget', () => {
-  it('renders the logged-in user label and triggers sign out from the icon action', () => {
-    const onSignOut = vi.fn();
-    render(<UserWidget userLabel="alicia" onSignOut={onSignOut} />);
+  it('opens the user menu with the expected entries', () => {
+    render(<UserWidget userLabel="alicia" onSignOut={vi.fn()} onThemeSelector={vi.fn()} />);
 
-    expect(screen.getByText('alicia')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out alicia' }));
-
-    expect(onSignOut).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toBeDisabled();
+    expect(screen.getByRole('menuitem', { name: 'Theme selector' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Sign out' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Theme editor' })).not.toBeInTheDocument();
   });
 
-  it('does not trigger sign out when clicking the user label text directly', () => {
+  it('shows the theme editor entry only when it is provided', () => {
+    const { rerender } = render(<UserWidget userLabel="alicia" onSignOut={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    expect(screen.queryByRole('menuitem', { name: 'Theme editor' })).not.toBeInTheDocument();
+
+    rerender(<UserWidget userLabel="alicia" onSignOut={vi.fn()} onThemeEditor={vi.fn()} />);
+    expect(screen.getByRole('menuitem', { name: 'Theme editor' })).toBeInTheDocument();
+  });
+
+  it('opens the theme editor and closes the menu', () => {
+    const onThemeEditor = vi.fn();
+    render(<UserWidget userLabel="alicia" onSignOut={vi.fn()} onThemeEditor={onThemeEditor} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Theme editor' }));
+
+    expect(onThemeEditor).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('opens theme selection and closes the menu', () => {
+    const onThemeSelector = vi.fn();
+    render(<UserWidget userLabel="alicia" onSignOut={vi.fn()} onThemeSelector={onThemeSelector} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Theme selector' }));
+
+    expect(onThemeSelector).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('signs out from the menu', () => {
     const onSignOut = vi.fn();
     render(<UserWidget userLabel="alicia" onSignOut={onSignOut} />);
 
-    fireEvent.click(screen.getByText('alicia'));
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sign out' }));
 
-    expect(onSignOut).not.toHaveBeenCalled();
+    expect(onSignOut).toHaveBeenCalledOnce();
+  });
+
+  it('closes on Escape or an outside click', () => {
+    render(<UserWidget userLabel="alicia" onSignOut={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'alicia' }));
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Tag, TagCategory, TagInput, ThemePreference } from '@conjuros/contracts';
+import type { Tag, TagCategory, TagInput, Theme } from '@conjuros/contracts';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { TagForm } from '../components/TagForm';
 import { TagCategoryForm } from '../components/TagCategoryForm';
@@ -13,14 +13,18 @@ import { useTagCategories } from '../hooks/useTagCategories';
 export function TagsPage({
   onBack,
   currentUserLabel,
-  theme = 'light',
+  themeId = null,
+  themes = [],
   onThemeChange,
+  onThemeSelector,
   onSignOut,
 }: {
   onBack: () => void;
   currentUserLabel?: string;
-  theme?: ThemePreference;
-  onThemeChange?: (theme: ThemePreference) => void | Promise<void>;
+  themeId?: string | null;
+  themes?: Theme[];
+  onThemeChange?: (themeId: string) => void | Promise<void>;
+  onThemeSelector?: () => void;
   onSignOut?: () => void;
 }) {
   const tagsState = useTags();
@@ -111,9 +115,9 @@ export function TagsPage({
           </div>
           <button onClick={onBack}>← Collection</button>
           <button onClick={() => setFormTag(null)}>Add tag</button>
-          <ThemeToggle theme={theme} onChange={(nextTheme) => onThemeChange?.(nextTheme)} />
+          <ThemeToggle themeId={themeId} themes={themes} onChange={(nextThemeId) => onThemeChange?.(nextThemeId)} />
           {onSignOut && currentUserLabel && (
-            <UserWidget userLabel={currentUserLabel} onSignOut={onSignOut} />
+            <UserWidget userLabel={currentUserLabel} onSignOut={onSignOut} onThemeSelector={onThemeSelector} />
           )}
         </div>
       </header>

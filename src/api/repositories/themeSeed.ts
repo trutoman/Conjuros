@@ -44,6 +44,16 @@ const lightTheme: Theme = {
     body: '1rem',
     mono: '0.75rem',
   },
+  backdrop: {
+    pattern: 'lines',
+    gridSize: '40px',
+    lineWidth: '1px',
+    glowPosition: 'top-right',
+    glowSize: '30%',
+    glowColor: 'rgba(15, 23, 42, 0.04)',
+  },
+  useImageBackdrop: false,
+  imageBackdrop: null,
   iconAssets: iconAssetsFromDefaults(),
   kindColors: {
     command: '#7c3aed',
@@ -92,6 +102,10 @@ const darkTheme: Theme = {
     success: '#4ade80',
     warning: '#fbbf24',
     shadow: '0 18px 40px rgba(2, 6, 23, 0.45)',
+  },
+  backdrop: {
+    ...lightTheme.backdrop,
+    glowColor: 'rgba(148, 163, 184, 0.08)',
   },
   kindColors: {
     command: '#c084fc',

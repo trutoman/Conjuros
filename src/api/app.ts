@@ -5,11 +5,13 @@ import cors from 'cors';
 import type { EmailSender } from './email/sender';
 import type { AttachmentsRepository } from './repositories/attachments.repository';
 import type { AttachmentStorage } from './storage/storage';
+import type { ThemeImageStorage } from './storage/themeImageStorage';
 import type { ItemsRepository } from './repositories/items.repository';
 import type { PasswordResetTokensRepository } from './repositories/password-reset-tokens.repository';
 import type { TagCategoriesRepository } from './repositories/tag-categories.repository';
 import type { TagsRepository } from './repositories/tags.repository';
 import type { ThemesRepository } from './repositories/themes.repository';
+import type { UserPreferencesRepository } from './repositories/user-preferences.repository';
 import type { UsersRepository } from './repositories/users.repository';
 import { errorHandler } from './errors';
 import { requireAdmin, requireAuth } from './middleware/auth';
@@ -40,6 +42,8 @@ export interface AppDependencies {
   tags: TagsRepository;
   tagCategories: TagCategoriesRepository;
   themes: ThemesRepository;
+  userPreferences: UserPreferencesRepository;
+  themeImageStorage?: ThemeImageStorage | null;
   users: UsersRepository;
   resetTokens: PasswordResetTokensRepository;
   emailSender: EmailSender;
@@ -59,6 +63,8 @@ export function createApp(dependencies: AppDependencies) {
   app.get('/api/health', (_request, response) => response.json({ status: 'ok' }));
   const authController = createAuthController({
     users: dependencies.users,
+    themes: dependencies.themes,
+    preferences: dependencies.userPreferences,
     sessionSecret: dependencies.sessionSecret,
     resetTokens: dependencies.resetTokens,
     emailSender: dependencies.emailSender,
@@ -66,7 +72,7 @@ export function createApp(dependencies: AppDependencies) {
     passwordResetTtlMinutes: dependencies.passwordResetTtlMinutes ?? 60,
   });
   app.use('/api/auth', createAuthRouter(authController, auth));
-  const themesService = new ThemesService(dependencies.themes, dependencies.users);
+  const themesService = new ThemesService(dependencies.themes, dependencies.userPreferences, dependencies.themeImageStorage ?? null);
   const tagCategoriesService = new TagCategoriesService(dependencies.tagCategories);
   const tagsService = new TagsService(dependencies.tags, dependencies.items, themesService, tagCategoriesService);
   app.use('/api/tags', createTagsRouter(createTagsController(tagsService), auth));

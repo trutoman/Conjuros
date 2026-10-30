@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryThemesRepository } from '../../api/repositories/themes.repository';
 import type { StoredTheme } from '../../api/repositories/themes.repository';
 import { InMemoryUsersRepository } from '../../api/repositories/users.repository';
+import { InMemoryUserPreferencesRepository } from '../../api/repositories/user-preferences.repository';
 import { ThemesService } from '../../api/services/themes.service';
 import { grantAdminRole, ensureThemesSeeded } from '../../api/bootstrap';
 import { AppError } from '../../api/errors';
@@ -11,8 +12,9 @@ import type { ThemeQuery } from '@conjuros/contracts';
 function setup() {
   const themes = new InMemoryThemesRepository();
   const users = new InMemoryUsersRepository();
-  const service = new ThemesService(themes, users);
-  return { themes, users, service };
+  const preferences = new InMemoryUserPreferencesRepository();
+  const service = new ThemesService(themes, preferences);
+  return { themes, users, preferences, service };
 }
 
 const query: ThemeQuery = { sort: 'name', limit: 50, skip: 0 };
@@ -27,28 +29,29 @@ describe('themes service', () => {
     expect(items.find((theme) => theme.name === 'light')).toMatchObject({ isDefault: true });
   });
 
-  it('resolves the active theme from the user theme preference', async () => {
-    const { users, service } = setup();
+  it('resolves the active theme from the user theme id preference', async () => {
+    const { users, preferences, service } = setup();
     await ensureThemesSeeded(service);
     await users.create('dark@example.com', 'hash');
     const darkUser = (await users.findByEmail('dark@example.com'))!;
-    await users.setRole(darkUser.id, 'user');
+    const dark = (await service.list(query)).items.find((theme) => theme.name === 'dark')!;
+    await preferences.upsert(darkUser.id, { themeId: dark.id });
 
     const context = await service.getActiveForUser(darkUser.id);
-    expect(context.theme.name).toBe('light');
+    expect(context.theme.name).toBe('dark');
     expect(context.source).toBe('preference');
   });
 
   it('falls back to the default theme when the preference has no matching theme', async () => {
-    const { users, service } = setup();
+    const { users, preferences, service } = setup();
     await ensureThemesSeeded(service);
     const user = await users.create('x@example.com', 'hash');
-    await users.updateTheme(user.id, 'dark');
+    await preferences.upsert(user.id, { themeId: 'missing-theme' });
 
     const dark = (await service.list(query)).items.find((theme) => theme.name === 'dark')!;
     await service.setActive(dark.id);
 
-    // remove light entirely, then a light-preferring user still gets dark as fallback
+    // The selected theme remains a preference while the site fallback changes.
     const fallbackContext = await service.getActiveForUser(user.id);
     expect(fallbackContext.theme.name).toBe('dark');
   });
@@ -123,6 +126,14 @@ describe('legacy iconAssets shape migration', () => {
       },
       fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
+      backdrop: {
+        pattern: 'lines',
+        gridSize: '40px',
+        lineWidth: '1px',
+        glowPosition: 'top-right',
+        glowSize: '30%',
+        glowColor: 'rgba(15, 23, 42, 0.04)',
+      },
       iconAssets: ['command', 'copy'] as unknown as StoredTheme['iconAssets'],
       kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488', attachment: '#be123c' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
@@ -201,6 +212,14 @@ describe('iconAssets backfill', () => {
       },
       fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
+      backdrop: {
+        pattern: 'lines',
+        gridSize: '40px',
+        lineWidth: '1px',
+        glowPosition: 'top-right',
+        glowSize: '30%',
+        glowColor: 'rgba(15, 23, 42, 0.04)',
+      },
       iconAssets: ['command', 'copy'] as unknown as StoredTheme['iconAssets'],
       kindColors: { command: '#7c3aed', webLink: '#2563eb', markdown: '#b45309', file: '#0d9488', attachment: '#be123c' },
       tagColorPalette: ['#1A73E8', '#7C3AED'],
@@ -239,6 +258,14 @@ describe('iconAssets backfill', () => {
       },
       fonts: { display: 'serif', body: 'serif', mono: 'monospace' },
       fontSizes: { heading: '2.65rem', body: '1rem', mono: '0.75rem' },
+      backdrop: {
+        pattern: 'lines',
+        gridSize: '40px',
+        lineWidth: '1px',
+        glowPosition: 'top-right',
+        glowSize: '30%',
+        glowColor: 'rgba(15, 23, 42, 0.04)',
+      },
       iconAssets: {
         command: { path: 'CUSTOM_COMMAND_PATH', viewBox: '0 0 24 24' },
         copy: { path: 'CUSTOM_COPY_PATH', viewBox: '0 0 24 24' },

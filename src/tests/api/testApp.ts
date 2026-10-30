@@ -6,8 +6,10 @@ import { InMemoryPasswordResetTokensRepository } from '../../api/repositories/pa
 import { InMemoryTagCategoriesRepository } from '../../api/repositories/tag-categories.repository';
 import { InMemoryTagsRepository } from '../../api/repositories/tags.repository';
 import { InMemoryThemesRepository } from '../../api/repositories/themes.repository';
+import { InMemoryUserPreferencesRepository } from '../../api/repositories/user-preferences.repository';
 import { InMemoryUsersRepository } from '../../api/repositories/users.repository';
 import { InMemoryAttachmentStorage, type AttachmentStorage } from '../../api/storage/storage';
+import { InMemoryThemeImageStorage, type ThemeImageStorage } from '../../api/storage/themeImageStorage';
 
 export class RecordingEmailSender implements EmailSender {
   readonly messages: EmailMessage[] = [];
@@ -19,14 +21,19 @@ export class RecordingEmailSender implements EmailSender {
 
 export const testAppBaseUrl = 'http://localhost:5173';
 
-export function createTestApp(options: { storage?: AttachmentStorage | null; maxBytes?: number } = {}) {
+export function createTestApp(
+  options: { storage?: AttachmentStorage | null; maxBytes?: number; themeImages?: ThemeImageStorage | null } = {},
+) {
   const items = new InMemoryItemsRepository();
   const attachments = new InMemoryAttachmentsRepository(items);
   const storage =
     options.storage === undefined ? new InMemoryAttachmentStorage() : options.storage;
+  const themeImages =
+    options.themeImages === undefined ? new InMemoryThemeImageStorage() : options.themeImages;
   const tags = new InMemoryTagsRepository();
   const tagCategories = new InMemoryTagCategoriesRepository();
   const themes = new InMemoryThemesRepository();
+  const userPreferences = new InMemoryUserPreferencesRepository();
   const users = new InMemoryUsersRepository();
   const resetTokens = new InMemoryPasswordResetTokensRepository();
   const emailSender = new RecordingEmailSender();
@@ -36,9 +43,11 @@ export function createTestApp(options: { storage?: AttachmentStorage | null; max
       attachments,
       attachmentStorage: storage,
       attachmentMaxBytes: options.maxBytes,
+      themeImageStorage: themeImages,
       tags,
       tagCategories,
       themes,
+      userPreferences,
       users,
       resetTokens,
       emailSender,
@@ -48,9 +57,11 @@ export function createTestApp(options: { storage?: AttachmentStorage | null; max
     items,
     attachments,
     storage,
+    themeImages,
     tags,
     tagCategories,
     themes,
+    userPreferences,
     users,
     resetTokens,
     emailSender,

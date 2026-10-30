@@ -18,15 +18,9 @@ export function ThemeListView({
       <ul>
         {themes.map((theme) => (
           <li key={theme.id} className="theme-list-row">
-            <span className="theme-list-preview" aria-hidden="true">
-              {theme.kindColors.command}
-            </span>
             <div className="theme-list-info">
               <strong>{theme.label}</strong>
-              <span className="theme-list-name">
-                {theme.name}
-                {theme.isDefault ? ' · default' : ''}
-              </span>
+              {theme.isDefault && <span className="theme-list-default">default</span>}
             </div>
             <div className="theme-list-actions">
               {!theme.isDefault && (

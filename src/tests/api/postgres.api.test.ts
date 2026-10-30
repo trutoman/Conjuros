@@ -9,6 +9,7 @@ import { PostgresPasswordResetTokensRepository } from '../../api/repositories/pa
 import { PostgresTagCategoriesRepository } from '../../api/repositories/tag-categories.repository';
 import { PostgresTagsRepository } from '../../api/repositories/tags.repository';
 import { PostgresThemesRepository } from '../../api/repositories/themes.repository';
+import { PostgresUserPreferencesRepository } from '../../api/repositories/user-preferences.repository';
 import { buildSeedThemes } from '../../api/repositories/themeSeed';
 import { PostgresUsersRepository } from '../../api/repositories/users.repository';
 import { ThemesService } from '../../api/services/themes.service';
@@ -24,7 +25,8 @@ const paletteColor = buildSeedThemes()[0].tagColorPalette[0];
 async function createPostgresApp(storage: AttachmentStorage | null = new InMemoryAttachmentStorage()) {
   const themes = new PostgresThemesRepository(database.db);
   const users = new PostgresUsersRepository(database.db);
-  await new ThemesService(themes, users).ensureSeeded();
+  const userPreferences = new PostgresUserPreferencesRepository(database.db);
+  await new ThemesService(themes, userPreferences).ensureSeeded();
   return createApp({
     items: new PostgresItemsRepository(database.db),
     attachments: new PostgresAttachmentsRepository(database.db),
@@ -32,6 +34,7 @@ async function createPostgresApp(storage: AttachmentStorage | null = new InMemor
     tags: new PostgresTagsRepository(database.db),
     tagCategories: new PostgresTagCategoriesRepository(database.db),
     themes,
+    userPreferences,
     users,
     resetTokens: new PostgresPasswordResetTokensRepository(database.db),
     emailSender: new RecordingEmailSender(),
@@ -81,8 +84,8 @@ describe('API over PostgreSQL repositories', () => {
     expect(registration.body.user).toEqual({
       id: expect.any(String),
       email: 'ada@example.com',
-      theme: 'light',
       role: 'user',
+      preferences: { themeId: null, tagsPanelExpanded: true },
     });
     expectNoPersistenceFields(registration.body);
 
@@ -209,13 +212,13 @@ describe('API over PostgreSQL repositories', () => {
     expect(untagged.body.tags).toEqual([]);
 
     const preference = await request(app)
-      .patch('/api/auth/me/theme')
+      .patch('/api/auth/me/preferences')
       .set('Cookie', cookie)
-      .send({ theme: 'dark' })
+      .send({ themeId: (await new PostgresThemesRepository(database.db).findByName('dark'))!.id })
       .expect(200);
-    expect(preference.body.user.theme).toBe('dark');
+    expect(preference.body.user.preferences.themeId).toBe((await new PostgresThemesRepository(database.db).findByName('dark'))!.id);
     const profile = await request(app).get('/api/auth/me').set('Cookie', cookie).expect(200);
-    expect(profile.body.user).toMatchObject({ email: 'ada@example.com', theme: 'dark' });
+    expect(profile.body.user).toMatchObject({ email: 'ada@example.com', preferences: { themeId: preference.body.user.preferences.themeId } });
   });
 
   it('keeps each user’s collection private', async () => {

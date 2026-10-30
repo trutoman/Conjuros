@@ -15,7 +15,7 @@ const implementations = [
 ] as const;
 
 describe.each(implementations)('%s users repository', (_name, createRepository) => {
-  it('creates a user with the default theme and role', async () => {
+  it('creates a user with the default role', async () => {
     const repository = createRepository();
 
     const user = await repository.create('ada@example.com', 'hash-1');
@@ -26,7 +26,6 @@ describe.each(implementations)('%s users repository', (_name, createRepository) 
       passwordHash: 'hash-1',
       googleId: null,
       createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
-      theme: 'light',
       role: 'user',
     });
   });
@@ -94,17 +93,6 @@ describe.each(implementations)('%s users repository', (_name, createRepository) 
     await repository.create('ada@example.com', 'hash-1');
 
     await expect(repository.create('ada@example.com', 'hash-2')).rejects.toBeInstanceOf(AppError);
-  });
-
-  it('updates the theme preference and returns the updated user', async () => {
-    const repository = createRepository();
-    const created = await repository.create('ada@example.com', 'hash-1');
-
-    const updated = await repository.updateTheme(created.id, 'dark');
-
-    expect(updated).toEqual({ ...created, theme: 'dark' });
-    expect(await repository.findById(created.id)).toEqual({ ...created, theme: 'dark' });
-    expect(await repository.updateTheme('missing', 'dark')).toBeNull();
   });
 
   it('updates the role and returns the updated user', async () => {

@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto';
 import {
   iconAssetKeySchema,
   iconAssetKeys,
+  imageBackdropRequiresImageMessage,
   normalizeTagColor,
+  themeIdSchema,
+  themeImageExtensions,
+  themeImageMaxBytes,
+  themeImageMimeTypes,
   themeInputSchema,
   themeQuerySchema,
   themeSchema,
@@ -18,7 +23,10 @@ import { ICON_ASSETS } from '../../web/lib/iconAssets';
 import { AppError } from '../errors';
 import type { StoredTheme, ThemesRepository } from '../repositories/themes.repository';
 import { buildSeedThemes } from '../repositories/themeSeed';
-import type { UsersRepository } from '../repositories/users.repository';
+import type { UserPreferencesRepository } from '../repositories/user-preferences.repository';
+import { fileMatchesMimeType } from '../storage/fileSignature';
+import type { ThemeImageStorage } from '../storage/themeImageStorage';
+import type { UploadedFile } from './attachments.service';
 
 function normalizeStoredTheme(theme: StoredTheme): StoredTheme {
   // Keyed record: migrate the superseded `clear` artwork, else pass through unchanged.
@@ -50,10 +58,6 @@ function normalizeStoredTheme(theme: StoredTheme): StoredTheme {
   }
   if (Object.keys(record).length === 0) return theme;
   return { ...theme, iconAssets: record };
-}
-
-function publicTheme(theme: StoredTheme): Theme {
-  return themeSchema.parse(normalizeStoredTheme(theme));
 }
 
 function sameIconAssets(
@@ -119,11 +123,25 @@ function buildIconAssetsRecord(
   return record;
 }
 
+function isThemeImageMimeType(value: string): value is (typeof themeImageMimeTypes)[number] {
+  return (themeImageMimeTypes as readonly string[]).includes(value);
+}
+
 export class ThemesService {
   constructor(
     private readonly themes: ThemesRepository,
-    private readonly users: UsersRepository,
+    private readonly preferences: UserPreferencesRepository,
+    private readonly themeImages: ThemeImageStorage | null = null,
   ) {}
+
+  private toPublic(theme: StoredTheme): Theme {
+    const normalized = normalizeStoredTheme(theme);
+    const imageBackdropUrl =
+      normalized.imageBackdrop && this.themeImages
+        ? this.themeImages.publicUrl(normalized.imageBackdrop.storagePath)
+        : undefined;
+    return themeSchema.parse({ ...normalized, imageBackdropUrl });
+  }
 
   parseQuery(input: unknown): ThemeQuery {
     return themeQuerySchema.parse(input);
@@ -138,7 +156,7 @@ export class ThemesService {
   }
 
   parseId(input: unknown): string {
-    return themeSchema.shape.id.parse(input);
+    return themeIdSchema.parse(input);
   }
 
   async ensureSeeded(): Promise<void> {
@@ -169,13 +187,13 @@ export class ThemesService {
 
   async list(query: ThemeQuery) {
     const result = await this.themes.list(query);
-    return { items: result.items.map(publicTheme), total: result.total };
+    return { items: result.items.map((theme) => this.toPublic(theme)), total: result.total };
   }
 
   async get(id: string) {
     const theme = await this.themes.findById(id);
     if (!theme) throw new AppError(404, 'NOT_FOUND', 'Theme not found');
-    return publicTheme(theme);
+    return this.toPublic(theme);
   }
 
   async create(input: ThemeInput) {
@@ -186,6 +204,7 @@ export class ThemesService {
     const theme: StoredTheme = {
       id: randomUUID(),
       ...input,
+      imageBackdrop: null,
       tagColorPalette: input.tagColorPalette.map(normalizeTagColor),
       isDefault: input.isDefault,
       createdAt: timestamp,
@@ -198,7 +217,7 @@ export class ThemesService {
       }
     }
     const created = await this.themes.create(theme);
-    return publicTheme(created);
+    return this.toPublic(created);
   }
 
   async update(id: string, update: ThemeUpdate) {
@@ -215,6 +234,9 @@ export class ThemesService {
       tagColorPalette: (update.tagColorPalette ?? current.tagColorPalette).map(normalizeTagColor),
       updatedAt: new Date().toISOString(),
     };
+    if (merged.useImageBackdrop && !merged.imageBackdrop) {
+      throw new AppError(400, 'VALIDATION_ERROR', imageBackdropRequiresImageMessage);
+    }
     if (merged.isDefault && !current.isDefault) {
       const currentDefault = await this.themes.findDefault();
       if (currentDefault && currentDefault.id !== id) {
@@ -222,7 +244,37 @@ export class ThemesService {
       }
     }
     const updated = await this.themes.replace(merged);
-    return publicTheme(updated);
+    return this.toPublic(updated);
+  }
+
+  assertImageStorageConfigured(): ThemeImageStorage {
+    if (!this.themeImages) {
+      throw new AppError(503, 'STORAGE_NOT_CONFIGURED', 'File storage is not configured on this server');
+    }
+    return this.themeImages;
+  }
+
+  async uploadImageBackdrop(id: string, file: UploadedFile | undefined): Promise<Theme> {
+    const storage = this.assertImageStorageConfigured();
+    const current = await this.requireTheme(id);
+    if (!file || file.buffer.length === 0) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'A non-empty image file is required');
+    }
+    if (file.buffer.length > themeImageMaxBytes) {
+      throw new AppError(413, 'FILE_TOO_LARGE', 'The image exceeds the maximum allowed size');
+    }
+    if (!isThemeImageMimeType(file.mimetype) || !fileMatchesMimeType(file.buffer, file.mimetype)) {
+      throw new AppError(415, 'UNSUPPORTED_FILE_TYPE', 'This image type is not supported');
+    }
+
+    const storagePath = `themes/${id}/${randomUUID()}.${themeImageExtensions[file.mimetype]}`;
+    await storage.upload(storagePath, file.buffer, file.mimetype);
+    const updated = await this.themes.replace({
+      ...current,
+      imageBackdrop: { storagePath, mimeType: file.mimetype, sizeBytes: file.buffer.length },
+      updatedAt: new Date().toISOString(),
+    });
+    return this.toPublic(updated);
   }
 
   async delete(id: string) {
@@ -238,24 +290,22 @@ export class ThemesService {
   async setActive(id: string) {
     const updated = await this.themes.setDefault(id);
     if (!updated) throw new AppError(404, 'NOT_FOUND', 'Theme not found');
-    return publicTheme(updated);
+    return this.toPublic(updated);
   }
 
   async getActiveForUser(userId: string): Promise<SiteThemeContext> {
-    const user = await this.users.findById(userId);
-    const preference = user?.theme ?? 'light';
-    const byPreference = await this.themes.findByName(preference);
-    if (byPreference) return { theme: publicTheme(byPreference), source: 'preference' };
+    const { themeId } = await this.preferences.get(userId);
+    const selected = themeId ? await this.themes.findById(themeId) : null;
+    if (selected) return { theme: this.toPublic(selected), source: 'preference' };
     const fallback = (await this.themes.findDefault()) ?? (await this.themes.findAll())[0] ?? null;
     if (!fallback) throw new AppError(404, 'NOT_FOUND', 'No theme is available');
-    return { theme: publicTheme(fallback), source: 'default' };
+    return { theme: this.toPublic(fallback), source: 'default' };
   }
 
   async getActivePaletteForUser(userId: string): Promise<string[] | null> {
-    const user = await this.users.findById(userId);
-    const preference = user?.theme ?? 'light';
-    const byPreference = await this.themes.findByName(preference);
-    const active = byPreference ?? (await this.themes.findDefault()) ?? (await this.themes.findAll())[0] ?? null;
+    const { themeId } = await this.preferences.get(userId);
+    const selected = themeId ? await this.themes.findById(themeId) : null;
+    const active = selected ?? (await this.themes.findDefault()) ?? (await this.themes.findAll())[0] ?? null;
     return active ? active.tagColorPalette : null;
   }
 

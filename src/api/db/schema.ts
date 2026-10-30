@@ -15,8 +15,9 @@ import {
 import {
   itemKinds,
   roleSchema,
-  themePreferenceSchema,
   type IconAssets,
+  type ThemeBackdrop,
+  type ThemeImageBackdrop,
   type ThemeColors,
   type ThemeFonts,
   type ThemeFontSizes,
@@ -26,7 +27,6 @@ import {
 // Enum values come from the contract constants so the database and the API cannot drift apart.
 export const itemKindEnum = pgEnum('item_kind', itemKinds);
 export const userRoleEnum = pgEnum('user_role', roleSchema.options);
-export const themePreferenceEnum = pgEnum('theme_preference', themePreferenceSchema.options);
 
 const timestamptz = () => timestamp({ withTimezone: true, mode: 'date' });
 
@@ -38,9 +38,17 @@ export const users = pgTable('users', {
   // External provider identity (e.g. Google subject). Nullable and unique: many
   // accounts stay unlinked while one identity can belong to only one account.
   googleId: text().unique(),
-  theme: themePreferenceEnum().notNull().default('light'),
   role: userRoleEnum().notNull().default('user'),
   createdAt: timestamptz().notNull(),
+}).enableRLS();
+
+export const userPreferences = pgTable('user_preferences', {
+  userId: text()
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  themeId: text().references(() => themes.id, { onDelete: 'set null' }),
+  tagsPanelExpanded: boolean().notNull().default(true),
+  updatedAt: timestamptz().notNull(),
 }).enableRLS();
 
 export const passwordResetTokens = pgTable(
@@ -174,6 +182,9 @@ export const themes = pgTable(
     colors: jsonb().$type<ThemeColors>().notNull(),
     fontSizes: jsonb().$type<ThemeFontSizes>().notNull(),
     fonts: jsonb().$type<ThemeFonts>().notNull(),
+    backdrop: jsonb().$type<ThemeBackdrop>().notNull(),
+    useImageBackdrop: boolean().notNull().default(false),
+    imageBackdrop: jsonb().$type<ThemeImageBackdrop>(),
     iconAssets: jsonb().$type<IconAssets>().notNull(),
     kindColors: jsonb().$type<ThemeKindColors>().notNull(),
     tagColorPalette: text().array().notNull(),

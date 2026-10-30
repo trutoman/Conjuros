@@ -47,6 +47,21 @@ export async function updateTheme(id: string, theme: ThemeUpdate) {
   return themeSchema.parse(await api(`/themes/${id}`, { method: 'PATCH', body: JSON.stringify(theme) }));
 }
 
+export async function uploadThemeImage(id: string, file: File) {
+  const body = new FormData();
+  body.append('image', file);
+  const response = await fetch(`/api/themes/${id}/image-backdrop`, {
+    method: 'POST',
+    credentials: 'include',
+    body,
+  });
+  if (!response.ok) {
+    const failure = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    throw new Error(failure?.error?.message ?? 'Could not upload the image');
+  }
+  return themeSchema.parse(await response.json());
+}
+
 export async function deleteTheme(id: string) {
   return api<void>(`/themes/${id}`, { method: 'DELETE' });
 }

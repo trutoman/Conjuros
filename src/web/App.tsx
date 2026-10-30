@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AuthenticatedUserProfile } from '@conjuros/contracts';
 import { CollectionPage } from './pages/CollectionPage';
 import { useThemePreference } from './hooks/useThemePreference';
+import { updateUserPreferences } from './services/user-preferences';
 import { useSiteTheme } from './hooks/useSiteTheme';
 import { ThemeIconsContext } from './components/ThemeIconsContext';
 
@@ -222,8 +223,8 @@ function Application() {
   const [notice, setNotice] = useState('');
   const [resetToken, setResetToken] = useState(readResetToken);
   const ready = authenticated !== null && authenticated !== undefined;
-  const themePreference = useThemePreference(authenticated?.theme ?? 'light', ready);
-  const siteTheme = useSiteTheme(ready, themePreference.settledTheme);
+  const themePreference = useThemePreference(authenticated?.preferences.themeId ?? null, ready);
+  const siteTheme = useSiteTheme(ready, themePreference.settledThemeId ?? 'site-default');
   const currentUserLabel = authenticated?.email.split('@')[0] ?? '';
   useEffect(() => {
     void fetch('/api/auth/me', { credentials: 'include' })
@@ -243,6 +244,10 @@ function Application() {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     queryClient.clear();
     setAuthenticated(null);
+  }
+  async function setTagsPanelExpanded(tagsPanelExpanded: boolean) {
+    const preferences = await updateUserPreferences({ tagsPanelExpanded });
+    setAuthenticated((current) => current ? { ...current, preferences } : current);
   }
   function completeReset() {
     window.history.replaceState(null, '', '/');
@@ -266,8 +271,10 @@ function Application() {
     <ThemeIconsContext.Provider value={siteTheme.icons}>
       <CollectionPage
         currentUserLabel={currentUserLabel}
-        theme={themePreference.theme}
+        themeId={themePreference.themeId}
         onThemeChange={themePreference.setTheme}
+        tagsPanelExpanded={authenticated.preferences.tagsPanelExpanded}
+        onTagsPanelExpandedChange={setTagsPanelExpanded}
         role={authenticated.role}
         tagPalette={siteTheme.palette}
         onSignOut={() => void signOut()}
