@@ -24,4 +24,4 @@
 
 - [x] 5.1 Run `npm run check` (lint, tests, build) with the guard in place.
 - [x] 5.2 Download an existing attachment from production with a real session and confirm the bytes match the original file.
-- [ ] 5.3 Deploy the revision containing the guard and confirm it starts (the production references now match).
+- [x] 5.3 Deploy the revision containing the guard and confirm it starts (the production references now match).
