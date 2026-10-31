@@ -338,13 +338,16 @@ export function ThemeForm({
             </div>
             <span className="theme-icon-name">{key}</span>
             <input
+              className="theme-icon-path"
               value={iconAssets[key].path}
               onChange={(event) => setIconPath(key, event.target.value)}
               aria-label={`${key} path`}
               placeholder="SVG path d"
             />
             <input
+              className="theme-icon-viewbox"
               value={iconAssets[key].viewBox}
+              size={Math.max(iconAssets[key].viewBox.length, 1)}
               onChange={(event) => setIconViewBox(key, event.target.value)}
               aria-label={`${key} viewBox`}
               placeholder="0 0 24 24"

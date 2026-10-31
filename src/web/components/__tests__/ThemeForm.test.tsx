@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { Theme } from '@conjuros/contracts';
 import { ICON_ASSETS } from '../../lib/iconAssets';
@@ -109,6 +111,46 @@ describe('ThemeForm base theme seeding', () => {
     expect(screen.getByLabelText('Name')).toHaveValue('light');
     expect(screen.getByLabelText('Label')).toHaveValue('Light');
     expect(screen.getByLabelText('Use image backdrop')).toBeChecked();
+  });
+});
+
+describe('ThemeForm icon asset rows', () => {
+  it('orders the icon, name, path, and viewBox in one row', () => {
+    renderForm();
+
+    const row = screen.getByLabelText('command path').closest('.theme-icon-row');
+    const preview = row?.querySelector('.theme-icon-preview');
+    const name = row?.querySelector('.theme-icon-name');
+    const path = row?.querySelector('.theme-icon-path');
+    const viewBox = row?.querySelector('.theme-icon-viewbox');
+
+    expect(preview).toBeInTheDocument();
+    expect(name).toHaveTextContent('command');
+    expect(path).toBeInTheDocument();
+    expect(viewBox).toBeInTheDocument();
+    expect(preview?.nextElementSibling).toBe(name);
+    expect(name?.nextElementSibling).toBe(path);
+    expect(path?.nextElementSibling).toBe(viewBox);
+  });
+
+  it('sizes the viewBox field to its content', () => {
+    renderForm();
+
+    const viewBox = screen.getByLabelText('command viewBox');
+    expect(viewBox).toHaveAttribute('size', '9');
+
+    fireEvent.change(viewBox, { target: { value: '0 0 100 100' } });
+
+    expect(viewBox).toHaveAttribute('size', '11');
+  });
+
+  it('renders each row as a flex row with a one-pixel border', () => {
+    const css = readFileSync(join(process.cwd(), 'src/web/index.css'), 'utf8');
+
+    expect(css).toMatch(/\.theme-icon-assets\s*\{[^}]*flex-direction:\s*column;/);
+    expect(css).toMatch(
+      /\.theme-icon-row\s*\{[^}]*display:\s*flex;[^}]*border:\s*1px solid var\(--border\);/,
+    );
   });
 });
 
