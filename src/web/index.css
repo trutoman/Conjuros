@@ -1401,19 +1401,51 @@ select {
 
 .theme-icon-assets {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
-.theme-icon-asset {
-  display: inline-flex;
+.theme-icon-row {
+  display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.6rem;
   padding: 0.35rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: 0.6rem;
+  background: var(--surface);
+}
+
+.theme-icon-preview {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.theme-icon-preview .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.theme-icon-name {
+  flex: 0 0 auto;
+  min-width: 7rem;
+  color: var(--text-muted);
   font-family: var(--font-mono, 'Cutive Mono', monospace);
   font-size: 0.75rem;
+}
+
+.theme-icon-row .theme-icon-path {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.theme-icon-row .theme-icon-viewbox {
+  flex: 0 0 auto;
+  width: auto;
+  font-family: var(--font-mono, 'Cutive Mono', monospace);
 }
 
 .theme-palette-editor {
