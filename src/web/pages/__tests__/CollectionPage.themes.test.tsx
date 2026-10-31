@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
 
@@ -168,12 +168,51 @@ describe('CollectionPage admin theme management', () => {
     await waitFor(() => expect(themesState.remove).toHaveBeenCalledWith('theme-dark'));
   });
 
-  it('opens the theme form to add a new theme', () => {
+  it('offers exactly one Add theme control as an icon button', () => {
     openThemeEditor();
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Add theme' })[0]);
+    const addThemeButtons = screen.getAllByRole('button', { name: 'Add theme' });
+    expect(addThemeButtons).toHaveLength(1);
+    expect(addThemeButtons[0].classList.contains('add-item-button')).toBe(true);
+    expect(addThemeButtons[0].querySelector('svg.icon')).toBeInTheDocument();
+  });
 
-    expect(screen.getByRole('heading', { name: 'Add theme' })).toBeInTheDocument();
+  it('opens the base theme picker from Add theme', () => {
+    openThemeEditor();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add theme' }));
+
+    const picker = screen.getByRole('dialog', { name: 'Choose a base theme' });
+    expect(within(picker).getByRole('radiogroup', { name: 'Base theme' })).toBeInTheDocument();
+    expect(within(picker).getByRole('radio', { name: 'Dark' })).toBeInTheDocument();
+  });
+
+  it('prefills the new theme from the chosen base theme', () => {
+    openThemeEditor();
+    fireEvent.click(screen.getByRole('button', { name: 'Add theme' }));
+
+    const picker = screen.getByRole('dialog', { name: 'Choose a base theme' });
+    fireEvent.click(within(picker).getByRole('radio', { name: 'Dark' }));
+    fireEvent.click(within(picker).getByRole('button', { name: 'Create from theme' }));
+
+    const form = screen.getByRole('dialog', { name: 'Add theme' });
+    expect(form.classList.contains('modal-panel-extra-wide')).toBe(true);
+    expect(within(form).getByLabelText('Name')).toHaveValue('dark-copy');
+    expect(within(form).getByLabelText('Label')).toHaveValue('Dark copy');
+    expect(within(form).getByLabelText('pageBg')).toHaveValue('#020617');
+    expect(within(form).getByLabelText('command')).toHaveValue('#c084fc');
+  });
+
+  it('opens no theme form when the base step is cancelled', () => {
+    openThemeEditor();
+    fireEvent.click(screen.getByRole('button', { name: 'Add theme' }));
+
+    const picker = screen.getByRole('dialog', { name: 'Choose a base theme' });
+    fireEvent.click(within(picker).getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Choose a base theme' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Add theme' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Manage themes' })).toBeInTheDocument();
   });
 
   it('opens a theme selector for a regular user and applies the saved choice', async () => {

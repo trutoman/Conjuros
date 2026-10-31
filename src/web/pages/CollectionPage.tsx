@@ -22,6 +22,7 @@ import { Modal } from '../components/Modal';
 import { TagForm } from '../components/TagForm';
 import { TagCategoryForm } from '../components/TagCategoryForm';
 import { TagList } from '../components/TagList';
+import { ThemeBasePicker } from '../components/ThemeBasePicker';
 import { ThemeForm } from '../components/ThemeForm';
 import { ThemeListView } from '../components/ThemeListView';
 import { LoadingState } from '../components/LoadingState';
@@ -136,6 +137,8 @@ export function CollectionPage({
   const [tagQuery, setTagQuery] = useState('');
   const [manageThemes, setManageThemes] = useState(false);
   const [formTheme, setFormTheme] = useState<Theme | null | undefined>(undefined);
+  const [formBaseTheme, setFormBaseTheme] = useState<Theme | null>(null);
+  const [themeBasePickerOpen, setThemeBasePickerOpen] = useState(false);
   const [deleteTheme, setDeleteTheme] = useState<Theme | null>(null);
 
   async function save(input: CollectionItemInput | CollectionItemUpdate, extras?: ItemFormExtras) {
@@ -176,9 +179,26 @@ export function CollectionPage({
       if (formTheme) await themesState.update({ id: formTheme.id, theme: input });
       else await themesState.create(input);
       setFormTheme(undefined);
+      setFormBaseTheme(null);
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : 'Could not save theme');
     }
+  }
+
+  function startThemeCreation() {
+    setFormTheme(undefined);
+    setFormBaseTheme(null);
+    setThemeBasePickerOpen(true);
+  }
+
+  function confirmThemeBase(theme: Theme) {
+    setThemeBasePickerOpen(false);
+    setFormBaseTheme(theme);
+    setFormTheme(null);
+  }
+
+  function closeThemeBasePicker() {
+    setThemeBasePickerOpen(false);
   }
 
   function openThemeForm(theme: Theme | null) {
@@ -186,6 +206,8 @@ export function CollectionPage({
     setFormTag(undefined);
     setManageTags(false);
     setViewerItem(undefined);
+    setThemeBasePickerOpen(false);
+    setFormBaseTheme(null);
     setFormTheme(theme);
   }
 
@@ -195,11 +217,15 @@ export function CollectionPage({
     setViewerItem(undefined);
     setManageTags(false);
     setFormTheme(undefined);
+    setFormBaseTheme(null);
+    setThemeBasePickerOpen(false);
     setManageThemes(true);
   }
 
   function closeManageThemes() {
     setFormTheme(undefined);
+    setFormBaseTheme(null);
+    setThemeBasePickerOpen(false);
     setManageThemes(false);
   }
 
@@ -685,10 +711,16 @@ export function CollectionPage({
                   <ThemeIcon name="close" />
                 </button>
                 <div className="tag-management-header">
-                  <h2>Manage themes</h2>
-                  <button type="button" onClick={() => openThemeForm(null)}>
-                    Add theme
+                  <button
+                    type="button"
+                    className="add-item-button"
+                    onClick={startThemeCreation}
+                    aria-label="Add theme"
+                    title="Add theme"
+                  >
+                    <ThemeIcon name="add" />
                   </button>
+                  <h2>Manage themes</h2>
                 </div>
                 {actionError && <ErrorState message={actionError} />}
                 {themesState.isLoading ? (
@@ -699,7 +731,6 @@ export function CollectionPage({
                   <ThemeListView
                     themes={themesState.themes}
                     onEdit={openThemeForm}
-                    onAdd={() => openThemeForm(null)}
                     onActivate={(theme) => void confirmThemeActivate(theme)}
                     onDelete={setDeleteTheme}
                   />
@@ -707,13 +738,26 @@ export function CollectionPage({
               </div>
             </Modal>
           )}
+          {manageThemes && themeBasePickerOpen && (
+            <Modal label="Choose a base theme" onClose={closeThemeBasePicker}>
+              <ThemeBasePicker
+                themes={themesState.themes}
+                onConfirm={confirmThemeBase}
+                onCancel={closeThemeBasePicker}
+              />
+            </Modal>
+          )}
           {manageThemes && formTheme !== undefined && (
             <Modal
               label={formTheme ? `Edit theme ${formTheme.label}` : 'Add theme'}
               onClose={() => setFormTheme(undefined)}
+              size="extra-wide"
             >
               <ThemeForm
+                key={formTheme?.id ?? formBaseTheme?.id ?? 'new'}
                 theme={formTheme ?? undefined}
+                baseTheme={formBaseTheme ?? undefined}
+                existingNames={themesState.themes.map((theme) => theme.name)}
                 onSubmit={saveTheme}
                 onCancel={() => setFormTheme(undefined)}
               />
