@@ -1428,6 +1428,54 @@ select {
   gap: 0.6rem;
 }
 
+.color-input {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--surface);
+}
+
+.color-input:focus-within {
+  outline: 3px solid var(--warning);
+  outline-offset: 2px;
+}
+
+.color-input input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.3rem 0.1rem;
+  border: 0;
+  background: transparent;
+}
+
+.color-input input:focus-visible {
+  outline: none;
+}
+
+.color-input-swatch {
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.color-input input.color-input-picker {
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: transparent;
+  cursor: pointer;
+}
+
 .theme-list ul {
   list-style: none;
   padding: 0;
@@ -1657,6 +1705,10 @@ select {
 
 .modal-panel-wide {
   width: min(56rem, 100%);
+}
+
+.modal-panel-extra-wide {
+  width: min(72rem, 100%);
 }
 
 .modal-panel-full {

@@ -13,7 +13,9 @@ import {
   type ThemeInput,
 } from '@conjuros/contracts';
 import { ICON_ASSETS } from '../lib/iconAssets';
+import { deriveThemeCopyIdentity } from '../lib/themeCopy';
 import { uploadThemeImage } from '../services/themes';
+import { ColorInput } from './ColorInput';
 import { FormField } from './FormField';
 import { ThemeIcon } from './ThemeIcon';
 
@@ -43,54 +45,60 @@ type ColorValues = Record<string, string>;
 
 export function ThemeForm({
   theme,
+  baseTheme,
+  existingNames = [],
   onSubmit,
   onCancel,
 }: {
   theme?: Theme;
+  baseTheme?: Theme;
+  existingNames?: string[];
   onSubmit: (input: ThemeInput) => Promise<unknown> | void;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState(theme?.name ?? '');
-  const [label, setLabel] = useState(theme?.label ?? '');
+  const seed = theme ?? baseTheme;
+  const copyIdentity = !theme && baseTheme ? deriveThemeCopyIdentity(baseTheme, existingNames) : null;
+  const [name, setName] = useState(theme?.name ?? copyIdentity?.name ?? '');
+  const [label, setLabel] = useState(theme?.label ?? copyIdentity?.label ?? '');
   const [isDefault, setIsDefault] = useState(theme?.isDefault ?? false);
   const [colors, setColors] = useState<ColorValues>(() => {
     const initial: ColorValues = {};
     for (const field of colorFields) {
-      initial[field] = theme?.colors[field] ?? '';
+      initial[field] = seed?.colors[field] ?? '';
     }
     return initial;
   });
   const [kindColors, setKindColors] = useState<ColorValues>(() => {
     const initial: ColorValues = {};
     for (const field of kindColorFields) {
-      initial[field] = theme?.kindColors[field] ?? '';
+      initial[field] = seed?.kindColors[field] ?? '';
     }
     return initial;
   });
-  const [displayFont, setDisplayFont] = useState(theme?.fonts.display ?? '');
-  const [bodyFont, setBodyFont] = useState(theme?.fonts.body ?? '');
-  const [monoFont, setMonoFont] = useState(theme?.fonts.mono ?? '');
-  const [headingSize, setHeadingSize] = useState(theme?.fontSizes.heading ?? '');
-  const [bodySize, setBodySize] = useState(theme?.fontSizes.body ?? '');
-  const [monoSize, setMonoSize] = useState(theme?.fontSizes.mono ?? '');
+  const [displayFont, setDisplayFont] = useState(seed?.fonts.display ?? '');
+  const [bodyFont, setBodyFont] = useState(seed?.fonts.body ?? '');
+  const [monoFont, setMonoFont] = useState(seed?.fonts.mono ?? '');
+  const [headingSize, setHeadingSize] = useState(seed?.fontSizes.heading ?? '');
+  const [bodySize, setBodySize] = useState(seed?.fontSizes.body ?? '');
+  const [monoSize, setMonoSize] = useState(seed?.fontSizes.mono ?? '');
   const [backdrop, setBackdrop] = useState({
-    pattern: theme?.backdrop.pattern ?? 'lines',
-    gridSize: theme?.backdrop.gridSize ?? '',
-    lineWidth: theme?.backdrop.lineWidth ?? '',
-    glowPosition: theme?.backdrop.glowPosition ?? 'top-right',
-    glowSize: theme?.backdrop.glowSize ?? '',
-    glowColor: theme?.backdrop.glowColor ?? '',
+    pattern: seed?.backdrop.pattern ?? 'lines',
+    gridSize: seed?.backdrop.gridSize ?? '',
+    lineWidth: seed?.backdrop.lineWidth ?? '',
+    glowPosition: seed?.backdrop.glowPosition ?? 'top-right',
+    glowSize: seed?.backdrop.glowSize ?? '',
+    glowColor: seed?.backdrop.glowColor ?? '',
   });
   const [iconAssets, setIconAssets] = useState<Record<IconAssetKey, IconAssetDefinition>>(() => {
     const initial = {} as Record<IconAssetKey, IconAssetDefinition>;
     for (const key of iconAssetKeys) {
-      const stored = theme?.iconAssets?.[key];
+      const stored = seed?.iconAssets?.[key];
       const fallback = ICON_ASSETS[key];
       initial[key] = stored ?? { path: fallback.path, viewBox: fallback.viewBox };
     }
     return initial;
   });
-  const [palette, setPalette] = useState<string[]>(() => [...(theme?.tagColorPalette ?? [''])]);
+  const [palette, setPalette] = useState<string[]>(() => [...(seed?.tagColorPalette ?? [''])]);
   const [useImageBackdrop, setUseImageBackdrop] = useState(theme?.useImageBackdrop ?? false);
   const [storedImage, setStoredImage] = useState<ThemeImageBackdrop | null>(theme?.imageBackdrop ?? null);
   const [imageError, setImageError] = useState('');
@@ -186,10 +194,17 @@ export function ThemeForm({
       <div className="theme-form-grid">
         {colorFields.map((field) => (
           <FormField key={field} label={field}>
-            <input
-              value={colors[field]}
-              onChange={(event) => setColors((prev) => ({ ...prev, [field]: event.target.value }))}
-            />
+            {field === 'shadow' ? (
+              <input
+                value={colors[field]}
+                onChange={(event) => setColors((prev) => ({ ...prev, [field]: event.target.value }))}
+              />
+            ) : (
+              <ColorInput
+                value={colors[field]}
+                onChange={(value) => setColors((prev) => ({ ...prev, [field]: value }))}
+              />
+            )}
           </FormField>
         ))}
       </div>
@@ -198,11 +213,9 @@ export function ThemeForm({
       <div className="theme-form-grid">
         {kindColorFields.map((field) => (
           <FormField key={field} label={field}>
-            <input
+            <ColorInput
               value={kindColors[field]}
-              onChange={(event) =>
-                setKindColors((prev) => ({ ...prev, [field]: event.target.value }))
-              }
+              onChange={(value) => setKindColors((prev) => ({ ...prev, [field]: value }))}
             />
           </FormField>
         ))}
@@ -284,9 +297,9 @@ export function ThemeForm({
           />
         </FormField>
         <FormField label="Glow color">
-          <input
+          <ColorInput
             value={backdrop.glowColor}
-            onChange={(event) => setBackdrop((prev) => ({ ...prev, glowColor: event.target.value }))}
+            onChange={(value) => setBackdrop((prev) => ({ ...prev, glowColor: value }))}
           />
         </FormField>
       </div>
@@ -344,16 +357,12 @@ export function ThemeForm({
       <div className="theme-palette-editor">
         {palette.map((entry, index) => (
           <div key={index} className="theme-palette-row">
-            <input
-              type="color"
-              value={/^#[0-9A-Fa-f]{6}$/.test(entry) ? entry : '#1A73E8'}
-              onChange={(event) => setPaletteColor(index, event.target.value)}
-              aria-label={`Palette color ${index + 1}`}
-            />
-            <input
+            <ColorInput
               value={entry}
-              onChange={(event) => setPaletteColor(index, event.target.value)}
-              aria-label={`Palette hex ${index + 1}`}
+              onChange={(value) => setPaletteColor(index, value)}
+              picker
+              pickerLabel={`Palette color ${index + 1}`}
+              ariaLabel={`Palette hex ${index + 1}`}
               placeholder="#RRGGBB"
             />
             <button

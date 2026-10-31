@@ -3,13 +3,11 @@ import type { Theme } from '@conjuros/contracts';
 export function ThemeListView({
   themes,
   onEdit,
-  onAdd,
   onActivate,
   onDelete,
 }: {
   themes: Theme[];
   onEdit: (theme: Theme) => void;
-  onAdd: () => void;
   onActivate: (theme: Theme) => void;
   onDelete: (theme: Theme) => void;
 }) {
@@ -49,9 +47,6 @@ export function ThemeListView({
           </li>
         ))}
       </ul>
-      <button type="button" onClick={onAdd}>
-        Add theme
-      </button>
     </div>
   );
 }
