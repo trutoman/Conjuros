@@ -318,9 +318,9 @@ describe('iconAssets backfill', () => {
     expect(iconAssets.add).toBeDefined();
   });
 
-  it('ships the rescaled clear artwork on the 24-unit grid with no hardcoded color', () => {
+  it('ships the clear artwork on the 24-unit grid with no hardcoded color', () => {
     expect(ICON_ASSETS.clear.viewBox).toBe('0 0 24 24');
-    expect(ICON_ASSETS.clear.path.startsWith('m11.9 13.5')).toBe(true);
+    expect(ICON_ASSETS.clear.path.startsWith('M4 6')).toBe(true);
     expect(JSON.stringify(ICON_ASSETS.clear)).not.toContain('#');
   });
 
@@ -343,6 +343,11 @@ describe('iconAssets backfill', () => {
       name: '960-grid verbatim path',
       path: 'm476-420 84-84 84 84 56-56-84-84 84-84-56-56-84 84-84-84-56 56 84 84-84 84 56 56ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z',
       viewBox: '0 -960 960 960',
+    },
+    {
+      name: '24-grid rescaled path',
+      path: 'm11.9 13.5l2.1 -2.1l2.1 2.1l1.4 -1.4l-2.1 -2.1l2.1 -2.1l-1.4 -1.4l-2.1 2.1l-2.1 -2.1l-1.4 1.4l2.1 2.1l-2.1 2.1l1.4 1.4ZM8 18q-0.82 0 -1.41 -0.59T6 16v-12q0 -0.82 0.59 -1.41T8 2h12q0.83 0 1.41 0.59T22 4v12q0 0.83 -0.59 1.41T20 18H8Zm0 -2h12v-12H8v12ZM4 22q-0.82 0 -1.41 -0.59T2 20v-14h2v14h14v2H4Zm4 -18v12v-12Z',
+      viewBox: '0 0 24 24',
     },
   ])(
     'migrates the superseded bundled clear artwork ($name) on read and backfill, preserving custom values',
