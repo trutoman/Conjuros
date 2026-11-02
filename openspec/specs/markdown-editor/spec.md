@@ -1,6 +1,6 @@
 # Markdown Editor
 
-## Summary
+## Purpose
 
 Provides Markdown-authoring ergonomics for the editor textarea: keyboard indentation, automatic list and quote continuation, auto-closing Markdown pairs, and local draft autosave so work survives an accidental form close.
 
