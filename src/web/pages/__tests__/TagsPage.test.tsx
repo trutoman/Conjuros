@@ -229,7 +229,7 @@ describe('TagsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Delete work?' });
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('Could not delete category');
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Could not delete category');
     expect(screen.getByTestId('tag-category-group-cat-work')).toBeInTheDocument();
   });
 
@@ -242,7 +242,7 @@ describe('TagsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete item' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Delete work?' });
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('Could not delete category');
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Could not delete category');
 
     // No ghost first-row entry: the error lives only in the dialog, not in a category group.
     const workGroup = screen.getByTestId('tag-category-group-cat-work');
