@@ -88,13 +88,15 @@ function sameIconAssets(
   return true;
 }
 
-// Previous bundled `clear` artwork variants (outline redrawing, then the 960-grid
-// verbatim path), both superseded by the rescaled 24-grid artwork. A stored entry
-// exactly matching either is treated as a shipped default and migrated; any other
-// stored value is an admin customization and is preserved.
+// Previous bundled `clear` artwork variants (outline redrawing, the 960-grid
+// verbatim path, and the rescaled 24-grid path), all superseded by the current
+// clear artwork. A stored entry exactly matching any of them is treated as a
+// shipped default and migrated; any other stored value is an admin customization
+// and is preserved.
 const SUPERSEDED_CLEAR_PATHS = new Set([
   'M4 5h16l-6.5 7.5V19l-3 1.5v-8L4 5z M17.5 8.5l3 3 M20.5 8.5l-3 3',
   'm476-420 84-84 84 84 56-56-84-84 84-84-56-56-84 84-84-84-56 56 84 84-84 84 56 56ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z',
+  'm11.9 13.5l2.1 -2.1l2.1 2.1l1.4 -1.4l-2.1 -2.1l2.1 -2.1l-1.4 -1.4l-2.1 2.1l-2.1 -2.1l-1.4 1.4l2.1 2.1l-2.1 2.1l1.4 1.4ZM8 18q-0.82 0 -1.41 -0.59T6 16v-12q0 -0.82 0.59 -1.41T8 2h12q0.83 0 1.41 0.59T22 4v12q0 0.83 -0.59 1.41T20 18H8Zm0 -2h12v-12H8v12ZM4 22q-0.82 0 -1.41 -0.59T2 20v-14h2v14h14v2H4Zm4 -18v12v-12Z',
 ]);
 
 // Previous bundled `attachment` artwork on Material's 960-unit grid, superseded by
