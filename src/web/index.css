@@ -515,10 +515,6 @@ select {
   background: var(--surface-muted);
 }
 
-.icon.attachment-icon {
-  stroke-width: 60;
-}
-
 .item-header {
   display: flex;
   justify-content: space-between;

@@ -322,9 +322,14 @@ describe('iconAssets backfill', () => {
     expect(ICON_ASSETS.clear.viewBox).toBe('0 0 24 24');
     expect(ICON_ASSETS.clear.path.startsWith('m11.9 13.5')).toBe(true);
     expect(JSON.stringify(ICON_ASSETS.clear)).not.toContain('#');
-    // The attachment glyph uses the supplied 960-grid artwork with a scaled stroke.
-    for (const [key, entry] of Object.entries(ICON_ASSETS)) {
-      expect(entry.viewBox).toBe(key === 'attachment' ? '0 -960 960 960' : '0 0 24 24');
+  });
+
+  it('ships the attachment artwork on the 24-unit grid with no hardcoded color', () => {
+    expect(ICON_ASSETS.attachment.viewBox).toBe('0 0 24 24');
+    expect(ICON_ASSETS.attachment.path.startsWith('M 17 6')).toBe(true);
+    expect(JSON.stringify(ICON_ASSETS.attachment)).not.toContain('#');
+    for (const entry of Object.values(ICON_ASSETS)) {
+      expect(entry.viewBox).toBe('0 0 24 24');
     }
   });
 
@@ -370,6 +375,38 @@ describe('iconAssets backfill', () => {
       expect((await themes.findById(dark.id))!.iconAssets.clear).toMatchObject(CUSTOM);
     },
   );
+
+  it('migrates the superseded bundled attachment artwork on read and backfill, preserving custom values', async () => {
+    const { themes, service } = setup();
+    await ensureThemesSeeded(service);
+
+    const SUPERSEDED = {
+      path: 'M720-330q0 104-73 177T470-80q-104 0-177-73t-73-177v-370q0-75 52.5-127.5T400-880q75 0 127.5 52.5T580-700v350q0 46-32 78t-78 32q-46 0-78-32t-32-78v-370h80v370q0 13 8.5 21.5T470-320q13 0 21.5-8.5T500-350v-350q-1-42-29.5-71T400-800q-42 0-71 29t-29 71v370q-1 71 49 120.5T470-160q70 0 119-49.5T640-330v-390h80v390Z',
+      viewBox: '0 -960 960 960',
+    };
+    const CUSTOM = { path: 'CUSTOM_ATTACHMENT_PATH', viewBox: '0 0 24 24' };
+
+    const light = (await themes.findByName('light'))!;
+    await themes.replace({ ...light, iconAssets: { ...light.iconAssets, attachment: SUPERSEDED } });
+    const dark = (await themes.findByName('dark'))!;
+    await themes.replace({ ...dark, iconAssets: { ...dark.iconAssets, attachment: CUSTOM } });
+
+    // Read normalization converges without persisting.
+    expect((await service.get(light.id)).iconAssets.attachment).toMatchObject({
+      path: ICON_ASSETS.attachment.path,
+      viewBox: ICON_ASSETS.attachment.viewBox,
+    });
+    expect((await themes.findById(light.id))!.iconAssets.attachment).toMatchObject(SUPERSEDED);
+
+    await service.backfillIconAssets();
+
+    // Backfill persists the migration while preserving the custom value.
+    expect((await themes.findById(light.id))!.iconAssets.attachment).toMatchObject({
+      path: ICON_ASSETS.attachment.path,
+      viewBox: ICON_ASSETS.attachment.viewBox,
+    });
+    expect((await themes.findById(dark.id))!.iconAssets.attachment).toMatchObject(CUSTOM);
+  });
 
   it('is idempotent on a second run', async () => {
     const { themes, service } = setup();

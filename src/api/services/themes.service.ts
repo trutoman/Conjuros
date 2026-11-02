@@ -29,19 +29,29 @@ import type { ThemeImageStorage } from '../storage/themeImageStorage';
 import type { UploadedFile } from './attachments.service';
 
 function normalizeStoredTheme(theme: StoredTheme): StoredTheme {
-  // Keyed record: migrate the superseded `clear` artwork, else pass through unchanged.
+  // Keyed record: migrate superseded bundled artwork, else pass through unchanged.
   if (!Array.isArray(theme.iconAssets)) {
-    const clear = (theme.iconAssets as Record<string, { path: string; viewBox: string }>).clear;
+    let iconAssets = theme.iconAssets;
+    let changed = false;
+    const clear = iconAssets.clear;
     if (clear?.path !== undefined && SUPERSEDED_CLEAR_PATHS.has(clear.path)) {
-      return {
-        ...theme,
-        iconAssets: {
-          ...theme.iconAssets,
-          clear: { path: ICON_ASSETS.clear.path, viewBox: ICON_ASSETS.clear.viewBox },
+      iconAssets = {
+        ...iconAssets,
+        clear: { path: ICON_ASSETS.clear.path, viewBox: ICON_ASSETS.clear.viewBox },
+      };
+      changed = true;
+    }
+    if (isSupersededAttachment(iconAssets.attachment)) {
+      iconAssets = {
+        ...iconAssets,
+        attachment: {
+          path: ICON_ASSETS.attachment.path,
+          viewBox: ICON_ASSETS.attachment.viewBox,
         },
       };
+      changed = true;
     }
-    return theme;
+    return changed ? { ...theme, iconAssets } : theme;
   }
   // Legacy `string[]` (from `theme-svg-sprite-icons`): convert to a keyed record
   // by merging each entry's `{ path, viewBox }` from `ICON_ASSETS`.
@@ -87,6 +97,23 @@ const SUPERSEDED_CLEAR_PATHS = new Set([
   'm476-420 84-84 84 84 56-56-84-84 84-84-56-56-84 84-84-84-56 56 84 84-84 84 56 56ZM320-240q-33 0-56.5-23.5T240-320v-480q0-33 23.5-56.5T320-880h480q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H320Zm0-80h480v-480H320v480ZM160-80q-33 0-56.5-23.5T80-160v-560h80v560h560v80H160Zm160-720v480-480Z',
 ]);
 
+// Previous bundled `attachment` artwork on Material's 960-unit grid, superseded by
+// the 24-grid outline path. A stored entry exactly matching it is treated as a
+// shipped default and migrated; any other stored value is an admin customization.
+const SUPERSEDED_ATTACHMENT_ARTWORK = {
+  path: 'M720-330q0 104-73 177T470-80q-104 0-177-73t-73-177v-370q0-75 52.5-127.5T400-880q75 0 127.5 52.5T580-700v350q0 46-32 78t-78 32q-46 0-78-32t-32-78v-370h80v370q0 13 8.5 21.5T470-320q13 0 21.5-8.5T500-350v-350q-1-42-29.5-71T400-800q-42 0-71 29t-29 71v370q-1 71 49 120.5T470-160q70 0 119-49.5T640-330v-390h80v390Z',
+  viewBox: '0 -960 960 960',
+};
+
+function isSupersededAttachment(
+  value: { path: string; viewBox: string } | undefined,
+): boolean {
+  return (
+    value?.path === SUPERSEDED_ATTACHMENT_ARTWORK.path &&
+    value.viewBox === SUPERSEDED_ATTACHMENT_ARTWORK.viewBox
+  );
+}
+
 function buildIconAssetsRecord(
   current: Theme['iconAssets'],
 ): Record<IconAssetKey, { path: string; viewBox: string }> {
@@ -119,6 +146,13 @@ function buildIconAssetsRecord(
   // Migrate the superseded bundled `clear` artwork; custom values are preserved.
   if (record.clear?.path !== undefined && SUPERSEDED_CLEAR_PATHS.has(record.clear.path)) {
     record.clear = { path: ICON_ASSETS.clear.path, viewBox: ICON_ASSETS.clear.viewBox };
+  }
+  // Migrate the superseded bundled `attachment` artwork; custom values are preserved.
+  if (isSupersededAttachment(record.attachment)) {
+    record.attachment = {
+      path: ICON_ASSETS.attachment.path,
+      viewBox: ICON_ASSETS.attachment.viewBox,
+    };
   }
   return record;
 }
