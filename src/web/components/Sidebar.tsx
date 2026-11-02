@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react';
 import type { Tag } from '@conjuros/contracts';
 import type { CollectionFilters } from '../hooks/useCollectionFilters';
 import { TagMatchToggle } from './TagMatchToggle';
-import { TagColumnIcon } from './TagColumnIcon';
 import { ThemeIcon } from './ThemeIcon';
 
 export function Sidebar({
@@ -72,7 +71,7 @@ export function Sidebar({
           aria-label={isOpen ? 'Collapse tags sidebar' : 'Expand tags sidebar'}
         >
           <span>Tags</span>
-          <TagColumnIcon />
+          <ThemeIcon name={isOpen ? 'collapse' : 'expand'} />
         </button>
         {isOpen && (
           <div className="sidebar-header-right">

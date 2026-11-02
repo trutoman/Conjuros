@@ -15,7 +15,6 @@ import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { Sidebar } from '../components/Sidebar';
-import { TagColumnIcon } from '../components/TagColumnIcon';
 import { ItemForm, type ItemFormExtras } from '../components/ItemForm';
 import { ItemCardViewer } from '../components/ItemCardViewer';
 import { Modal } from '../components/Modal';
@@ -387,7 +386,7 @@ export function CollectionPage({
                   aria-label="Open tags panel"
                 >
                   <span>Tags</span>
-                  <TagColumnIcon />
+                  <ThemeIcon name="expand" />
                 </button>
               )}
             </div>
