@@ -2,7 +2,7 @@
 
 Ensures every icon in the interface uses a single consistent outline (stroke-based) style with no fill, so the icon language is uniform across item cards, actions, search, and navigation.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: All icons render in an outline style
 
