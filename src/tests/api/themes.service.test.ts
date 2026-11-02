@@ -289,7 +289,7 @@ describe('iconAssets backfill', () => {
     const stored = await themes.findById('theme-light-legacy-array');
     expect(stored).not.toBeNull();
     const iconAssets = stored!.iconAssets as Record<string, { path: string; viewBox: string }>;
-    const expectedKeys = ['command', 'web-link', 'markdown', 'file', 'attachment', 'copy', 'open', 'view', 'download', 'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'clear', 'search', 'sun', 'moon', 'add'];
+    const expectedKeys = ['command', 'web-link', 'markdown', 'file', 'attachment', 'copy', 'open', 'view', 'download', 'menu', 'tags', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'clear', 'search', 'sun', 'moon', 'add'];
     for (const key of expectedKeys) {
       expect(iconAssets[key]).toBeDefined();
       expect(iconAssets[key].path).toBe(ICON_ASSETS[key as keyof typeof ICON_ASSETS].path);

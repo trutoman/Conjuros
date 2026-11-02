@@ -111,6 +111,7 @@ export const iconAssetKeys = [
   'view',
   'download',
   'menu',
+  'tags',
   'edit',
   'delete',
   'confirm',

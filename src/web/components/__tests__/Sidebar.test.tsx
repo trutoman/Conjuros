@@ -228,11 +228,10 @@ describe('Sidebar component', () => {
     expect(screen.queryByRole('button', { name: 'Manage tags' })).toBeNull();
   });
 
-  it('renders the toggle artwork from the active theme and follows the open state', () => {
+  it('renders the tags toggle artwork from the active theme', () => {
     const icons: ThemeIcons = {
       ...ICON_ASSETS,
-      collapse: { path: 'COLLAPSE_PATH', viewBox: '0 0 24 24' },
-      expand: { path: 'EXPAND_PATH', viewBox: '0 0 24 24' },
+      tags: { path: 'TAGS_PATH', viewBox: '0 0 24 24' },
     };
     const { rerender } = render(
       <ThemeIconsContext.Provider value={icons}>
@@ -250,7 +249,7 @@ describe('Sidebar component', () => {
       screen
         .getByRole('button', { name: 'Collapse tags sidebar' })
         .querySelector('svg.icon path'),
-    ).toHaveAttribute('d', 'COLLAPSE_PATH');
+    ).toHaveAttribute('d', 'TAGS_PATH');
 
     rerender(
       <ThemeIconsContext.Provider value={icons}>
@@ -266,7 +265,7 @@ describe('Sidebar component', () => {
     );
     expect(
       screen.getByRole('button', { name: 'Expand tags sidebar' }).querySelector('svg.icon path'),
-    ).toHaveAttribute('d', 'EXPAND_PATH');
+    ).toHaveAttribute('d', 'TAGS_PATH');
   });
 
   describe('tags clear button', () => {
