@@ -413,6 +413,56 @@ describe('iconAssets backfill', () => {
     expect((await themes.findById(dark.id))!.iconAssets.attachment).toMatchObject(CUSTOM);
   });
 
+  it('restores collapse/expand chevrons from the superseded tags artwork on read and backfill', async () => {
+    const { themes, service } = setup();
+    await ensureThemesSeeded(service);
+
+    const SUPERSEDED = {
+      path: 'M 3 2.25 C 1.88 2.25 1.88 4.13 3 4.13 H 4.88 V 20.25 C 4.88 21 5.25 21.38 6 21 L 12 16.5 L 18 21 C 18.75 21.38 19.13 21 19.13 20.25 V 4.13 H 21 C 22.13 4.13 22.13 2.25 21 2.25 Z',
+      viewBox: '0 0 24 24',
+    };
+    const CUSTOM = { path: 'CUSTOM_COLLAPSE_PATH', viewBox: '0 0 24 24' };
+
+    const light = (await themes.findByName('light'))!;
+    await themes.replace({
+      ...light,
+      iconAssets: { ...light.iconAssets, collapse: SUPERSEDED, expand: SUPERSEDED },
+    });
+    const dark = (await themes.findByName('dark'))!;
+    await themes.replace({
+      ...dark,
+      iconAssets: { ...dark.iconAssets, collapse: CUSTOM, expand: SUPERSEDED },
+    });
+
+    // Read normalization converges without persisting.
+    expect((await service.get(light.id)).iconAssets.collapse).toMatchObject({
+      path: ICON_ASSETS.collapse.path,
+      viewBox: ICON_ASSETS.collapse.viewBox,
+    });
+    expect((await service.get(light.id)).iconAssets.expand).toMatchObject({
+      path: ICON_ASSETS.expand.path,
+      viewBox: ICON_ASSETS.expand.viewBox,
+    });
+    expect((await themes.findById(light.id))!.iconAssets.collapse).toMatchObject(SUPERSEDED);
+
+    await service.backfillIconAssets();
+
+    // Backfill persists the migration while preserving the custom value.
+    expect((await themes.findById(light.id))!.iconAssets.collapse).toMatchObject({
+      path: ICON_ASSETS.collapse.path,
+      viewBox: ICON_ASSETS.collapse.viewBox,
+    });
+    expect((await themes.findById(light.id))!.iconAssets.expand).toMatchObject({
+      path: ICON_ASSETS.expand.path,
+      viewBox: ICON_ASSETS.expand.viewBox,
+    });
+    expect((await themes.findById(dark.id))!.iconAssets.collapse).toMatchObject(CUSTOM);
+    expect((await themes.findById(dark.id))!.iconAssets.expand).toMatchObject({
+      path: ICON_ASSETS.expand.path,
+      viewBox: ICON_ASSETS.expand.viewBox,
+    });
+  });
+
   it('is idempotent on a second run', async () => {
     const { themes, service } = setup();
     await seedLegacyArrayTheme(themes);
