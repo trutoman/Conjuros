@@ -242,7 +242,6 @@ export function ItemCard({
                 label="Attachment"
                 title="Attachment"
                 name="attachment"
-                className="attachment-icon"
               />
             ) : (
               <ThemeIcon

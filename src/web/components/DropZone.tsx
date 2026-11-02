@@ -144,7 +144,7 @@ export function DropZone({
       >
         <ThemeIcon
           name={isAttachment ? 'attachment' : 'file'}
-          className={isAttachment ? 'file-drop-zone-icon attachment-icon' : 'file-drop-zone-icon'}
+          className="file-drop-zone-icon"
         />
         <span className="file-drop-zone-title">Drop a file here</span>
         <span className="file-drop-zone-hint">or click to choose one</span>

@@ -786,7 +786,9 @@ describe('ItemCard', () => {
       expect(screen.queryByRole('button', { name: 'Download markdown' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Download file' })).not.toBeInTheDocument();
       expect(container.querySelector('.item-card.kind-attachment')).not.toBeNull();
-      expect(container.querySelector('.attachment-icon')).not.toBeNull();
+      const badge = screen.getByRole('img', { name: 'Attachment' });
+      expect(badge).toHaveAttribute('viewBox', '0 0 24 24');
+      expect(badge.querySelector('path')).toHaveAttribute('d', ICON_ASSETS.attachment.path);
     });
 
     it('falls back to No file attached without a filename', () => {
