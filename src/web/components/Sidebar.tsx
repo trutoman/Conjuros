@@ -71,7 +71,7 @@ export function Sidebar({
           aria-label={isOpen ? 'Collapse tags sidebar' : 'Expand tags sidebar'}
         >
           <span>Tags</span>
-          <ThemeIcon name={isOpen ? 'collapse' : 'expand'} />
+          <ThemeIcon name="tags" />
         </button>
         {isOpen && (
           <div className="sidebar-header-right">

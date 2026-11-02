@@ -51,6 +51,20 @@ function normalizeStoredTheme(theme: StoredTheme): StoredTheme {
       };
       changed = true;
     }
+    if (isSupersededTagsToggle(iconAssets.collapse)) {
+      iconAssets = {
+        ...iconAssets,
+        collapse: { path: ICON_ASSETS.collapse.path, viewBox: ICON_ASSETS.collapse.viewBox },
+      };
+      changed = true;
+    }
+    if (isSupersededTagsToggle(iconAssets.expand)) {
+      iconAssets = {
+        ...iconAssets,
+        expand: { path: ICON_ASSETS.expand.path, viewBox: ICON_ASSETS.expand.viewBox },
+      };
+      changed = true;
+    }
     return changed ? { ...theme, iconAssets } : theme;
   }
   // Legacy `string[]` (from `theme-svg-sprite-icons`): convert to a keyed record
@@ -116,6 +130,23 @@ function isSupersededAttachment(
   );
 }
 
+// The tags bookmark was briefly shipped as the `collapse`/`expand` artwork.
+// Stored entries still carrying it are restored to the chevrons; any other
+// value is an admin customization and is preserved.
+const SUPERSEDED_TAGS_TOGGLE_ARTWORK = {
+  path: 'M 3 2.25 C 1.88 2.25 1.88 4.13 3 4.13 H 4.88 V 20.25 C 4.88 21 5.25 21.38 6 21 L 12 16.5 L 18 21 C 18.75 21.38 19.13 21 19.13 20.25 V 4.13 H 21 C 22.13 4.13 22.13 2.25 21 2.25 Z',
+  viewBox: '0 0 24 24',
+};
+
+function isSupersededTagsToggle(
+  value: { path: string; viewBox: string } | undefined,
+): boolean {
+  return (
+    value?.path === SUPERSEDED_TAGS_TOGGLE_ARTWORK.path &&
+    value.viewBox === SUPERSEDED_TAGS_TOGGLE_ARTWORK.viewBox
+  );
+}
+
 function buildIconAssetsRecord(
   current: Theme['iconAssets'],
 ): Record<IconAssetKey, { path: string; viewBox: string }> {
@@ -154,6 +185,19 @@ function buildIconAssetsRecord(
     record.attachment = {
       path: ICON_ASSETS.attachment.path,
       viewBox: ICON_ASSETS.attachment.viewBox,
+    };
+  }
+  // Restore collapse/expand chevrons from the briefly shipped tags artwork.
+  if (isSupersededTagsToggle(record.collapse)) {
+    record.collapse = {
+      path: ICON_ASSETS.collapse.path,
+      viewBox: ICON_ASSETS.collapse.viewBox,
+    };
+  }
+  if (isSupersededTagsToggle(record.expand)) {
+    record.expand = {
+      path: ICON_ASSETS.expand.path,
+      viewBox: ICON_ASSETS.expand.viewBox,
     };
   }
   return record;

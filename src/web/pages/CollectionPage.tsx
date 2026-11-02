@@ -386,7 +386,7 @@ export function CollectionPage({
                   aria-label="Open tags panel"
                 >
                   <span>Tags</span>
-                  <ThemeIcon name="expand" />
+                  <ThemeIcon name="tags" />
                 </button>
               )}
             </div>

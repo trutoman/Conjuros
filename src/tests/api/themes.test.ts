@@ -266,7 +266,7 @@ describe('theme endpoints', () => {
       });
     });
 
-    it('GET /api/themes/active returns a full 21-key keyed record after backfillIconAssets', async () => {
+    it('GET /api/themes/active returns a full keyed record after backfillIconAssets', async () => {
       const context = createSeededTestApp();
       await seedLegacyArrayTheme(context);
       await context.themesService.backfillIconAssets();
@@ -281,7 +281,7 @@ describe('theme endpoints', () => {
       expect(Array.isArray(iconAssets)).toBe(false);
       const expectedKeys = [
         'command', 'web-link', 'markdown', 'file', 'attachment', 'copy', 'open', 'view', 'download',
-        'menu', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close',
+        'menu', 'tags', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close',
         'clear', 'search', 'sun', 'moon', 'add',
       ];
       expect(Object.keys(iconAssets).sort()).toEqual([...expectedKeys].sort());

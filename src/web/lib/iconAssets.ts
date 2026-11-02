@@ -41,6 +41,10 @@ export const ICON_ASSETS: Record<IconAssetKey, { path: string; viewBox: string }
     path: 'M12 5a1 1 0 1 0 0 2 1 1 0 1 0 0-2Z M12 11a1 1 0 1 0 0 2 1 1 0 1 0 0-2Z M12 17a1 1 0 1 0 0 2 1 1 0 1 0 0-2Z',
     viewBox: '0 0 24 24',
   },
+  tags: {
+    path: 'M 3 2.25 C 1.88 2.25 1.88 4.13 3 4.13 H 4.88 V 20.25 C 4.88 21 5.25 21.38 6 21 L 12 16.5 L 18 21 C 18.75 21.38 19.13 21 19.13 20.25 V 4.13 H 21 C 22.13 4.13 22.13 2.25 21 2.25 Z',
+    viewBox: '0 0 24 24',
+  },
   edit: {
     path: 'M12 20h9 M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z',
     viewBox: '0 0 24 24',
@@ -58,11 +62,11 @@ export const ICON_ASSETS: Record<IconAssetKey, { path: string; viewBox: string }
     viewBox: '0 0 24 24',
   },
   expand: {
-    path: 'M 3 2.25 C 1.88 2.25 1.88 4.13 3 4.13 H 4.88 V 20.25 C 4.88 21 5.25 21.38 6 21 L 12 16.5 L 18 21 C 18.75 21.38 19.13 21 19.13 20.25 V 4.13 H 21 C 22.13 4.13 22.13 2.25 21 2.25 Z',
+    path: 'M6 9l6 6 6-6',
     viewBox: '0 0 24 24',
   },
   collapse: {
-    path: 'M 3 2.25 C 1.88 2.25 1.88 4.13 3 4.13 H 4.88 V 20.25 C 4.88 21 5.25 21.38 6 21 L 12 16.5 L 18 21 C 18.75 21.38 19.13 21 19.13 20.25 V 4.13 H 21 C 22.13 4.13 22.13 2.25 21 2.25 Z',
+    path: 'M18 15l-6-6-6 6',
     viewBox: '0 0 24 24',
   },
   close: {
