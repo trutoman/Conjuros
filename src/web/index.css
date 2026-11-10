@@ -55,9 +55,12 @@ body {
   min-width: 320px;
   color: var(--text);
   background:
-    radial-gradient(circle at var(--page-glow-position), var(--page-glow-color), transparent var(--page-glow-size)),
-    var(--page-pattern),
-    var(--page-bg);
+    radial-gradient(
+      circle at var(--page-glow-position),
+      var(--page-glow-color),
+      transparent var(--page-glow-size)
+    ),
+    var(--page-pattern), var(--page-bg);
 }
 
 :root[data-backdrop-pattern='grid'] {
@@ -975,6 +978,18 @@ select {
   font-size: 0.75rem;
 }
 
+.category-group-header[draggable='true'] {
+  cursor: grab;
+}
+
+.category-group.category-group-dragging {
+  opacity: 0.6;
+}
+
+.category-group.category-group-drop-target {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
 .tag-color {
   color: var(--text-muted);
   font-family: 'Cutive Mono', monospace;
@@ -1164,6 +1179,10 @@ select {
   margin-bottom: 1rem;
 }
 
+.tag-panel .tag-filter-pill {
+  font-size: 0.7rem;
+}
+
 .tag-panel .category-group-header {
   display: flex;
   align-items: center;
@@ -1175,7 +1194,7 @@ select {
   flex: 1 1 auto;
   min-width: 0;
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 1rem;
   text-transform: lowercase;
   text-align: left;
   color: var(--text-muted);
@@ -2034,7 +2053,7 @@ select {
 }
 
 .category-group h3 {
-  font-size: 0.7rem;
+  font-size: 1rem;
   text-transform: lowercase;
   text-align: left;
   color: var(--text-muted);
@@ -2055,7 +2074,7 @@ select {
 }
 
 .tags-sidebar .tag-filter-pill {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   padding: 0.15rem 0.45rem;
 }
 

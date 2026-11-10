@@ -43,6 +43,7 @@ export function TagList({
   onEdit,
   onDelete,
   onMove,
+  onMoveCategory,
   onRenameCategory,
   onDeleteCategory,
 }: {
@@ -52,11 +53,14 @@ export function TagList({
   onEdit: (tag: Tag) => void;
   onDelete: (tag: Tag) => void;
   onMove: (id: string, order: number) => void;
+  onMoveCategory?: (id: string, order: number) => void;
   onRenameCategory?: (category: TagCategory) => void;
   onDeleteCategory?: (category: TagCategory) => void;
 }) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(null);
+  const [categoryDropTargetId, setCategoryDropTargetId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openCategoryMenuId, setOpenCategoryMenuId] = useState<string | null>(null);
 
@@ -91,7 +95,11 @@ export function TagList({
       }
     }
     return [...byName.values()]
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => {
+        if (a.category && b.category) return a.category.order - b.category.order;
+        if (a.category || b.category) return a.category ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      })
       .filter(
         (group) =>
           !normalizedQuery || group.name.includes(normalizedQuery) || group.tags.length > 0,
@@ -148,15 +156,111 @@ export function TagList({
     setDropTargetId(null);
   }
 
+  const canReorderCategories = Boolean(onMoveCategory) && !normalizedQuery;
+  const orderedCategories = groups.flatMap((group) => (group.category ? [group.category] : []));
+
+  function reorderCategoryByIndex(categoryId: string, targetIndex: number) {
+    const sourceIndex = orderedCategories.findIndex((category) => category.id === categoryId);
+    if (
+      !onMoveCategory ||
+      sourceIndex < 0 ||
+      targetIndex < 0 ||
+      targetIndex >= orderedCategories.length ||
+      sourceIndex === targetIndex
+    ) {
+      return false;
+    }
+
+    onMoveCategory(categoryId, orderedCategories[targetIndex].order);
+    return true;
+  }
+
+  function handleCategoryKeyDown(event: KeyboardEvent<HTMLElement>, categoryId: string) {
+    if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
+      return;
+    }
+
+    event.preventDefault();
+    const currentIndex = orderedCategories.findIndex((category) => category.id === categoryId);
+    if (currentIndex < 0) {
+      return;
+    }
+
+    const moved = reorderCategoryByIndex(
+      categoryId,
+      currentIndex + (event.key === 'ArrowUp' ? -1 : 1),
+    );
+    if (moved) {
+      event.currentTarget.focus();
+    }
+  }
+
+  function handleCategoryDrop(targetId: string) {
+    const sourceId = draggedCategoryId;
+    setDraggedCategoryId(null);
+    setCategoryDropTargetId(null);
+    if (!sourceId || sourceId === targetId) {
+      return;
+    }
+
+    reorderCategoryByIndex(
+      sourceId,
+      orderedCategories.findIndex((category) => category.id === targetId),
+    );
+  }
+
   return (
     <section className="tag-panel">
-      {groups.map((group) => (
+      {groups.map((group) => {
+        const category = group.category;
+        const draggableCategory = canReorderCategories && category !== null;
+        return (
         <div
           key={group.key}
-          className="category-group"
+          className={`category-group${
+            draggableCategory && draggedCategoryId === category.id ? ' category-group-dragging' : ''
+          }${
+            draggableCategory && categoryDropTargetId === category.id
+              ? ' category-group-drop-target'
+              : ''
+          }`}
           data-testid={`tag-category-group-${group.testId}`}
+          onDragOver={(event) => {
+            if (!draggedCategoryId || !draggableCategory) return;
+            event.preventDefault();
+            if (categoryDropTargetId !== category.id) setCategoryDropTargetId(category.id);
+          }}
+          onDrop={(event) => {
+            if (!draggedCategoryId || !draggableCategory) return;
+            event.preventDefault();
+            handleCategoryDrop(category.id);
+          }}
         >
-          <div className="category-group-header">
+          <div
+            className="category-group-header"
+            draggable={draggableCategory}
+            tabIndex={draggableCategory ? 0 : undefined}
+            aria-label={draggableCategory ? `Category ${group.name}` : undefined}
+            onKeyDown={
+              draggableCategory ? (event) => handleCategoryKeyDown(event, category.id) : undefined
+            }
+            onDragStart={
+              draggableCategory
+                ? () => {
+                    setDraggedCategoryId(category.id);
+                    setCategoryDropTargetId(category.id);
+                  }
+                : undefined
+            }
+            onDragEnd={
+              draggableCategory
+                ? () => {
+                    setDraggedCategoryId(null);
+                    setCategoryDropTargetId(null);
+                  }
+                : undefined
+            }
+          >
             <h3>{group.name}</h3>
             {group.category &&
               group.name !== 'general' &&
@@ -340,7 +444,8 @@ export function TagList({
             <p className="empty-tags-message">No tags in this category</p>
           )}
         </div>
-      ))}
+        );
+      })}
     </section>
   );
 }

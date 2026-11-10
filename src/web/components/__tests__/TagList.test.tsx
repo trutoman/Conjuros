@@ -219,7 +219,7 @@ describe('TagList', () => {
     );
 
     const headings = screen.getAllByRole('heading', { level: 3 }).map((node) => node.textContent);
-    expect(headings).toEqual(['general', 'hobby', 'personal', 'work']);
+    expect(headings).toEqual(['work', 'personal', 'hobby', 'general']);
 
     const workGroup = screen.getByTestId('tag-category-group-cat-work');
     expect(within(workGroup).getByTestId('tag-row-tag-1')).toBeInTheDocument();
@@ -412,5 +412,54 @@ describe('TagList', () => {
 
     expect(onMove).toHaveBeenCalledTimes(1);
     expect(onMove).toHaveBeenCalledWith('tag-1', 2);
+  });
+  describe('category ordering', () => {
+    const renderList = (onMoveCategory = vi.fn(), query = '') => {
+      render(
+        <TagList
+          tags={tags}
+          categories={[categories[1], categories[0], categories[2]]}
+          query={query}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onMove={vi.fn()}
+          onMoveCategory={onMoveCategory}
+        />,
+      );
+      return onMoveCategory;
+    };
+
+    it('lists category blocks by order instead of by name', () => {
+      renderList();
+
+      const headings = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+      expect(headings).toEqual(['work', 'personal', 'hobby']);
+    });
+
+    it('moves a category when its title is dropped on another block', () => {
+      const onMoveCategory = renderList();
+
+      fireEvent.dragStart(screen.getByLabelText('Category work'));
+      fireEvent.drop(screen.getByTestId('tag-category-group-cat-hobby'));
+
+      expect(onMoveCategory).toHaveBeenCalledWith('cat-work', 3);
+    });
+
+    it('moves a category with Alt+ArrowUp from its title', () => {
+      const onMoveCategory = renderList();
+
+      fireEvent.keyDown(screen.getByLabelText('Category personal'), {
+        key: 'ArrowUp',
+        altKey: true,
+      });
+
+      expect(onMoveCategory).toHaveBeenCalledWith('cat-personal', 1);
+    });
+
+    it('disables category reordering while searching', () => {
+      renderList(vi.fn(), 'work');
+
+      expect(screen.queryByLabelText('Category work')).not.toBeInTheDocument();
+    });
   });
 });

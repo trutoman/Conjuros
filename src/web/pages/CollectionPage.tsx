@@ -607,6 +607,13 @@ export function CollectionPage({
                       setManageTagsError('');
                       setDeleteTag(tag);
                     }}
+                    onMoveCategory={(id, order) =>
+                      void categoriesState
+                        .reorder({ id, order })
+                        .catch((cause: unknown) =>
+                          setManageTagsError(cause instanceof Error ? cause.message : 'Could not reorder category'),
+                        )
+                    }
                     onRenameCategory={setRenameCategory}
                     onDeleteCategory={(category) => {
                       setManageTagsError('');
