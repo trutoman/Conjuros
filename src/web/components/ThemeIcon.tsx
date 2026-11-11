@@ -17,7 +17,7 @@ export function ThemeIcon({
   const accessible = Boolean(label);
   return (
     <svg
-      className={['icon', className].filter(Boolean).join(' ') || 'icon'}
+      className={['icon', name === 'settings' && 'icon-settings', className].filter(Boolean).join(' ')}
       role={accessible ? 'img' : undefined}
       aria-label={label}
       aria-hidden={accessible ? undefined : true}

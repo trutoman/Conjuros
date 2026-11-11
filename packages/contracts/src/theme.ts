@@ -124,6 +124,7 @@ export const iconAssetKeys = [
   'sun',
   'moon',
   'add',
+  'settings',
 ] as const;
 
 export const iconAssetKeySchema = z.enum(iconAssetKeys);

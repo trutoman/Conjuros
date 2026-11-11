@@ -137,6 +137,16 @@ describe('theme contracts', () => {
     expect(themeInputSchema.safeParse(draft).success).toBe(false);
   });
 
+  it('accepts settings artwork and rejects an invalid definition', () => {
+    const settings = { path: 'M0 0', viewBox: '0 -960 960 960' };
+    const draft = { ...validThemeDraft, iconAssets: { ...validThemeDraft.iconAssets, settings } };
+    expect(themeInputSchema.parse(draft).iconAssets.settings).toEqual(settings);
+    expect(themeInputSchema.safeParse({
+      ...draft,
+      iconAssets: { ...draft.iconAssets, settings: { ...settings, path: '' } },
+    }).success).toBe(false);
+  });
+
   it('rejects an icon asset definition missing a path', () => {
     const draft = {
       ...validThemeDraft,

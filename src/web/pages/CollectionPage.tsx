@@ -385,7 +385,7 @@ export function CollectionPage({
                   aria-controls="tags-sidebar-panel"
                   aria-label="Open tags panel"
                 >
-                  <span>Tags</span>
+                  <span className="topbar-tags-label" aria-hidden="true">Tags</span>
                   <ThemeIcon name="tags" />
                 </button>
               )}

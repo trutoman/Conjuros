@@ -258,7 +258,12 @@ describe('CollectionPage', () => {
 
     expect(document.querySelector('.app-sidebar')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Manage tags' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open tags panel' })).toBeInTheDocument();
+    const tagsButton = screen.getByRole('button', { name: 'Open tags panel' });
+    expect(tagsButton).toBeInTheDocument();
+    expect(tagsButton).toHaveAttribute('aria-expanded', 'false');
+    expect(tagsButton).toHaveAttribute('aria-controls', 'tags-sidebar-panel');
+    expect(tagsButton.querySelector('.topbar-tags-label')).toHaveTextContent('Tags');
+    expect(tagsButton.querySelector('svg.icon')).toBeInTheDocument();
     expect(screen.getByLabelText('Search collection')).toBeInTheDocument();
   });
 

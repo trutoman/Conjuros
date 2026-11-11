@@ -30,6 +30,16 @@ The sidebar tags-frame header SHALL render the `clear` button in the same header
 - **WHEN** the sidebar is collapsed
 - **THEN** the header controls, including the `clear` button, follow the same collapse behavior as the existing header controls
 
+### Requirement: Sidebar clear icon matches neighboring control color
+
+The sidebar `clear` icon SHALL use the same theme-derived visible color as the neighboring icon controls in the sidebar header. Its color SHALL NOT be overridden with a distinct warning or danger color.
+
+#### Scenario: Clear icon matches the adjacent sidebar icons
+
+- **WHEN** a user views the expanded sidebar header
+- **THEN** the `clear` icon has the same visible color as the neighboring icon controls
+- **AND** the color follows the active theme
+
 ### Requirement: Narrow viewports hide the tags sidebar by default
 
 On viewports at or below the mobile breakpoint, the collection SHALL NOT render the tags sidebar until the user asks for it. The search field, type filter, and item list SHALL be visible on load without first scrolling past a tag panel. On viewports above the breakpoint the sidebar SHALL keep its expand/collapse state, which SHALL be stored in the user's preferences so that it is restored on any device.
@@ -153,6 +163,28 @@ The tags sidebar toggle and the narrow-viewport topbar `Tags` button SHALL rende
 
 - **WHEN** the active theme changes
 - **THEN** both tags controls immediately use the new theme's `tags` artwork
+
+### Requirement: Narrow topbar Tags control is icon-only
+
+On viewports at or below the mobile breakpoint, the topbar Tags button SHALL display the active theme's tags icon without a visible text label. The button SHALL retain an accessible name, its expanded state, and its association with the tags panel.
+
+#### Scenario: Narrow viewport shows only the Tags icon
+
+- **WHEN** a user views the topbar at or below the mobile breakpoint
+- **THEN** the Tags button displays the tags icon
+- **AND** no visible `Tags` text label is shown
+
+#### Scenario: Icon-only Tags button remains accessible
+
+- **WHEN** assistive technology inspects the narrow topbar Tags button
+- **THEN** the button exposes an accessible name identifying the tags panel
+- **AND** its expanded state and controlled panel remain exposed
+
+#### Scenario: Tags button behavior is unchanged
+
+- **WHEN** a user activates the icon-only Tags button
+- **THEN** the tags drawer opens as before
+- **AND** the button remains absent on wider viewports
 
 ### Requirement: Sidebar tag categories follow the persisted category order
 

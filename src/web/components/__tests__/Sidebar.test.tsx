@@ -298,20 +298,19 @@ describe('Sidebar component', () => {
       return onChange;
     }
 
-    it('renders visible and disabled with the text "Clear" above the icon when no tag is selected', () => {
+    it('renders an icon-only disabled button when no tag is selected', () => {
       renderSidebar();
 
       const clearBtn = screen.getByRole('button', { name: 'Clear tag selection' });
       expect(clearBtn).toBeVisible();
       expect(clearBtn).toBeDisabled();
       expect(clearBtn).toHaveAttribute('type', 'button');
-      expect(clearBtn).toHaveTextContent('Clear');
+      expect(clearBtn.textContent).toBe('');
       expect(clearBtn).toHaveClass('tags-toggle-btn');
-      const label = clearBtn.querySelector('span');
       const icon = clearBtn.querySelector('svg.icon');
-      expect(label).not.toBeNull();
       expect(icon).not.toBeNull();
-      expect(label!.compareDocumentPosition(icon!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(clearBtn.querySelector('span')).toBeNull();
+      expect(clearBtn).toHaveClass('tags-clear-btn');
     });
 
     it('renders the rescaled clear artwork on the shared 24-unit grid by default', () => {
@@ -321,6 +320,15 @@ describe('Sidebar component', () => {
       const icon = clearBtn.querySelector('svg.icon');
       expect(icon).toHaveAttribute('viewBox', '0 0 24 24');
       expect(icon?.querySelector('path')).toHaveAttribute('d', ICON_ASSETS.clear.path);
+    });
+
+    it("keeps the clear icon's theme color while the clear action is disabled", () => {
+      renderSidebar();
+
+      const clearBtn = screen.getByRole('button', { name: 'Clear tag selection' });
+      expect(clearBtn).toBeDisabled();
+      expect(clearBtn).toHaveClass('tags-clear-btn', 'quiet');
+      expect(clearBtn.querySelector('svg.icon')).toHaveClass('icon');
     });
 
     it('is enabled when one tag is selected', () => {
@@ -358,18 +366,59 @@ describe('Sidebar component', () => {
       expect(clearBtn).toHaveFocus();
     });
 
-    it('sits between the Tags toggle and the Match selector in the same header row', () => {
+    it('places icon-only controls and the match selector in one header row', () => {
       renderSidebar();
 
-      const headerRight = document.querySelector('.sidebar-header-right');
-      expect(headerRight).not.toBeNull();
+      const header = document.querySelector('.sidebar-header');
+      const toggle = screen.getByRole('button', { name: 'Collapse tags sidebar' });
       const clearBtn = screen.getByRole('button', { name: 'Clear tag selection' });
-      expect(headerRight!.firstElementChild).toBe(clearBtn);
-      expect(headerRight!.querySelector('[aria-label="Tag match mode"]')).not.toBeNull();
-      expect(clearBtn.compareDocumentPosition(headerRight!.querySelector('[aria-label="Tag match mode"]')!)).toBe(
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      const match = screen.getByRole('group', { name: 'Tag match mode' });
+      const settings = screen.getByRole('button', { name: 'Manage tags' });
+      const close = screen.getByRole('button', { name: 'Close sidebar' });
+      expect(Array.from(header!.children)).toEqual([toggle, clearBtn, match, settings, close]);
+      for (const button of [toggle, clearBtn, settings, close]) {
+        expect(button).toHaveClass('tags-toggle-btn', 'quiet');
+        expect(button.textContent).toBe('');
+      }
+      expect(screen.queryByText('Match')).not.toBeInTheDocument();
+      expect(document.querySelector('.sidebar-footer')).toBeNull();
+    });
+
+    it('renders the settings artwork from the active theme and updates on theme change', () => {
+      const first = { path: 'FIRST_SETTINGS_PATH', viewBox: '0 0 24 24' };
+      const second = { path: 'SECOND_SETTINGS_PATH', viewBox: '0 0 42 42' };
+      const renderWithIcons = (settings: typeof first) => (
+        <ThemeIconsContext.Provider value={{ ...ICON_ASSETS, settings }}>
+          <Sidebar tags={mockTags} filters={defaultFilters} onChange={vi.fn()} onManageTags={vi.fn()} />
+        </ThemeIconsContext.Provider>
       );
-      expect(clearBtn.closest('.sidebar-header')).not.toBeNull();
+      const { rerender } = render(renderWithIcons(first));
+      const icon = screen.getByRole('button', { name: 'Manage tags' }).querySelector('svg');
+      expect(icon).toHaveClass('icon-settings');
+      expect(icon).toHaveAttribute('viewBox', first.viewBox);
+      expect(icon?.querySelector('path')).toHaveAttribute('d', first.path);
+      rerender(renderWithIcons(second));
+      expect(icon).toHaveAttribute('viewBox', second.viewBox);
+      expect(icon?.querySelector('path')).toHaveAttribute('d', second.path);
+    });
+
+    it('renders the supplied 24-unit settings artwork by default', () => {
+      render(
+        <Sidebar
+          tags={mockTags}
+          filters={defaultFilters}
+          onChange={vi.fn()}
+          onManageTags={vi.fn()}
+          onClose={vi.fn()}
+        />,
+      );
+
+      const icon = screen.getByRole('button', { name: 'Manage tags' }).querySelector('svg');
+      expect(icon).toHaveClass('icon-settings');
+      expect(icon).toHaveAttribute('viewBox', '0 0 24 24');
+      expect(icon).not.toHaveAttribute('fill');
+      expect(icon?.querySelector('path')).toHaveAttribute('d', ICON_ASSETS.settings.path);
+      expect(ICON_ASSETS.settings.path).not.toContain('#');
     });
 
     it('is hidden along with the other header controls when collapsed', () => {
