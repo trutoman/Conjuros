@@ -46,7 +46,7 @@ const defaultFilters: CollectionFilters = {
 };
 
 describe('Sidebar component', () => {
-  it('renders categories in alphabetical order and tags alphabetically inside them', () => {
+  it('falls back to alphabetical categories without category records and sorts tags alphabetically inside them', () => {
     render(
       <Sidebar
         tags={mockTags}
@@ -67,6 +67,22 @@ describe('Sidebar component', () => {
     expect(devTags[0]).toBe('docker');
     expect(devTags[1]).toBe('git');
     expect(devTags[2]).toBe('docs');
+  });
+
+  it('orders category groups by the given category order, tag-only categories last', () => {
+    render(
+      <Sidebar
+        tags={mockTags}
+        categories={['Zeta', 'documentation', 'alpha']}
+        filters={defaultFilters}
+        onChange={vi.fn()}
+        onManageTags={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const headers = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(headers).toEqual(['zeta', 'documentation', 'alpha', 'development']);
   });
 
   it('merges categories that differ only by case into a single lowercase group', () => {

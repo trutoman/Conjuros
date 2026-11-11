@@ -38,7 +38,19 @@ export function Sidebar({
       }
       grouped[category].push(tag);
     }
-    const sortedCategoryNames = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+    const position = new Map<string, number>();
+    categories.forEach((category, index) => {
+      const normalized = category.toLowerCase();
+      if (!position.has(normalized)) position.set(normalized, index);
+    });
+    const sortedCategoryNames = Object.keys(grouped).sort((a, b) => {
+      const left = position.get(a);
+      const right = position.get(b);
+      if (left !== undefined && right !== undefined) return left - right;
+      if (left !== undefined) return -1;
+      if (right !== undefined) return 1;
+      return a.localeCompare(b);
+    });
     for (const catName of sortedCategoryNames) {
       grouped[catName].sort((a, b) => a.tagName.localeCompare(b.tagName));
     }
