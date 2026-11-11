@@ -27,6 +27,28 @@ describe('themes service', () => {
     const { items, total } = await service.list(query);
     expect(total).toBe(2);
     expect(items.find((theme) => theme.name === 'light')).toMatchObject({ isDefault: true });
+    for (const theme of items) {
+      expect(theme.iconAssets.settings).toEqual(ICON_ASSETS.settings);
+    }
+  });
+
+  it('creates and updates customized settings artwork', async () => {
+    const { service } = setup();
+    await ensureThemesSeeded(service);
+    const seed = (await service.list(query)).items[0];
+    const first = { path: 'M1 1L2 2', viewBox: '0 0 10 10' };
+    const second = { path: 'M3 3L4 4', viewBox: '0 0 20 20' };
+    const created = await service.create(service.parseInput({
+      ...seed,
+      name: 'custom-settings',
+      isDefault: false,
+      iconAssets: { ...seed.iconAssets, settings: first },
+    }));
+    expect(created.iconAssets.settings).toEqual(first);
+    await service.update(created.id, service.parseUpdate({
+      iconAssets: { ...created.iconAssets, settings: second },
+    }));
+    expect((await service.get(created.id)).iconAssets.settings).toEqual(second);
   });
 
   it('resolves the active theme from the user theme id preference', async () => {
@@ -156,6 +178,7 @@ describe('legacy iconAssets shape migration', () => {
     expect(typeof iconAssets).toBe('object');
     expect(iconAssets.command).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
     expect(iconAssets.copy).toMatchObject({ path: expect.any(String), viewBox: expect.any(String) });
+    expect(iconAssets.settings).toEqual(ICON_ASSETS.settings);
   });
 
   it('lists legacy-shape themes with a normalized iconAssets record', async () => {
@@ -289,7 +312,7 @@ describe('iconAssets backfill', () => {
     const stored = await themes.findById('theme-light-legacy-array');
     expect(stored).not.toBeNull();
     const iconAssets = stored!.iconAssets as Record<string, { path: string; viewBox: string }>;
-    const expectedKeys = ['command', 'web-link', 'markdown', 'file', 'attachment', 'copy', 'open', 'view', 'download', 'menu', 'tags', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close', 'clear', 'search', 'sun', 'moon', 'add'];
+    const expectedKeys = Object.keys(ICON_ASSETS);
     for (const key of expectedKeys) {
       expect(iconAssets[key]).toBeDefined();
       expect(iconAssets[key].path).toBe(ICON_ASSETS[key as keyof typeof ICON_ASSETS].path);
@@ -302,6 +325,9 @@ describe('iconAssets backfill', () => {
     const { themes, service } = setup();
     await seedPartialKeyedTheme(themes);
 
+    const read = await service.get('theme-light-partial');
+    expect(read.iconAssets.settings).toEqual(ICON_ASSETS.settings);
+    expect(read.iconAssets.command?.path).toBe('CUSTOM_COMMAND_PATH');
     await service.backfillIconAssets();
 
     const stored = await themes.findById('theme-light-partial');
@@ -316,6 +342,49 @@ describe('iconAssets backfill', () => {
     expect(iconAssets.sun).toBeDefined();
     expect(iconAssets.moon).toBeDefined();
     expect(iconAssets.add).toBeDefined();
+    expect(iconAssets.settings).toEqual(ICON_ASSETS.settings);
+  });
+
+  it('preserves customized settings artwork on read and backfill', async () => {
+    const { themes, service } = setup();
+    await ensureThemesSeeded(service);
+    const theme = (await themes.findAll())[0];
+    const custom = { path: 'M1 1L2 2', viewBox: '0 0 10 10' };
+    await themes.replace({ ...theme, iconAssets: { ...theme.iconAssets, settings: custom } });
+
+    expect((await service.get(theme.id)).iconAssets.settings).toEqual(custom);
+    await service.backfillIconAssets();
+    expect((await themes.findById(theme.id))?.iconAssets.settings).toEqual(custom);
+  });
+
+  it('migrates the superseded bundled settings artwork on read and backfill, preserving custom values', async () => {
+    const { themes, service } = setup();
+    await ensureThemesSeeded(service);
+
+    const superseded = {
+      path: 'm421-132-15-111q-23-7-51-22.5T308-299l-102 46-59-105 90-67q-2-13-3.5-27t-1.5-27q0-12 1.5-26t3.5-30l-90-68 59-102 101 44q22-18 48-33t50-22l16-112h118l15 112q27 10 50 23t45 32l106-44 58 102-94 70q4 15 5 28t1 25q0 11-1.5 24t-4.5 30l93 68-59 105-104-47q-23 20-46.5 34.5T554-244l-15 112H421Zm18-22h81l15-111q30-8 54.5-22t51.5-39l102 44 40-69-90-67q4-19 6-33.5t2-28.5q0-16-2-29.5t-6-30.5l92-69-40-69-105 44q-18-20-49-39t-57-22l-13-111h-82l-12 110q-32 6-57.5 20.5T318-635l-103-43-40 69 90 66q-5 14-7 30t-2 34q0 16 2 31t6 30l-89 67 40 69 102-43q24 25 50 39t59 22l13 110Zm38-241q36 0 60.5-24.5T562-480q0-36-24.5-60.5T477-565q-35 0-60 24.5T392-480q0 36 25 60.5t60 24.5Zm3-85Z',
+      viewBox: '0 -960 960 960',
+    };
+    const custom = { path: 'CUSTOM_SETTINGS_PATH', viewBox: '0 0 24 24' };
+
+    const light = (await themes.findByName('light'))!;
+    await themes.replace({ ...light, iconAssets: { ...light.iconAssets, settings: superseded } });
+    const dark = (await themes.findByName('dark'))!;
+    await themes.replace({ ...dark, iconAssets: { ...dark.iconAssets, settings: custom } });
+
+    expect((await service.get(light.id)).iconAssets.settings).toEqual(ICON_ASSETS.settings);
+    expect((await themes.findById(light.id))!.iconAssets.settings).toEqual(superseded);
+
+    await service.backfillIconAssets();
+
+    expect((await themes.findById(light.id))!.iconAssets.settings).toEqual(ICON_ASSETS.settings);
+    expect((await themes.findById(dark.id))!.iconAssets.settings).toEqual(custom);
+  });
+
+  it('ships the settings artwork on the 24-unit grid without a hardcoded color', () => {
+    expect(ICON_ASSETS.settings.viewBox).toBe('0 0 24 24');
+    expect(ICON_ASSETS.settings.path.startsWith('M9.25,22')).toBe(true);
+    expect(JSON.stringify(ICON_ASSETS.settings)).not.toContain('#');
   });
 
   it('ships the clear artwork on the 24-unit grid with no hardcoded color', () => {
@@ -328,9 +397,11 @@ describe('iconAssets backfill', () => {
     expect(ICON_ASSETS.attachment.viewBox).toBe('0 0 24 24');
     expect(ICON_ASSETS.attachment.path.startsWith('M 17 6')).toBe(true);
     expect(JSON.stringify(ICON_ASSETS.attachment)).not.toContain('#');
-    for (const entry of Object.values(ICON_ASSETS)) {
+    for (const [key, entry] of Object.entries(ICON_ASSETS)) {
+      if (key === 'settings') continue;
       expect(entry.viewBox).toBe('0 0 24 24');
     }
+    expect(ICON_ASSETS.settings.viewBox).toBe('0 0 24 24');
   });
 
   it.each([

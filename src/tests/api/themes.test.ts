@@ -282,7 +282,7 @@ describe('theme endpoints', () => {
       const expectedKeys = [
         'command', 'web-link', 'markdown', 'file', 'attachment', 'copy', 'open', 'view', 'download',
         'menu', 'tags', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close',
-        'clear', 'search', 'sun', 'moon', 'add',
+        'clear', 'search', 'sun', 'moon', 'add', 'settings',
       ];
       expect(Object.keys(iconAssets).sort()).toEqual([...expectedKeys].sort());
       for (const key of expectedKeys) {

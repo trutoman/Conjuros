@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -115,6 +115,22 @@ describe('ThemeForm base theme seeding', () => {
 });
 
 describe('ThemeForm icon asset rows', () => {
+  it('allows settings artwork to be edited and submitted', async () => {
+    const onSubmit = vi.fn();
+    renderForm({ onSubmit });
+
+    expect(screen.getByLabelText('settings path')).toHaveValue(ICON_ASSETS.settings.path);
+    fireEvent.change(screen.getByLabelText('settings path'), { target: { value: 'M1 1L2 2' } });
+    fireEvent.change(screen.getByLabelText('settings viewBox'), { target: { value: '0 0 10 10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save theme' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        iconAssets: expect.objectContaining({ settings: { path: 'M1 1L2 2', viewBox: '0 0 10 10' } }),
+      }),
+    ));
+  });
+
   it('orders the icon, name, path, and viewBox in one row', () => {
     renderForm();
 

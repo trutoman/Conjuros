@@ -328,7 +328,7 @@ export function ThemeForm({
       <h3 className="theme-form-section">Icon assets</h3>
       <p className="theme-form-help">
         Each key below carries the SVG path and viewBox the UI uses to render that icon. Defaults match the
-        bundled outline set; edit to customize.
+        bundled icon set; edit to customize.
       </p>
       <div className="theme-icon-assets" role="group" aria-label="Icon assets">
         {iconAssetKeys.map((key) => (

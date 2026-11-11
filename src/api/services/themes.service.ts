@@ -33,6 +33,16 @@ function normalizeStoredTheme(theme: StoredTheme): StoredTheme {
   if (!Array.isArray(theme.iconAssets)) {
     let iconAssets = theme.iconAssets;
     let changed = false;
+    if (isSupersededSettings(iconAssets.settings)) {
+      iconAssets = {
+        ...iconAssets,
+        settings: {
+          path: ICON_ASSETS.settings.path,
+          viewBox: ICON_ASSETS.settings.viewBox,
+        },
+      };
+      changed = true;
+    }
     const clear = iconAssets.clear;
     if (clear?.path !== undefined && SUPERSEDED_CLEAR_PATHS.has(clear.path)) {
       iconAssets = {
@@ -147,6 +157,20 @@ function isSupersededTagsToggle(
   );
 }
 
+const SUPERSEDED_SETTINGS_ARTWORK = {
+  path: 'm421-132-15-111q-23-7-51-22.5T308-299l-102 46-59-105 90-67q-2-13-3.5-27t-1.5-27q0-12 1.5-26t3.5-30l-90-68 59-102 101 44q22-18 48-33t50-22l16-112h118l15 112q27 10 50 23t45 32l106-44 58 102-94 70q4 15 5 28t1 25q0 11-1.5 24t-4.5 30l93 68-59 105-104-47q-23 20-46.5 34.5T554-244l-15 112H421Zm18-22h81l15-111q30-8 54.5-22t51.5-39l102 44 40-69-90-67q4-19 6-33.5t2-28.5q0-16-2-29.5t-6-30.5l92-69-40-69-105 44q-18-20-49-39t-57-22l-13-111h-82l-12 110q-32 6-57.5 20.5T318-635l-103-43-40 69 90 66q-5 14-7 30t-2 34q0 16 2 31t6 30l-89 67 40 69 102-43q24 25 50 39t59 22l13 110Zm38-241q36 0 60.5-24.5T562-480q0-36-24.5-60.5T477-565q-35 0-60 24.5T392-480q0 36 25 60.5t60 24.5Zm3-85Z',
+  viewBox: '0 -960 960 960',
+};
+
+function isSupersededSettings(
+  value: { path: string; viewBox: string } | undefined,
+): boolean {
+  return (
+    value?.path === SUPERSEDED_SETTINGS_ARTWORK.path &&
+    value.viewBox === SUPERSEDED_SETTINGS_ARTWORK.viewBox
+  );
+}
+
 function buildIconAssetsRecord(
   current: Theme['iconAssets'],
 ): Record<IconAssetKey, { path: string; viewBox: string }> {
@@ -175,6 +199,13 @@ function buildIconAssetsRecord(
     const fallback = ICON_ASSETS[key];
     if (!fallback) continue;
     record[key] = { path: fallback.path, viewBox: fallback.viewBox };
+  }
+  // Migrate the superseded bundled `settings` artwork; custom values are preserved.
+  if (isSupersededSettings(record.settings)) {
+    record.settings = {
+      path: ICON_ASSETS.settings.path,
+      viewBox: ICON_ASSETS.settings.viewBox,
+    };
   }
   // Migrate the superseded bundled `clear` artwork; custom values are preserved.
   if (record.clear?.path !== undefined && SUPERSEDED_CLEAR_PATHS.has(record.clear.path)) {
@@ -220,7 +251,11 @@ export class ThemesService {
       normalized.imageBackdrop && this.themeImages
         ? this.themeImages.publicUrl(normalized.imageBackdrop.storagePath)
         : undefined;
-    return themeSchema.parse({ ...normalized, imageBackdropUrl });
+    return themeSchema.parse({
+      ...normalized,
+      iconAssets: buildIconAssetsRecord(normalized.iconAssets),
+      imageBackdropUrl,
+    });
   }
 
   parseQuery(input: unknown): ThemeQuery {

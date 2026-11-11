@@ -45,5 +45,6 @@ describe('TagMatchToggle', () => {
 
     const group = screen.getByRole('group', { name: 'Tag match mode' });
     expect(group).toBeInTheDocument();
+    expect(screen.queryByText('Match')).not.toBeInTheDocument();
   });
 });

@@ -76,17 +76,16 @@ export function Sidebar({
       <div className="sidebar-header">
         <button
           type="button"
-          className="tags-toggle-btn"
+          className="tags-toggle-btn quiet"
           onClick={onToggleOpen ?? onClose}
           aria-expanded={isOpen}
           aria-controls="tags-sidebar-panel"
           aria-label={isOpen ? 'Collapse tags sidebar' : 'Expand tags sidebar'}
         >
-          <span>Tags</span>
           <ThemeIcon name="tags" />
         </button>
         {isOpen && (
-          <div className="sidebar-header-right">
+          <>
             <button
               type="button"
               className="tags-toggle-btn tags-clear-btn quiet"
@@ -94,19 +93,31 @@ export function Sidebar({
               onClick={() => onChange({ ...filters, tags: [] })}
               aria-label="Clear tag selection"
             >
-              <span>Clear</span>
               <ThemeIcon name="clear" />
             </button>
             <TagMatchToggle
               mode={filters.tagFilterMode}
               onChange={(mode) => onChange({ ...filters, tagFilterMode: mode })}
             />
+            <button
+              type="button"
+              className="tags-toggle-btn quiet"
+              onClick={onManageTags}
+              aria-label="Manage tags"
+            >
+              <ThemeIcon name="settings" />
+            </button>
             {onClose && (
-              <button className="sidebar-close quiet" onClick={onClose} aria-label="Close sidebar">
+              <button
+                type="button"
+                className="tags-toggle-btn sidebar-close quiet"
+                onClick={onClose}
+                aria-label="Close sidebar"
+              >
                 <ThemeIcon name="close" />
               </button>
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -155,11 +166,6 @@ export function Sidebar({
                 </div>
               ))
             )}
-          </div>
-          <div className="sidebar-footer">
-            <button className="quiet" onClick={onManageTags}>
-              Manage tags
-            </button>
           </div>
         </>
       )}
