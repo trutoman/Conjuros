@@ -1941,9 +1941,6 @@ select {
   display: flex;
   flex-direction: column;
   height: max-content;
-  max-height: calc(100vh - 4rem);
-  position: sticky;
-  top: 1rem;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
@@ -2075,7 +2072,7 @@ select {
 
 .sidebar-content {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
   padding: 1.25rem;
 }
 
@@ -2185,6 +2182,7 @@ select {
   .app-sidebar .tags-sidebar {
     height: 100vh;
     max-height: 100vh;
+    overflow-y: auto;
     border-radius: 0;
   }
 
