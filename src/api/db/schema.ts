@@ -84,6 +84,8 @@ export const collectionItems = pgTable(
     relatedItemIds: text().array().notNull().default([]),
     // `order` is a reserved word in SQL; the TypeScript key and the API field keep the name.
     order: integer('position').notNull(),
+    // Items the user positioned by hand keep that rank when they are saved later.
+    manuallyOrdered: boolean().notNull().default(false),
     command: text(),
     url: text(),
     content: text(),

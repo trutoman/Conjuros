@@ -1,0 +1,1 @@
+ALTER TABLE "collection_items" ADD COLUMN "manually_ordered" boolean DEFAULT false NOT NULL;

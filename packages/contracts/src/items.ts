@@ -170,7 +170,8 @@ export const collectionItemSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   tags: z.array(tagValueSchema),
-  order: z.number().int().positive(),
+  // Order is a rank: new items take ranks above the current first item, so it can be zero or negative.
+  order: z.number().int(),
   relatedItemIds: z.array(itemIdSchema),
   command: z.string().nullable(),
   url: z.string().url().nullable(),

@@ -59,7 +59,14 @@ function postItem(app: PostgresApp, cookie: string, body: Record<string, unknown
     .send({ tags: [], relatedItemIds: [], ...body });
 }
 
-const forbiddenFields = ['ownerId', 'passwordHash', 'nameNormalized', 'tagNameNormalized', '_id'];
+const forbiddenFields = [
+  'ownerId',
+  'passwordHash',
+  'nameNormalized',
+  'tagNameNormalized',
+  'manuallyOrdered',
+  '_id',
+];
 
 function expectNoPersistenceFields(body: unknown) {
   const serialized = JSON.stringify(body);
@@ -132,10 +139,10 @@ describe('API over PostgreSQL repositories', () => {
       url: null,
       content: null,
       filename: null,
-      order: 1,
+      order: 0,
     });
-    expect(link.body).toMatchObject({ command: null, content: null, filename: null, order: 2 });
-    expect(note.body).toMatchObject({ command: null, url: null, filename: 'notes.md', order: 3 });
+    expect(link.body).toMatchObject({ command: null, content: null, filename: null, order: -1 });
+    expect(note.body).toMatchObject({ command: null, url: null, filename: 'notes.md', order: -2 });
     for (const created of [command, link, note]) {
       expect(created.body.createdAt).toMatch(isoTimestamp);
       expect(created.body.updatedAt).toMatch(isoTimestamp);
@@ -145,9 +152,9 @@ describe('API over PostgreSQL repositories', () => {
     const listed = await request(app).get('/api/items').set('Cookie', cookie).expect(200);
     expect(listed.body.total).toBe(3);
     expect(listed.body.items.map((item: { title: string }) => item.title)).toEqual([
-      'Deploy',
-      'Docs',
       'Notes',
+      'Docs',
+      'Deploy',
     ]);
     expectNoPersistenceFields(listed.body);
 
@@ -184,8 +191,8 @@ describe('API over PostgreSQL repositories', () => {
       ]),
     ).toEqual([
       ['Notes', 1],
-      ['Deploy', 2],
-      ['Docs', 3],
+      ['Docs', 2],
+      ['Deploy', 3],
     ]);
 
     // Renaming a tag rewrites the items that carry it.

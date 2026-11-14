@@ -35,8 +35,8 @@ export function CollectionList({
     }
 
     const sourceItem = items[sourceIndex];
-    const targetItem = items[targetIndex];
-    onReorder(sourceItem.id, targetItem.order);
+    // The API expects a 1-based position, not the target row's stored rank.
+    onReorder(sourceItem.id, targetIndex + 1);
     setInteractionMessage(`${sourceItem.title} moved to position ${targetIndex + 1}`);
     return true;
   }
