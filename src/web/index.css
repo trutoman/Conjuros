@@ -1976,6 +1976,10 @@ select {
   padding: 0;
 }
 
+.sidebar-header .tags-manage-btn {
+  margin-left: auto;
+}
+
 .tags-clear-btn:disabled {
   opacity: 1;
 }

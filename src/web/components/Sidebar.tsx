@@ -101,7 +101,7 @@ export function Sidebar({
             />
             <button
               type="button"
-              className="tags-toggle-btn quiet"
+              className="tags-toggle-btn tags-manage-btn quiet"
               onClick={onManageTags}
               aria-label="Manage tags"
             >
