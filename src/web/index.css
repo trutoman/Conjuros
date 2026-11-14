@@ -1911,7 +1911,7 @@ select {
 }
 
 .app-sidebar {
-  width: auto;
+  width: 280px;
   max-width: 280px;
   opacity: 1;
   transition:
