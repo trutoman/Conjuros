@@ -131,6 +131,15 @@ describe('ThemeForm icon asset rows', () => {
     ));
   });
 
+  it('exposes an editable row for every pagination navigation icon', () => {
+    renderForm();
+
+    for (const key of ['previous-page', 'next-page', 'last-page'] as const) {
+      expect(screen.getByLabelText(`${key} path`)).toHaveValue(ICON_ASSETS[key].path);
+      expect(screen.getByLabelText(`${key} viewBox`)).toHaveValue(ICON_ASSETS[key].viewBox);
+    }
+  });
+
   it('orders the icon, name, path, and viewBox in one row', () => {
     renderForm();
 

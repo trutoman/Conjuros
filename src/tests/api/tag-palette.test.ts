@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { MAX_PAGE_SIZE } from '@conjuros/contracts';
 import { createTestApp, registerUser } from './testApp';
 import { ThemesService } from '../../api/services/themes.service';
 
@@ -58,7 +59,7 @@ describe('tag color palette enforcement', () => {
     const { app, themesService } = seededContext();
     await themesService.ensureSeeded();
     const cookie = await registerUser(request, app, 'owner@example.com');
-    const dark = (await themesService.list({ limit: 50, skip: 0, sort: 'name' })).items.find(
+    const dark = (await themesService.list({ limit: MAX_PAGE_SIZE, skip: 0, sort: 'name' })).items.find(
       (theme) => theme.name === 'dark',
     )!;
     await request(app).patch('/api/auth/me/preferences').set('Cookie', cookie).send({ themeId: dark.id }).expect(200);

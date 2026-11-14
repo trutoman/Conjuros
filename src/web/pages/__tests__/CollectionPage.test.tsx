@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import type { CollectionItem } from '@conjuros/contracts';
+import type { CollectionItem, CollectionQuery } from '@conjuros/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
 import { clearAttachmentPreviewCache } from '../../lib/attachmentPreview';
@@ -77,8 +77,34 @@ const tagsState = {
   reorder: vi.fn(),
 };
 
+const collectionQueries: CollectionQuery[] = [];
+
 vi.mock('../../hooks/useCollection', () => ({
-  useCollection: () => collectionState,
+  // Stand in for the API: the server applies the filters and pages before returning rows.
+  useCollection: (query: CollectionQuery) => {
+    collectionQueries.push(query);
+    const matched = collectionState.items.filter((item) => {
+      const searchable = [
+        item.title,
+        item.description ?? '',
+        item.command ?? '',
+        item.url ?? '',
+        item.content ?? '',
+        ...item.tags,
+      ]
+        .join(' ')
+        .toLowerCase();
+      return (
+        (!query.search || searchable.includes(query.search.toLowerCase())) &&
+        (!query.kind || item.kind === query.kind)
+      );
+    });
+    return {
+      ...collectionState,
+      items: matched.slice(query.skip, query.skip + query.limit),
+      total: collectionState.total,
+    };
+  },
 }));
 
 vi.mock('../../hooks/useTags', () => ({
@@ -118,6 +144,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   reorderMock.mockReset();
   reorderMock.mockResolvedValue(undefined);
+  collectionQueries.length = 0;
   collectionState.items = collectionItems;
   collectionState.total = collectionItems.length;
   collectionState.isLoading = false;
@@ -713,6 +740,116 @@ describe('CollectionPage', () => {
       );
       expect(screen.getByRole('heading', { name: 'Edit item' })).toBeInTheDocument();
       expect(collectionState.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('pagination', () => {
+    function buildItems(count: number): CollectionItem[] {
+      return Array.from({ length: count }, (_value, index) => ({
+        ...collectionItems[0],
+        id: `paged-${index}`,
+        title: `Paged ${index}`,
+        order: index + 1,
+        tags: [],
+      }));
+    }
+
+    it('moves one page at a time and reports the displayed range', () => {
+      collectionState.items = buildItems(60);
+      collectionState.total = 60;
+
+      render(<CollectionPage />);
+
+      expect(screen.getByText('Showing 1–27 of 60 items')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+      expect(screen.getByText('Showing 28–54 of 60 items')).toBeInTheDocument();
+      expect(collectionQueries.at(-1)).toMatchObject({ skip: 27, limit: 27 });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+      expect(screen.getByText('Showing 55–60 of 60 items')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Previous page' }));
+      expect(screen.getByText('Showing 28–54 of 60 items')).toBeInTheDocument();
+      expect(collectionQueries.at(-1)).toMatchObject({ skip: 27, limit: 27 });
+    });
+
+    it('jumps to the last page', () => {
+      collectionState.items = buildItems(60);
+      collectionState.total = 60;
+
+      render(<CollectionPage />);
+      fireEvent.click(screen.getByRole('button', { name: 'Last page' }));
+
+      expect(screen.getByText('Showing 55–60 of 60 items')).toBeInTheDocument();
+      expect(collectionQueries.at(-1)).toMatchObject({ skip: 54, limit: 27 });
+      expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Last page' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Previous page' })).toBeEnabled();
+    });
+
+    it('renders the pagination row after the list', () => {
+      collectionState.items = buildItems(30);
+      collectionState.total = 30;
+
+      const { container } = render(<CollectionPage />);
+
+      const list = container.querySelector('.collection-list');
+      const pagination = container.querySelector('.collection-pagination');
+      expect(list).not.toBeNull();
+      expect(pagination).not.toBeNull();
+      expect(container.querySelectorAll('.collection-pagination')).toHaveLength(1);
+      expect(
+        list!.compareDocumentPosition(pagination!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        screen
+          .getByLabelText('Search collection')
+          .compareDocumentPosition(pagination!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('returns to the first page when a filter changes', () => {
+      collectionState.items = buildItems(60);
+      collectionState.total = 60;
+
+      render(<CollectionPage />);
+      fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+      expect(collectionQueries.at(-1)).toMatchObject({ skip: 27 });
+
+      fireEvent.change(screen.getByLabelText('Search collection'), { target: { value: 'Paged 1' } });
+
+      expect(collectionQueries.at(-1)).toMatchObject({ skip: 0, search: 'Paged 1' });
+      expect(screen.getByText('Showing 1–27 of 60 items')).toBeInTheDocument();
+    });
+
+    it('moves back a page when the last page loses its only item', () => {
+      collectionState.items = buildItems(28);
+      collectionState.total = 28;
+
+      const { rerender } = render(<CollectionPage />);
+      fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+      expect(screen.getByText('Showing 28–28 of 28 items')).toBeInTheDocument();
+
+      collectionState.items = buildItems(27);
+      collectionState.total = 27;
+      rerender(<CollectionPage />);
+
+      expect(collectionQueries.at(-1)).toMatchObject({ skip: 0 });
+      expect(screen.getByText('Showing 1–27 of 27 items')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled();
+    });
+
+    it('hides the counter when nothing matches', () => {
+      collectionState.items = [];
+      collectionState.total = 0;
+
+      render(<CollectionPage />);
+
+      expect(screen.queryByText(/Showing /)).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Your collection is empty' })).toBeInTheDocument();
     });
   });
 });

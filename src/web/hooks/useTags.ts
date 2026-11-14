@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TagInput, TagUpdate } from '@conjuros/contracts';
 import { createTag, deleteTag, listTags, reorderTag, updateTag } from '../services/tags';
+import { collectPages } from '../lib/collectPages';
 
 export function useTags() {
   const client = useQueryClient();
@@ -11,7 +12,7 @@ export function useTags() {
 
   const result = useQuery({
     queryKey: ['tags'],
-    queryFn: () => listTags({ limit: 50, skip: 0, sort: 'order' }),
+    queryFn: () => collectPages((request) => listTags({ ...request, sort: 'order' })),
   });
 
   const createMutation = useMutation({ mutationFn: createTag, onSuccess: invalidate });

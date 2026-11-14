@@ -2,14 +2,24 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CollectionPage } from '../CollectionPage';
 
+const taggedItems = [
+  { id: 'item-1', kind: 'command', title: 'Git only', description: '', tags: ['git'], order: 1, relatedItemIds: [], command: 'git status', url: null, content: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'item-2', kind: 'command', title: 'Docs only', description: '', tags: ['docs'], order: 2, relatedItemIds: [], command: 'cat docs', url: null, content: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'item-3', kind: 'command', title: 'Both tags', description: '', tags: ['git', 'docs'], order: 3, relatedItemIds: [], command: 'echo both', url: null, content: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+];
+
 vi.mock('../../hooks/useCollection', () => ({
-  useCollection: () => ({
-    items: [
-      { id: 'item-1', kind: 'command', title: 'Git only', description: '', tags: ['git'], order: 1, relatedItemIds: [], command: 'git status', url: null, content: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
-      { id: 'item-2', kind: 'command', title: 'Docs only', description: '', tags: ['docs'], order: 2, relatedItemIds: [], command: 'cat docs', url: null, content: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
-      { id: 'item-3', kind: 'command', title: 'Both tags', description: '', tags: ['git', 'docs'], order: 3, relatedItemIds: [], command: 'echo both', url: null, content: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
-    ],
-    total: 3,
+  // Stand in for the API: the server applies the tag filter before returning rows.
+  useCollection: (query: { tags?: string[]; tagFilterMode?: 'all' | 'any' }) => ({
+    items: taggedItems.filter(
+      (item) =>
+        !query.tags ||
+        query.tags.length === 0 ||
+        (query.tagFilterMode === 'any'
+          ? query.tags.some((tag) => item.tags.includes(tag))
+          : query.tags.every((tag) => item.tags.includes(tag))),
+    ),
+    total: taggedItems.length,
     isLoading: false,
     error: null,
     create: vi.fn(),

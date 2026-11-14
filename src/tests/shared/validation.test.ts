@@ -3,11 +3,16 @@ import {
   collectionItemSchema,
   collectionItemUpdateSchema,
   collectionQuerySchema,
+  DEFAULT_PAGE_SIZE,
   fileUpdateCandidateSchema,
+  MAX_PAGE_SIZE,
   markdownUpdateCandidateSchema,
   normalizeTags,
   reorderItemSchema,
+  tagCategoryQuerySchema,
   tagInputSchema,
+  tagQuerySchema,
+  themeQuerySchema,
 } from '@conjuros/contracts';
 import { describe, expect, it } from 'vitest';
 
@@ -601,5 +606,29 @@ describe('collection item contracts', () => {
     expect(tagInputSchema.safeParse({ ...base, tagCategory: 'work!' }).success).toBe(false);
     expect(tagInputSchema.safeParse({ ...base, tagCategory: 'Work-Tag' }).success).toBe(false);
     expect(tagInputSchema.safeParse({ ...base, tagCategory: 'dev.ops' }).success).toBe(true);
+  });
+});
+
+describe('paginated list query bounds', () => {
+  const listSchemas = [
+    ['items', collectionQuerySchema],
+    ['tags', tagQuerySchema],
+    ['tag categories', tagCategoryQuerySchema],
+    ['themes', themeQuerySchema],
+  ] as const;
+
+  it.each(listSchemas)('%s accepts the maximum page size', (_name, schema) => {
+    expect(schema.parse({ limit: MAX_PAGE_SIZE }).limit).toBe(MAX_PAGE_SIZE);
+    expect(schema.parse({ limit: String(MAX_PAGE_SIZE) }).limit).toBe(MAX_PAGE_SIZE);
+  });
+
+  it.each(listSchemas)('%s defaults to the default page size', (_name, schema) => {
+    expect(schema.parse({}).limit).toBe(DEFAULT_PAGE_SIZE);
+  });
+
+  it.each(listSchemas)('%s rejects page sizes outside 1..%s', (_name, schema) => {
+    expect(schema.safeParse({ limit: 0 }).success).toBe(false);
+    expect(schema.safeParse({ limit: MAX_PAGE_SIZE + 1 }).success).toBe(false);
+    expect(schema.safeParse({ limit: 50 }).success).toBe(false);
   });
 });

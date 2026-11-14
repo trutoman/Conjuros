@@ -7,6 +7,7 @@ import {
   reorderTagCategory,
   updateTagCategory,
 } from '../services/tag-categories';
+import { collectPages } from '../lib/collectPages';
 
 export function useTagCategories() {
   const client = useQueryClient();
@@ -17,7 +18,7 @@ export function useTagCategories() {
 
   const result = useQuery({
     queryKey: ['tag-categories'],
-    queryFn: () => listTagCategories({ limit: 50, skip: 0, sort: 'order' }),
+    queryFn: () => collectPages((request) => listTagCategories({ ...request, sort: 'order' })),
   });
 
   const createMutation = useMutation({ mutationFn: createTagCategory, onSuccess: invalidate });

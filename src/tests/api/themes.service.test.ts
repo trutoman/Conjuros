@@ -7,7 +7,7 @@ import { ThemesService } from '../../api/services/themes.service';
 import { grantAdminRole, ensureThemesSeeded } from '../../api/bootstrap';
 import { AppError } from '../../api/errors';
 import { ICON_ASSETS } from '../../web/lib/iconAssets';
-import type { ThemeQuery } from '@conjuros/contracts';
+import { MAX_PAGE_SIZE, type ThemeQuery } from '@conjuros/contracts';
 
 function setup() {
   const themes = new InMemoryThemesRepository();
@@ -17,7 +17,7 @@ function setup() {
   return { themes, users, preferences, service };
 }
 
-const query: ThemeQuery = { sort: 'name', limit: 50, skip: 0 };
+const query: ThemeQuery = { sort: 'name', limit: MAX_PAGE_SIZE, skip: 0 };
 
 describe('themes service', () => {
   it('seeds default themes on an empty collection', async () => {

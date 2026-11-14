@@ -7,6 +7,7 @@ import {
   listThemes,
   updateTheme,
 } from '../services/themes';
+import { collectPages } from '../lib/collectPages';
 
 export function useThemes() {
   const client = useQueryClient();
@@ -14,16 +15,7 @@ export function useThemes() {
 
   const result = useQuery({
     queryKey: ['themes'],
-    queryFn: async () => {
-      const firstPage = await listThemes({ limit: 50, skip: 0, sort: 'name' });
-      const items = [...firstPage.items];
-      while (items.length < firstPage.total) {
-        const page = await listThemes({ limit: 50, skip: items.length, sort: 'name' });
-        if (page.items.length === 0) break;
-        items.push(...page.items);
-      }
-      return { items, total: firstPage.total };
-    },
+    queryFn: () => collectPages((request) => listThemes({ ...request, sort: 'name' })),
   });
 
   const createMutation = useMutation({ mutationFn: createTheme, onSuccess: invalidate });

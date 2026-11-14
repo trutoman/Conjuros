@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CollectionItemUpdate, CollectionQuery } from '@conjuros/contracts';
 import {
   createItem,
@@ -13,7 +13,11 @@ import {
 export function useCollection(query: CollectionQuery) {
   const client = useQueryClient();
   const invalidate = () => client.invalidateQueries({ queryKey: ['collection'] });
-  const result = useQuery({ queryKey: ['collection', query], queryFn: () => listItems(query) });
+  const result = useQuery({
+    queryKey: ['collection', query],
+    queryFn: () => listItems(query),
+    placeholderData: keepPreviousData,
+  });
   const createMutation = useMutation({ mutationFn: createItem, onSuccess: invalidate });
   const updateMutation = useMutation({ mutationFn: ({ id, item }: { id: string; item: CollectionItemUpdate }) => updateItem(id, item), onSuccess: invalidate });
   const deleteMutation = useMutation({ mutationFn: deleteItem, onSuccess: invalidate });

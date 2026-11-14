@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import type { CollectionItemInput, CollectionQuery } from '@conjuros/contracts';
+import { MAX_PAGE_SIZE, type CollectionItemInput, type CollectionQuery } from '@conjuros/contracts';
 import { collectionItems } from '../../api/db/schema';
 import { CHECK_VIOLATION, FOREIGN_KEY_VIOLATION } from '../../api/db/sqlstate';
 import { PostgresItemsRepository } from '../../api/repositories/items.repository';
@@ -40,7 +40,7 @@ describe('PostgresItemsRepository', () => {
       const created = await seed(['a', 'b', 'c', 'd', 'e', 'f', 'g']);
       // A reorder stamps every row of the owner with one updated_at.
       await items.reorder(created[0].id, owner, 4);
-      const all = await items.list(owner, { ...baseQuery, limit: 50 });
+      const all = await items.list(owner, { ...baseQuery, limit: MAX_PAGE_SIZE });
       expect(new Set(all.items.map((item) => item.updatedAt)).size).toBe(1);
 
       const seen: string[] = [];

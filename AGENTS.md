@@ -120,7 +120,7 @@ Conjuros lets authenticated users manage a private collection of items. An item 
 - Use `async/await`, not `.then()/.catch()`
 - Parallel operations: `Promise.all()` or `Promise.allSettled()`
 - Dependency injection: `createApp(dependencies)` in `app.ts`
-- Paginate all list endpoints (default max 50)
+- Paginate all list endpoints (default page size 25, maximum 27 via `MAX_PAGE_SIZE` in `@conjuros/contracts`)
 - Status codes: 200, 201, 400, 401, 403, 404, 409 (semantic, not generic); uploads also use 413 and 415, and unavailable dependencies use 503
 - Error handling: raise `AppError`; never use empty `try/catch`
 - Third-party seams (email, Storage) translate their own failures into `AppError`, log the raw detail server-side, and never return it to the client
