@@ -1,6 +1,7 @@
 import {
   authenticatedUserProfileSchema,
   authenticatedUserSchema,
+  iconAssetKeys,
   roleSchema,
   themeInputSchema,
   themeSchema,
@@ -135,6 +136,28 @@ describe('theme contracts', () => {
       },
     };
     expect(themeInputSchema.safeParse(draft).success).toBe(false);
+  });
+
+  it('covers the pagination navigation icons in the icon catalogue', () => {
+    expect(iconAssetKeys).toHaveLength(27);
+    expect(iconAssetKeys).toEqual(
+      expect.arrayContaining(['previous-page', 'next-page', 'last-page']),
+    );
+
+    const draft = {
+      ...validThemeDraft,
+      iconAssets: {
+        ...validThemeDraft.iconAssets,
+        'previous-page': { path: 'M15 6 L9 12 L15 18', viewBox: '0 0 24 24' },
+        'next-page': { path: 'M9 6 L15 12 L9 18', viewBox: '0 0 24 24' },
+        'last-page': { path: 'M9 6 L15 12 L9 18 M18 6 V18', viewBox: '0 0 24 24' },
+      },
+    };
+
+    expect(themeInputSchema.parse(draft).iconAssets['next-page']).toEqual({
+      path: 'M9 6 L15 12 L9 18',
+      viewBox: '0 0 24 24',
+    });
   });
 
   it('accepts settings artwork and rejects an invalid definition', () => {

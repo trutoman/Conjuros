@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { MAX_PAGE_SIZE } from '@conjuros/contracts';
 import { createTestApp, registerUser, validPassword } from './testApp';
 import { buildSeedThemes } from '../../api/repositories/themeSeed';
 import { grantAdminRole } from '../../api/bootstrap';
@@ -33,7 +34,7 @@ describe('theme endpoints', () => {
     const context = createSeededTestApp();
     await seedThemes(context);
 
-    const themes = await context.themesService.list({ limit: 50, skip: 0, sort: 'name' });
+    const themes = await context.themesService.list({ limit: MAX_PAGE_SIZE, skip: 0, sort: 'name' });
     expect(themes.total).toBe(2);
     const names = themes.items.map((theme) => theme.name).sort();
     expect(names).toEqual(['dark', 'light']);
@@ -46,7 +47,7 @@ describe('theme endpoints', () => {
     const context = createSeededTestApp();
     await seedThemes(context);
     await seedThemes(context);
-    const { total } = await context.themesService.list({ limit: 50, skip: 0, sort: 'name' });
+    const { total } = await context.themesService.list({ limit: MAX_PAGE_SIZE, skip: 0, sort: 'name' });
     expect(total).toBe(2);
   });
 
@@ -68,7 +69,7 @@ describe('theme endpoints', () => {
     await seedThemes(context);
     const cookie = await registerUser(request, context.app, 'user@example.com');
 
-    const lightId = (await context.themesService.list({ limit: 50, skip: 0, sort: 'name' })).items.find(
+    const lightId = (await context.themesService.list({ limit: MAX_PAGE_SIZE, skip: 0, sort: 'name' })).items.find(
       (theme) => theme.name === 'light',
     )!.id;
 
@@ -136,7 +137,7 @@ describe('theme endpoints', () => {
       .set('Cookie', cookie)
       .expect(200);
     expect(activated.body.isDefault).toBe(true);
-    const lightId = (await context.themesService.list({ limit: 50, skip: 0, sort: 'name' })).items.find(
+    const lightId = (await context.themesService.list({ limit: MAX_PAGE_SIZE, skip: 0, sort: 'name' })).items.find(
       (theme) => theme.name === 'light',
     )!.id;
     const light = await context.themesService.get(lightId);
@@ -155,7 +156,7 @@ describe('theme endpoints', () => {
     const context = createSeededTestApp();
     await seedThemes(context);
     const cookie = await registerAdmin(context.app, context.users);
-    const lightId = (await context.themesService.list({ limit: 50, skip: 0, sort: 'name' })).items.find(
+    const lightId = (await context.themesService.list({ limit: MAX_PAGE_SIZE, skip: 0, sort: 'name' })).items.find(
       (theme) => theme.name === 'light',
     )!.id;
 
@@ -283,6 +284,7 @@ describe('theme endpoints', () => {
         'command', 'web-link', 'markdown', 'file', 'attachment', 'copy', 'open', 'view', 'download',
         'menu', 'tags', 'edit', 'delete', 'confirm', 'cancel', 'expand', 'collapse', 'close',
         'clear', 'search', 'sun', 'moon', 'add', 'settings',
+        'previous-page', 'next-page', 'last-page',
       ];
       expect(Object.keys(iconAssets).sort()).toEqual([...expectedKeys].sort());
       for (const key of expectedKeys) {

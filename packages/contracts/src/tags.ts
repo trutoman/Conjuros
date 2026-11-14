@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from './pagination';
 import { DEFAULT_TAG_CATEGORY } from './tag-categories';
 
 export const tagNamePattern = /^[A-Za-z0-9.]+$/;
@@ -78,7 +79,7 @@ export const tagSchema = z.object({
 });
 
 export const tagQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(50).default(25),
+  limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   skip: z.coerce.number().int().min(0).default(0),
   search: z.string().trim().max(200).optional(),
   sort: z.enum(['order', 'updatedAt', 'tagName', 'tagCategory']).default('order'),

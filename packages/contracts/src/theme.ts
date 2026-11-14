@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from './pagination';
 import { hexColorPattern } from './tags';
 
 export const themeIdSchema = z.string().min(1).max(128);
@@ -125,6 +126,9 @@ export const iconAssetKeys = [
   'moon',
   'add',
   'settings',
+  'previous-page',
+  'next-page',
+  'last-page',
 ] as const;
 
 export const iconAssetKeySchema = z.enum(iconAssetKeys);
@@ -214,7 +218,7 @@ export const themeSchema = themeDraftSchema
   });
 
 export const themeQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(50).default(25),
+  limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   skip: z.coerce.number().int().min(0).default(0),
   search: z.string().trim().max(200).optional(),
   sort: z.enum(['name', 'label', 'updatedAt']).default('name'),

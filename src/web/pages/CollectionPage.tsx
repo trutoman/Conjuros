@@ -11,6 +11,7 @@ import type {
   Theme,
 } from '@conjuros/contracts';
 import { CollectionList } from '../components/CollectionList';
+import { CollectionPagination } from '../components/CollectionPagination';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
@@ -56,9 +57,10 @@ export function CollectionPage({
   role?: Role;
   tagPalette?: string[] | null;
 }) {
-  const { filters, setFilters, query } = useCollectionFilters();
+  const { filters, setFilters, page, pageSize, setPage, query } = useCollectionFilters();
   const {
     items,
+    total,
     isLoading,
     error,
     create,
@@ -68,6 +70,11 @@ export function CollectionPage({
     uploadAttachment,
     removeAttachment,
   } = useCollection(query);
+  // Keep the current page inside the range the API reports after items are added or deleted.
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages, setPage]);
   const tagsState = useTags();
   const categoriesState = useTagCategories();
   const themesState = useThemes();
@@ -348,26 +355,6 @@ export function CollectionPage({
       tag.tagName.toLowerCase().includes(normalizedTagQuery) ||
       tag.tagCategory.toLowerCase().includes(normalizedTagQuery),
   );
-  const visibleItems = items.filter((item) => {
-    const searchable = [
-      item.title,
-      item.description ?? '',
-      item.command ?? '',
-      item.url ?? '',
-      item.content ?? '',
-      ...item.tags,
-    ]
-      .join(' ')
-      .toLowerCase();
-    return (
-      (!filters.search || searchable.includes(filters.search.toLowerCase())) &&
-      (!filters.kind || item.kind === filters.kind) &&
-      (filters.tags.length === 0 ||
-        (filters.tagFilterMode === 'any'
-          ? filters.tags.some((tag) => item.tags.includes(tag))
-          : filters.tags.every((tag) => item.tags.includes(tag))))
-    );
-  });
   return (
     <div className={`collection-layout-wrapper ${effectiveSidebarOpen ? 'sidebar-open' : ''}`}>
       <main className="app-shell">
@@ -498,23 +485,33 @@ export function CollectionPage({
                   <ErrorState message={error.message} />
                 ) : tagsState.error ? (
                   <ErrorState message={tagsState.error.message} />
-                ) : visibleItems.length === 0 ? (
+                ) : items.length === 0 ? (
                   <EmptyState filtered={filtered} filters={filters} />
                 ) : (
-                  <CollectionList
-                    items={visibleItems}
-                    tags={tagsState.tags}
-                    onReorder={(id, order) =>
-                      void reorder({ id, order }).catch((cause: unknown) =>
-                        setActionError(
-                          cause instanceof Error ? cause.message : 'Could not reorder item',
-                        ),
-                      )
-                    }
-                    onEdit={openItemForm}
-                    onDelete={setDeleteItem}
-                    onView={openViewer}
-                  />
+                  <>
+                    <CollectionList
+                      items={items}
+                      tags={tagsState.tags}
+                      onReorder={(id, order) =>
+                        void reorder({ id, order }).catch((cause: unknown) =>
+                          setActionError(
+                            cause instanceof Error ? cause.message : 'Could not reorder item',
+                          ),
+                        )
+                      }
+                      onEdit={openItemForm}
+                      onDelete={setDeleteItem}
+                      onView={openViewer}
+                    />
+                    <CollectionPagination
+                      page={page}
+                      pageSize={pageSize}
+                      total={total}
+                      onPrevious={() => setPage(Math.max(1, page - 1))}
+                      onNext={() => setPage(page + 1)}
+                      onLast={() => setPage(totalPages)}
+                    />
+                  </>
                 )}
               </>
             }

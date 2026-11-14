@@ -1858,6 +1858,48 @@ select {
   width: 140px;
 }
 
+.collection-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.collection-pagination .collection-range {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.collection-pagination-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.pagination-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+}
+
+.pagination-button .icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+@media (max-width: 768px) {
+  .collection-pagination {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
 .log-panel-frame {
   width: 300px;
   flex-shrink: 0;

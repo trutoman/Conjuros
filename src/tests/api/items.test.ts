@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { MAX_PAGE_SIZE } from '@conjuros/contracts';
 import { createTag, createTestApp, registerUser } from './testApp';
 
 describe('GET /api/items', () => {
@@ -91,6 +92,52 @@ describe('GET /api/items', () => {
       .set('Cookie', cookie)
       .expect(200);
     expect(anyResponse.body.items).toHaveLength(2);
+  });
+
+  it('pages the collection and reports the matching total', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'pager@example.com');
+
+    for (let index = 0; index < 30; index += 1) {
+      await request(app)
+        .post('/api/items')
+        .set('Cookie', cookie)
+        .send({
+          kind: 'command',
+          title: `Item ${index}`,
+          description: '',
+          tags: [],
+          relatedItemIds: [],
+          command: `echo ${index}`,
+        })
+        .expect(201);
+    }
+
+    const firstPage = await request(app)
+      .get(`/api/items?limit=${MAX_PAGE_SIZE}&skip=0`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(firstPage.body.items).toHaveLength(MAX_PAGE_SIZE);
+    expect(firstPage.body.total).toBe(30);
+
+    const lastPage = await request(app)
+      .get(`/api/items?limit=${MAX_PAGE_SIZE}&skip=${MAX_PAGE_SIZE}`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(lastPage.body.items).toHaveLength(30 - MAX_PAGE_SIZE);
+    expect(lastPage.body.total).toBe(30);
+  });
+
+  it('rejects a page size outside the allowed range', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'bounds@example.com');
+
+    await request(app).get(`/api/items?limit=${MAX_PAGE_SIZE}`).set('Cookie', cookie).expect(200);
+    await request(app)
+      .get(`/api/items?limit=${MAX_PAGE_SIZE + 1}`)
+      .set('Cookie', cookie)
+      .expect(400);
+    await request(app).get('/api/items?limit=0').set('Cookie', cookie).expect(400);
   });
 
   it('denies cross-user read, update, and delete access to private items', async () => {
