@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
+import { sql } from 'drizzle-orm';
 import { MAX_PAGE_SIZE, type CollectionItemInput, type CollectionQuery } from '@conjuros/contracts';
 import { collectionItems } from '../../api/db/schema';
 import { CHECK_VIOLATION, FOREIGN_KEY_VIOLATION } from '../../api/db/sqlstate';
@@ -123,9 +124,14 @@ describe('PostgresItemsRepository', () => {
       const { items, owner, add, seed } = await setup();
       const [, second] = await seed(['a', 'b', 'c', 'd']);
       await items.delete(second.id, owner);
-      await add(command('e'));
+      const extra = await add(command('e'));
+      // Legacy rows can share a position; reordering must repair the whole list.
+      const duplicatedPosition = (await items.list(owner, baseQuery)).items[1].order;
+      await database.db.execute(
+        sql`UPDATE collection_items SET position = ${duplicatedPosition} WHERE id = ${extra.id}`,
+      );
       const positions = (await items.list(owner, baseQuery)).items.map((item) => item.order);
-      expect(positions).toEqual([1, 3, 4, 4]);
+      expect(positions.filter((position) => position === duplicatedPosition)).toHaveLength(2);
 
       const last = (await items.list(owner, baseQuery)).items[3];
       await items.reorder(last.id, owner, 1);
@@ -255,5 +261,40 @@ describe('PostgresItemsRepository', () => {
       expect(removed?.item.mimeType).toBeNull();
       expect((await items.findOwned(item.id, owner))?.mimeType).toBeNull();
     });
+  });
+});
+
+describe('PostgresItemsRepository manual ordering', () => {
+  it('returns a position above the current first item', async () => {
+    const { items, owner, seed } = await setup();
+    const created = await seed(['a', 'b', 'c']);
+    const first = Math.min(...created.map((item) => item.order));
+
+    expect(await items.nextOrder(owner)).toBe(first - 1);
+  });
+
+  it('marks only the moved item as manually ordered', async () => {
+    const { items, owner, seed } = await setup();
+    const created = await seed(['a', 'b', 'c']);
+
+    const moved = await items.reorder(created[2].id, owner, 1);
+
+    expect(moved?.manuallyOrdered).toBe(true);
+    const others = (await items.list(owner, baseQuery)).items.filter(
+      (item) => item.id !== created[2].id,
+    );
+    expect(others.every((item) => item.manuallyOrdered === false)).toBe(true);
+  });
+
+  it('persists the manual flag when the item is replaced', async () => {
+    const { items, owner, seed } = await setup();
+    const created = await seed(['a', 'b', 'c']);
+    const moved = await items.reorder(created[2].id, owner, 2);
+    if (!moved) throw new Error('expected a reordered item');
+
+    const kept = await items.replace({ ...moved, title: 'renamed' });
+
+    expect(kept.manuallyOrdered).toBe(true);
+    expect((await items.findOwned(moved.id, owner))?.manuallyOrdered).toBe(true);
   });
 });

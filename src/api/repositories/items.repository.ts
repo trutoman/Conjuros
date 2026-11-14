@@ -9,6 +9,7 @@ import {
   eq,
   ilike,
   inArray,
+  min,
   or,
   sql,
   type SQL,
@@ -21,6 +22,7 @@ import { containsPattern } from '../db/sql';
 
 export interface StoredCollectionItem extends CollectionItem {
   ownerId: string;
+  manuallyOrdered: boolean;
 }
 
 export interface ItemsRepository {
@@ -105,7 +107,10 @@ export class InMemoryItemsRepository implements ItemsRepository {
   }
 
   async nextOrder(ownerId: string) {
-    return [...this.items.values()].filter((item) => item.ownerId === ownerId).length + 1;
+    const orders = [...this.items.values()]
+      .filter((item) => item.ownerId === ownerId)
+      .map((item) => item.order);
+    return orders.length === 0 ? 0 : Math.min(...orders) - 1;
   }
 
   async create(ownerId: string, input: CollectionItemInput, order: number) {
@@ -119,6 +124,7 @@ export class InMemoryItemsRepository implements ItemsRepository {
       tags: input.tags,
       relatedItemIds: input.relatedItemIds,
       order,
+      manuallyOrdered: false,
       command: input.kind === 'command' ? input.command : null,
       url: input.kind === 'web-link' ? input.url : null,
       content: input.kind === 'markdown' || input.kind === 'file' ? input.content : null,
@@ -156,7 +162,12 @@ export class InMemoryItemsRepository implements ItemsRepository {
     ordered.splice(Math.min(order - 1, ordered.length), 0, item);
     const timestamp = new Date().toISOString();
     ordered.forEach((candidate, index) =>
-      this.items.set(candidate.id, { ...candidate, order: index + 1, updatedAt: timestamp }),
+      this.items.set(candidate.id, {
+        ...candidate,
+        order: index + 1,
+        manuallyOrdered: candidate.id === id ? true : candidate.manuallyOrdered,
+        updatedAt: timestamp,
+      }),
     );
     return this.items.get(id) ?? null;
   }
@@ -206,6 +217,7 @@ export function toStoredItem(
     description: row.description,
     tags: row.tags,
     order: row.order,
+    manuallyOrdered: row.manuallyOrdered,
     relatedItemIds: row.relatedItemIds,
     command: row.command,
     url: row.url,
@@ -322,11 +334,11 @@ export class PostgresItemsRepository implements ItemsRepository {
   }
 
   async nextOrder(ownerId: string) {
-    const [{ total }] = await this.db
-      .select({ total: count() })
+    const [row] = await this.db
+      .select({ first: min(collectionItems.order) })
       .from(collectionItems)
       .where(eq(collectionItems.ownerId, ownerId));
-    return total + 1;
+    return row?.first === null || row?.first === undefined ? 0 : row.first - 1;
   }
 
   async create(ownerId: string, input: CollectionItemInput, order: number) {
@@ -367,6 +379,7 @@ export class PostgresItemsRepository implements ItemsRepository {
         tags: item.tags,
         relatedItemIds: item.relatedItemIds,
         order: item.order,
+        manuallyOrdered: item.manuallyOrdered,
         command: item.command,
         url: item.url,
         content: item.content,
@@ -390,6 +403,10 @@ export class PostgresItemsRepository implements ItemsRepository {
   async reorder(id: string, ownerId: string, order: number) {
     return this.db.transaction(async (tx) => {
       if (!(await renumberOwnedRows(tx, collectionItems, ownerId, id, order))) return null;
+      await tx
+        .update(collectionItems)
+        .set({ manuallyOrdered: true })
+        .where(owned(ownerId, id));
       const [row] = await tx
         .select(itemWithMimeType)
         .from(collectionItems)

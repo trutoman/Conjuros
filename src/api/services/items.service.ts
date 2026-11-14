@@ -17,8 +17,9 @@ import type { AttachmentStorage } from '../storage/storage';
 import type { TagsService } from './tags.service';
 
 export function toPublicItem(item: StoredCollectionItem): CollectionItem {
-  const { ownerId, ...publicItem } = item;
+  const { ownerId, manuallyOrdered, ...publicItem } = item;
   void ownerId;
+  void manuallyOrdered;
   return publicItem;
 }
 
@@ -99,6 +100,8 @@ export class ItemsService {
     await this.assertRelatedItemsOwned(ownerId, candidate.relatedItemIds);
     await this.assertOwnedTags(ownerId, candidate.tags);
     const textLike = candidate.kind === 'markdown' || candidate.kind === 'file';
+    // A saved item floats to the top unless the user placed it by hand.
+    const order = current.manuallyOrdered ? current.order : await this.repository.nextOrder(ownerId);
     return toPublicItem(await this.repository.replace({
       ...current,
       kind: candidate.kind,
@@ -106,6 +109,7 @@ export class ItemsService {
       description: candidate.description ?? null,
       tags: candidate.tags,
       relatedItemIds: candidate.relatedItemIds,
+      order,
       command: candidate.kind === 'command' ? candidate.command : null,
       url: candidate.kind === 'web-link' ? candidate.url : null,
       content: textLike ? candidate.content : null,

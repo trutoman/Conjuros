@@ -3,6 +3,123 @@ import { describe, expect, it } from 'vitest';
 import { MAX_PAGE_SIZE } from '@conjuros/contracts';
 import { createTag, createTestApp, registerUser } from './testApp';
 
+describe('item ordering', () => {
+  function createCommand(app: Parameters<typeof createTestApp>[0] extends never ? never : ReturnType<typeof createTestApp>['app'], cookie: string, title: string) {
+    return request(app)
+      .post('/api/items')
+      .set('Cookie', cookie)
+      .send({
+        kind: 'command',
+        title,
+        description: '',
+        tags: [],
+        relatedItemIds: [],
+        command: `echo ${title}`,
+      })
+      .expect(201);
+  }
+
+  async function listTitles(app: ReturnType<typeof createTestApp>['app'], cookie: string) {
+    const response = await request(app)
+      .get('/api/items?limit=27&skip=0&sort=order')
+      .set('Cookie', cookie)
+      .expect(200);
+    return response.body.items as { id: string; title: string; order: number }[];
+  }
+
+  it('places a new item above every existing item', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'order-new@example.com');
+
+    await createCommand(app, cookie, 'first');
+    await createCommand(app, cookie, 'second');
+
+    const items = await listTitles(app, cookie);
+    expect(items.map((item) => item.title)).toEqual(['second', 'first']);
+    expect(items[0]).not.toHaveProperty('manuallyOrdered');
+  });
+
+  it('moves a saved item above every other item', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'order-save@example.com');
+
+    await createCommand(app, cookie, 'alpha');
+    await createCommand(app, cookie, 'beta');
+    await createCommand(app, cookie, 'gamma');
+    expect((await listTitles(app, cookie)).map((item) => item.title)).toEqual([
+      'gamma',
+      'beta',
+      'alpha',
+    ]);
+
+    const [alpha] = (await listTitles(app, cookie)).filter((item) => item.title === 'alpha');
+    await request(app)
+      .patch(`/api/items/${alpha.id}`)
+      .set('Cookie', cookie)
+      .send({ title: 'alpha edited' })
+      .expect(200);
+
+    expect((await listTitles(app, cookie)).map((item) => item.title)).toEqual([
+      'alpha edited',
+      'gamma',
+      'beta',
+    ]);
+  });
+
+  it('keeps a manually placed item at its position when it is saved', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'order-manual@example.com');
+
+    for (const title of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']) {
+      await createCommand(app, cookie, title);
+    }
+    const [target] = (await listTitles(app, cookie)).filter((item) => item.title === 'i');
+
+    await request(app)
+      .patch(`/api/items/${target.id}/reorder`)
+      .set('Cookie', cookie)
+      .send({ order: 7 })
+      .expect(200);
+
+    let items = await listTitles(app, cookie);
+    expect(items[6].title).toBe('i');
+    expect(items.filter((item) => item.title === 'i')[0].order).toBe(7);
+
+    await request(app)
+      .patch(`/api/items/${target.id}`)
+      .set('Cookie', cookie)
+      .send({ title: 'i edited' })
+      .expect(200);
+
+    items = await listTitles(app, cookie);
+    expect(items[6].title).toBe('i edited');
+    expect(items.filter((item) => item.title === 'i edited')[0].order).toBe(7);
+  });
+
+  it('pushes a manually placed item down when a newer item is created', async () => {
+    const { app } = createTestApp();
+    const cookie = await registerUser(request, app, 'order-push@example.com');
+
+    for (const title of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']) {
+      await createCommand(app, cookie, title);
+    }
+    const [target] = (await listTitles(app, cookie)).filter((item) => item.title === 'i');
+
+    await request(app)
+      .patch(`/api/items/${target.id}/reorder`)
+      .set('Cookie', cookie)
+      .send({ order: 7 })
+      .expect(200);
+
+    await createCommand(app, cookie, 'newest');
+
+    const items = await listTitles(app, cookie);
+    expect(items[0].title).toBe('newest');
+    expect(items[7].title).toBe('i');
+    expect(items.filter((item) => item.title === 'i')[0].order).toBe(7);
+  });
+});
+
 describe('GET /api/items', () => {
   it('lists only the authenticated user items and supports search', async () => {
     const { app } = createTestApp();

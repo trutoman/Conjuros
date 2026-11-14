@@ -142,7 +142,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       expect(created[0]).toMatchObject({
         description: 'A command',
         tags: ['magic'],
-        order: 1,
+        order: 0,
         ownerId: owner,
       });
       expect(created[1].description).toBeNull();
@@ -164,12 +164,12 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
     it('numbers items per owner', async () => {
       const { items, owner, other, seed } = await setup();
 
-      expect(await items.nextOrder(owner)).toBe(1);
+      expect(await items.nextOrder(owner)).toBe(0);
       await seed(owner, [command('a'), command('b')]);
       await seed(other, [command('c')]);
 
-      expect(await items.nextOrder(owner)).toBe(3);
-      expect(await items.nextOrder(other)).toBe(2);
+      expect(await items.nextOrder(owner)).toBe(-2);
+      expect(await items.nextOrder(other)).toBe(-1);
     });
 
     it('replaces the stored fields of an item, including its kind', async () => {
@@ -258,9 +258,9 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
 
       expect(await titles(owner, { tags: ['a', 'b'], tagFilterMode: 'all' })).toEqual(['both']);
       expect(await titles(owner, { tags: ['a', 'b'], tagFilterMode: 'any' })).toEqual([
-        'both',
-        'only-a',
         'only-b',
+        'only-a',
+        'both',
       ]);
       expect(await titles(owner, { tags: [], tagFilterMode: 'all' })).toHaveLength(4);
     });
@@ -328,7 +328,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       const titles = async (sort: CollectionQuery['sort']) =>
         (await items.list(owner, { ...baseQuery, sort })).items.map((item) => item.title);
 
-      expect(await titles('order')).toEqual(['charlie', 'alpha', 'bravo']);
+      expect(await titles('order')).toEqual(['bravo', 'alpha', 'charlie']);
       expect(await titles('title')).toEqual(['alpha', 'bravo', 'charlie']);
       expect(await titles('updatedAt')).toEqual(['alpha', 'bravo', 'charlie']);
     });
@@ -342,7 +342,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
 
       const page = await items.list(owner, { ...baseQuery, limit: 3, skip: 3 });
 
-      expect(page.items.map((item) => item.title)).toEqual(['d', 'e', 'f']);
+      expect(page.items.map((item) => item.title)).toEqual(['d', 'c', 'b']);
       expect(page.total).toBe(7);
       expect((await items.list(owner, { ...baseQuery, limit: 3, skip: 9 })).items).toEqual([]);
     });
@@ -360,7 +360,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
 
       expect(moved).toMatchObject({ title: 'c', order: 1 });
       const ordered = await inOrder(owner);
-      expect(ordered.map((item) => item.title)).toEqual(['c', 'a', 'b', 'd', 'e']);
+      expect(ordered.map((item) => item.title)).toEqual(['c', 'e', 'd', 'b', 'a']);
       expect(ordered.map((item) => item.order)).toEqual([1, 2, 3, 4, 5]);
     });
 
@@ -374,7 +374,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
       const moved = await items.reorder(first.id, owner, 99);
 
       expect(moved).toMatchObject({ title: 'a', order: 5 });
-      expect((await inOrder(owner)).map((item) => item.title)).toEqual(['b', 'c', 'd', 'e', 'a']);
+      expect((await inOrder(owner)).map((item) => item.title)).toEqual(['e', 'd', 'c', 'b', 'a']);
     });
 
     it('moves an item down and keeps the other items in their relative order', async () => {
@@ -386,7 +386,7 @@ describe.each(implementations)('%s items repository', (_name, createRepositories
 
       await items.reorder(first.id, owner, 3);
 
-      expect((await inOrder(owner)).map((item) => item.title)).toEqual(['b', 'c', 'a', 'd']);
+      expect((await inOrder(owner)).map((item) => item.title)).toEqual(['d', 'c', 'a', 'b']);
     });
 
     it('returns null for an unknown item and leaves other owners untouched', async () => {
